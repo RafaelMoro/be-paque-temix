@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
+import { MongooseModule } from '@nestjs/mongoose';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import config from './config';
+import { Example, ExampleSchema } from './example.entity';
 
 @Module({
   imports: [
@@ -22,6 +24,12 @@ import config from './config';
         NODE_ENV: Joi.string().required(),
       }),
     }),
+    MongooseModule.forFeature([
+      {
+        name: Example.name,
+        schema: ExampleSchema,
+      },
+    ]),
     DatabaseModule,
   ],
   controllers: [AppController],
