@@ -13,3 +13,15 @@ export interface CreateUserResponse {
   lastName: string;
   role: Role[];
 }
+
+export interface LoginDataUser {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role[];
+}
+
+export interface LoginData {
+  accessToken: string;
+  user: LoginDataUser;
+}
