@@ -1,8 +1,15 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('config', () => {
-  const { CLUSTER, MONGO_DB_NAME, MONGO_USER, MONGO_PWD, MONGO_CONNECTION } =
-    process.env;
+  const {
+    CLUSTER,
+    MONGO_DB_NAME,
+    MONGO_USER,
+    MONGO_PWD,
+    MONGO_CONNECTION,
+    JWT_KEY,
+    PUBLIC_KEY,
+  } = process.env;
 
   return {
     database: {
@@ -11,6 +18,10 @@ export default registerAs('config', () => {
       user: MONGO_USER,
       password: MONGO_PWD,
       connection: MONGO_CONNECTION,
+    },
+    auth: {
+      jwtKey: JWT_KEY,
+      publicKey: PUBLIC_KEY,
     },
   };
 });

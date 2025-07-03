@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module';
 import config from './config';
 import { Example, ExampleSchema } from './example.entity';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,6 +24,8 @@ import { UsersModule } from './users/users.module';
         MONGO_DB_NAME: Joi.string().required(),
         MONGO_CONNECTION: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
+        JWT_KEY: Joi.string().required(),
+        PUBLIC_KEY: Joi.string().required(),
       }),
     }),
     MongooseModule.forFeature([
@@ -33,6 +36,7 @@ import { UsersModule } from './users/users.module';
     ]),
     DatabaseModule,
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
