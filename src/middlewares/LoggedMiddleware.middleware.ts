@@ -14,7 +14,6 @@ declare module 'express' {
 export class LoggedMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const token: string | undefined = req.cookies.accessToken;
-    console.log('cookied', req.cookies);
     if (!token) {
       next();
       return;
