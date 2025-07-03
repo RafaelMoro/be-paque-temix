@@ -16,7 +16,7 @@ export interface CreateUserResponse {
 
 export interface LoginDataUser {
   email: string;
-  firstName: string;
+  name: string;
   lastName: string;
   role: Role[];
 }

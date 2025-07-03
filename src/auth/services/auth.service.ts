@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { FlattenMaps } from 'mongoose';
+import { JwtService } from '@nestjs/jwt';
 
-import { UserDoc } from '@/users/entities/users.entity';
+import { User, UserDoc } from '@/users/entities/users.entity';
 import { UsersService } from '@/users/services/users.service';
+import { LoginData, LoginDataUser } from '@/users/users.interface';
+import { generateJWT } from '../auth.utils';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    // private jwtService: JwtService,
+    private jwtService: JwtService,
   ) {}
 
   async validatePasswordOfUser(email: string, password: string) {
@@ -30,19 +33,19 @@ export class AuthService {
     return null;
   }
 
-  // generateJWTAuth(user: User): LoginData {
-  //   const { email, firstName, lastName, role } = user;
-  //   const formattedUser: LoginDataUser = {
-  //     email,
-  //     firstName,
-  //     lastName,
-  //     role,
-  //   };
-  //   const accessToken = generateJWT(user, this.jwtService);
-  //   const loginData: LoginData = {
-  //     accessToken,
-  //     user: formattedUser,
-  //   };
-  //   return loginData;
-  // }
+  generateJWTAuth(user: User): LoginData {
+    const { email, name, lastName, role } = user;
+    const formattedUser: LoginDataUser = {
+      email,
+      name,
+      lastName,
+      role,
+    };
+    const accessToken = generateJWT(user, this.jwtService);
+    const loginData: LoginData = {
+      accessToken,
+      user: formattedUser,
+    };
+    return loginData;
+  }
 }
