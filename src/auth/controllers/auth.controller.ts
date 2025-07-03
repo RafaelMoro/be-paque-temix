@@ -12,7 +12,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @UseGuards(AuthGuard(LOCAL_STRATEGY))
-  @Post('local')
+  @Post()
   loginLocal(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
