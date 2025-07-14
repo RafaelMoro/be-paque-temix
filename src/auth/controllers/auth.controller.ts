@@ -11,7 +11,7 @@ import {
   LoginDto,
   LoginResponse,
   LoginResponseUnauthorized,
-} from '../dtos/auth.dtos';
+} from '../dtos/auth-responses.dto';
 
 @Controller('auth')
 export class AuthController {
