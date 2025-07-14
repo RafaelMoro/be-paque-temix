@@ -9,8 +9,8 @@ import { ACCESS_TOKEN_COOKIE_NAME, PROD_ENV } from '@/app.constant';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LoginDto,
+  LoginResponse,
   LoginResponseUnauthorized,
-  LoginResponseUser,
 } from '../dtos/auth.dtos';
 
 @Controller('auth')
@@ -25,7 +25,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 201,
-    type: LoginResponseUser,
+    type: LoginResponse,
     description: 'User logged in successfully.',
   })
   @ApiResponse({

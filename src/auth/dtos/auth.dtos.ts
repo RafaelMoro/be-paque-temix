@@ -39,13 +39,13 @@ export class LoginResponse {
 }
 
 export class LoginResponseUnauthorizedError {
-  @ApiProperty()
+  @ApiProperty({ default: 'Email or Password incorrect.' })
   message: string;
 
-  @ApiProperty()
+  @ApiProperty({ default: 'Unauthorized' })
   error: string;
 
-  @ApiProperty()
+  @ApiProperty({ default: 401 })
   statusCode: number;
 }
 
