@@ -8,11 +8,14 @@ import {
   CreateUserProps,
   CreateUserData,
   CreateUserResponse,
+  DeleteUserResponse,
 } from '../users.interface';
 import {
   ADMIN_USER_CREATED_MESSAGE,
   USER_CREATED_MESSAGE,
+  USER_DELETED_MESSAGE,
   USER_EXISTS_ERROR,
+  USER_NOT_FOUND_ERROR,
 } from '../users.constant';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
@@ -62,13 +65,43 @@ export class UsersService {
         lastName,
         role: roleResponse,
       };
-      const npmVersion: string = this.configService.version!;
+      const npmVersion: string = this.configService.version;
       const response: CreateUserResponse = {
         version: npmVersion,
         message: isAdmin ? ADMIN_USER_CREATED_MESSAGE : USER_CREATED_MESSAGE,
         error: null,
         data: {
           user: createUserData,
+        },
+      };
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteUser(userId: string) {
+    try {
+      const userDeletedModel: UserDoc | null =
+        await this.userModel.findByIdAndDelete(userId);
+      if (!userDeletedModel)
+        throw new BadRequestException(USER_NOT_FOUND_ERROR);
+
+      const { email, name, lastName } = userDeletedModel;
+      const npmVersion: string = this.configService.version;
+      const response: DeleteUserResponse = {
+        version: npmVersion,
+        error: null,
+        message: USER_DELETED_MESSAGE,
+        data: {
+          user: {
+            email,
+            name,
+            lastName,
+          },
         },
       };
       return response;

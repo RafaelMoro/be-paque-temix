@@ -28,6 +28,18 @@ export interface CreateUserResponse
   };
 }
 
+export interface DeleteUserResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    user: {
+      name: string;
+      lastName: string;
+      email: string;
+    };
+  };
+}
+
 export interface LoginDataUser {
   email: string;
   name: string;
