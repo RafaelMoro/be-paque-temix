@@ -6,7 +6,7 @@ import {
   IsArray,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { Role } from '../users.interface';
+import { Role, RoleEnum } from '../users.interface';
 
 export class CreateUserDto {
   @IsString()
@@ -20,7 +20,7 @@ export class CreateUserDto {
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
-  @ApiProperty({ enum: ['admin', 'user'] })
+  @ApiProperty({ enum: RoleEnum })
   readonly role: Role[];
 
   @IsString()
