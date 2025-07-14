@@ -9,6 +9,7 @@ export default registerAs('config', () => {
     MONGO_CONNECTION,
     JWT_KEY,
     PUBLIC_KEY,
+    ROLE_KEY,
   } = process.env;
 
   return {
@@ -22,6 +23,7 @@ export default registerAs('config', () => {
     auth: {
       jwtKey: JWT_KEY,
       publicKey: PUBLIC_KEY,
+      roleKey: ROLE_KEY,
     },
   };
 });
