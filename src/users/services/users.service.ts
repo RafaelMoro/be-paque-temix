@@ -4,7 +4,7 @@ import { FlattenMaps, Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 
 import { User, UserDoc } from '../entities/users.entity';
-import { CreateUserProps, CreateUserResponse } from '../users.interface';
+import { CreateUserProps, CreateUserResponse, Role } from '../users.interface';
 import { USER_EXISTS_ERROR } from '../users.constant';
 
 @Injectable()
@@ -28,7 +28,14 @@ export class UsersService {
   }: CreateUserProps): Promise<CreateUserResponse> {
     try {
       //Verify if the user exists with the same email.
-      const { email: emailData } = data;
+      const { email: emailData, role } = data;
+
+      // Validate the role should be one of the accepted roles.
+      const acceptedRoles: Role[] = ['admin', 'user'];
+      const hasAcceptedRole = role.some((r) => acceptedRoles.includes(r));
+      if (!hasAcceptedRole) {
+        throw new BadRequestException('Invalid role');
+      }
 
       const user: UserDoc | null = await this.findByEmail(emailData);
       if (user) throw new BadRequestException(USER_EXISTS_ERROR);

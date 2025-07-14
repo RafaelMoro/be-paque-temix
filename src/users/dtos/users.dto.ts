@@ -1,5 +1,12 @@
-import { IsString, IsNotEmpty, IsEmail, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 import { PartialType } from '@nestjs/swagger';
+import { Role } from '../users.interface';
 
 export class CreateUserDto {
   @IsString()
@@ -9,6 +16,11 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   readonly lastName: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty()
+  readonly role: Role[];
 
   @IsString()
   @IsNotEmpty()
