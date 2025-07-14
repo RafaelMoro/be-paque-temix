@@ -1,3 +1,4 @@
+import { GeneralResponse } from '@/global.interface';
 import { CreateUserDto } from './dtos/users.dto';
 
 export type Role = 'admin' | 'user';
@@ -12,11 +13,19 @@ export interface CreateUserProps {
   isAdmin?: boolean;
 }
 
-export interface CreateUserResponse {
+export interface CreateUserData {
   email: string;
   name: string;
   lastName: string;
   role: Role[];
+}
+
+export interface CreateUserResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    user: CreateUserData;
+  };
 }
 
 export interface LoginDataUser {

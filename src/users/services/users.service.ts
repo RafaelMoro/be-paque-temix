@@ -1,15 +1,24 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FlattenMaps, Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 
 import { User, UserDoc } from '../entities/users.entity';
-import { CreateUserProps, CreateUserResponse } from '../users.interface';
-import { USER_EXISTS_ERROR } from '../users.constant';
+import {
+  CreateUserProps,
+  CreateUserData,
+  CreateUserResponse,
+} from '../users.interface';
+import { USER_CREATED_MESSAGE, USER_EXISTS_ERROR } from '../users.constant';
+import config from '@/config';
+import { ConfigType } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @Inject(config.KEY) private configService: ConfigType<typeof config>,
+  ) {}
 
   async findByEmail(email: string): Promise<UserDoc | null> {
     try {
@@ -43,11 +52,20 @@ export class UsersService {
       const modelSaved: UserDoc = await userModel.save();
       const responseCreateUser: FlattenMaps<UserDoc> = modelSaved.toJSON();
       const { email, name, lastName, role: roleResponse } = responseCreateUser;
-      const response: CreateUserResponse = {
+      const createUserData: CreateUserData = {
         email,
         name,
         lastName,
         role: roleResponse,
+      };
+      const npmVersion: string = this.configService.version!;
+      const response: CreateUserResponse = {
+        version: npmVersion,
+        message: USER_CREATED_MESSAGE,
+        error: null,
+        data: {
+          user: createUserData,
+        },
       };
       return response;
     } catch (error) {

@@ -10,6 +10,7 @@ export default registerAs('config', () => {
     JWT_KEY,
     PUBLIC_KEY,
     ROLE_KEY,
+    npm_package_version: npmVersion,
   } = process.env;
 
   return {
@@ -25,5 +26,6 @@ export default registerAs('config', () => {
       publicKey: PUBLIC_KEY,
       roleKey: ROLE_KEY,
     },
+    version: npmVersion,
   };
 });
