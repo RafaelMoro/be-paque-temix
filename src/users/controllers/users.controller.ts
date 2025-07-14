@@ -12,6 +12,27 @@ import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 export class UsersController {
   constructor(private userService: UsersService) {}
 
+  /**
+   * Retrieves a user by their email address.
+   *
+   * @param {string} email - The email address of the user to retrieve.
+   * @returns {Promise<User>} The user object corresponding to the provided email.
+   *
+   * @throws {NotFoundException} If no user is found with the given email.
+   *
+   * @example
+   * // Request
+   * GET /users/john.doe@example.com
+   *
+   * // Response
+   * {
+   *   "id": "123",
+   *   "email": "john.doe@example.com",
+   *   "name": "John",
+   *   "lastName": "Doe",
+   *   "role": ["user"]
+   * }
+   */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
   @Get(':email')
