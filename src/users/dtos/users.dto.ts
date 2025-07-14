@@ -4,6 +4,8 @@ import {
   IsEmail,
   IsNumber,
   IsArray,
+  IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Role, RoleEnum } from '../users.interface';
@@ -21,8 +23,7 @@ export class CreateUserDto {
 
   @IsArray()
   @IsString({ each: true })
-  @IsNotEmpty()
-  @ApiProperty({ enum: RoleEnum })
+  @ApiProperty({ enum: RoleEnum, required: false })
   readonly role: Role[];
 
   @IsString()
@@ -41,6 +42,8 @@ export class CreateUserDto {
   @ApiProperty({ default: 1234567890 })
   readonly phone: number;
 
+  @ValidateIf((obj) => obj.secondPhone !== null) // Skip validation if null
+  @IsOptional()
   @IsNumber()
   @ApiProperty({ default: 1234567890, required: false })
   readonly secondPhone: number;
