@@ -17,6 +17,9 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Log in locally using email and password.
+   */
   @UseGuards(AuthGuard(LOCAL_STRATEGY))
   @Post()
   @ApiOperation({
