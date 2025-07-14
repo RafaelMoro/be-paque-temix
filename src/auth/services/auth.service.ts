@@ -23,11 +23,12 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
       const userResponse: FlattenMaps<UserDoc> = user.toJSON();
-      const { name, lastName, email } = userResponse;
+      const { name, lastName, email, role } = userResponse;
       return {
         name,
         lastName,
         email,
+        role,
       };
     }
     return null;
@@ -35,12 +36,14 @@ export class AuthService {
 
   generateJWTAuth(user: User): LoginData {
     const { email, name, lastName, role } = user;
+    console.log('user', user);
     const formattedUser: LoginDataUser = {
       email,
       name,
       lastName,
       role,
     };
+    console.log('formattedUser:', formattedUser);
     const accessToken = generateJWT(user, this.jwtService);
     const loginData: LoginData = {
       accessToken,
