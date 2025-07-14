@@ -1,3 +1,9 @@
+## v0.3.0 (2025-07-14)
+
+### Pull Requests
+[#3](https://github.com/RafaelMoro/be-paque-temix/pull/3) | Add users module, authentication local, roles, JWT strategy
+
+
 ## v0.2.0 (2025-06-19)
 
 ### Pull Requests
