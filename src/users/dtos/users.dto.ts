@@ -6,6 +6,8 @@ import {
   IsArray,
   IsOptional,
   ValidateIf,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Role, RoleEnum } from '../users.interface';
@@ -48,10 +50,12 @@ export class CreateUserDto {
   @ApiProperty({ default: 1234567890, required: false })
   readonly secondPhone: number;
 
-  @IsNumber()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(4)
   @IsNotEmpty()
-  @ApiProperty({ default: 5264, required: false })
-  readonly postalCode: number;
+  @ApiProperty({ default: '5264', required: false })
+  readonly postalCode: string;
 
   @IsString()
   @ApiProperty({ required: false })

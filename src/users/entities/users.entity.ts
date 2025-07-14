@@ -26,7 +26,7 @@ export class User extends Document {
   secondPhone: number;
 
   @Prop({ required: true })
-  postalCode: number;
+  postalCode: string;
 
   @Prop()
   companyName: string;
