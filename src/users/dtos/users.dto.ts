@@ -5,7 +5,7 @@ import {
   IsNumber,
   IsArray,
 } from 'class-validator';
-import { PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Role } from '../users.interface';
 
 export class CreateUserDto {
@@ -20,6 +20,7 @@ export class CreateUserDto {
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
+  @ApiProperty({ enum: ['admin', 'user'] })
   readonly role: Role[];
 
   @IsString()
@@ -36,6 +37,7 @@ export class CreateUserDto {
   readonly phone: number;
 
   @IsNumber()
+  @ApiProperty({ required: false })
   readonly secondPhone: number;
 
   @IsNumber()
@@ -43,9 +45,11 @@ export class CreateUserDto {
   readonly postalCode: number;
 
   @IsString()
+  @ApiProperty({ required: false })
   readonly companyName: string;
 
   @IsString()
+  @ApiProperty({ required: false })
   readonly address: string;
 }
 
