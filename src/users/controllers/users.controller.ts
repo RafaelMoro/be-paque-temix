@@ -6,6 +6,7 @@ import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { CreateUserResponseDto } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
 @Controller('users')
@@ -36,7 +37,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 201,
-    description: 'User logged in successfully.',
+    type: CreateUserResponseDto,
+    description: 'User created successfully.',
   })
   createUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload });
