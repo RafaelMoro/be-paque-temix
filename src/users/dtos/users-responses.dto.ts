@@ -26,3 +26,28 @@ export class CreateUserResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
 }
+
+class CreateUserEmailExistError {
+  @ApiProperty({ default: 'Try with other email.' })
+  message: string;
+
+  @ApiProperty({ default: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class CreateUserEmailExistResDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true })
+  message: null;
+
+  @ApiProperty({ type: () => CreateUserEmailExistError })
+  error: CreateUserEmailExistError;
+}
