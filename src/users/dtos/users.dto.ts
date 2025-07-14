@@ -2,12 +2,10 @@ import {
   IsString,
   IsNotEmpty,
   IsEmail,
-  IsNumber,
   IsArray,
-  IsOptional,
-  ValidateIf,
   MinLength,
   MaxLength,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Role, RoleEnum } from '../users.interface';
@@ -39,16 +37,19 @@ export class CreateUserDto {
   @ApiProperty()
   readonly password: string;
 
-  @IsNumber()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(10)
   @IsNotEmpty()
-  @ApiProperty({ default: 1234567890 })
-  readonly phone: number;
+  @ApiProperty({ default: '1234567890' })
+  readonly phone: string;
 
-  @ValidateIf((obj: CreateUserDto) => obj.secondPhone !== null) // Skip validation if null
+  @IsString()
   @IsOptional()
-  @IsNumber()
-  @ApiProperty({ default: 1234567890, required: false })
-  readonly secondPhone: number;
+  @MinLength(10)
+  @MaxLength(10)
+  @ApiProperty({ default: '1234567890', required: false })
+  readonly secondPhone: string;
 
   @IsString()
   @MinLength(4)
