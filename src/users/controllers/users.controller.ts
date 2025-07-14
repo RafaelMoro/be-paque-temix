@@ -3,12 +3,16 @@ import { UsersService } from '../services/users.service';
 import { CreateUserDto } from '../dtos/users.dto';
 import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
+import { RolesGuard } from '@/auth/guards/roles/roles.guard';
+import { Roles } from '@/auth/decorators/roles/roles.decorator';
 
 @UseGuards(JwtGuardGuard)
 @Controller('users')
 export class UsersController {
   constructor(private userService: UsersService) {}
 
+  @Roles('admin', 'user')
+  @UseGuards(RolesGuard)
   @Get(':email')
   getUser(@Param('email') email: string) {
     return this.userService.findByEmail(email);
