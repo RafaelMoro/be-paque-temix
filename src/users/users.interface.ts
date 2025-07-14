@@ -2,6 +2,11 @@ import { CreateUserDto } from './dtos/users.dto';
 
 export type Role = 'admin' | 'user';
 
+export enum RoleEnum {
+  admin = 'admin',
+  user = 'user',
+}
+
 export interface CreateUserProps {
   data: CreateUserDto;
   isAdmin?: boolean;

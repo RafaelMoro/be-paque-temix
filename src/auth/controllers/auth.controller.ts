@@ -6,8 +6,8 @@ import { AuthService } from '../services/auth.service';
 import { User } from '@/users/entities/users.entity';
 import { LOCAL_STRATEGY } from '../auth.constant';
 import { ACCESS_TOKEN_COOKIE_NAME, PROD_ENV } from '@/app.constant';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
-import { LoginDto } from '../dtos/auth.dtos';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { LoginDto, LoginResponseUser } from '../dtos/auth.dtos';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +19,11 @@ export class AuthController {
     summary: 'Log in endpoint.',
   })
   @ApiBody({ type: LoginDto })
+  @ApiResponse({
+    status: 201,
+    type: LoginResponseUser,
+    description: 'User logged in successfully.',
+  })
   loginLocal(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
