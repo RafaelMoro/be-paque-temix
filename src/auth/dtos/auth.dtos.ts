@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
+@ApiSchema({ name: 'LoginDto' })
 export class LoginDto {
   @ApiProperty()
   @IsString()
