@@ -23,4 +23,11 @@ export class UsersController {
   createUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload });
   }
+
+  @Roles('admin', 'user')
+  @UseGuards(RolesGuard)
+  @Post('admin')
+  createAdminUser(@Body() payload: CreateUserDto) {
+    return this.userService.createUser({ data: payload, isAdmin: true });
+  }
 }
