@@ -7,6 +7,7 @@ import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
+  CreateAdminUserResponseDto,
   CreateUserEmailExistResDto,
   CreateUserResponseDto,
 } from '../dtos/users-responses.dto';
@@ -38,6 +39,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Create a user.',
   })
+  // Api responses
   @ApiResponse({
     status: 201,
     type: CreateUserResponseDto,
@@ -63,6 +65,12 @@ export class UsersController {
       'Create an admin user. Only admin users are allowed to access this endpoint.',
   })
   @ApiBearerAuth()
+  // Api responses
+  @ApiResponse({
+    status: 201,
+    type: CreateAdminUserResponseDto,
+    description: 'Admin user created successfully.',
+  })
   createAdminUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload, isAdmin: true });
   }

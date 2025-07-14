@@ -9,7 +9,11 @@ import {
   CreateUserData,
   CreateUserResponse,
 } from '../users.interface';
-import { USER_CREATED_MESSAGE, USER_EXISTS_ERROR } from '../users.constant';
+import {
+  ADMIN_USER_CREATED_MESSAGE,
+  USER_CREATED_MESSAGE,
+  USER_EXISTS_ERROR,
+} from '../users.constant';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
 
@@ -61,7 +65,7 @@ export class UsersService {
       const npmVersion: string = this.configService.version!;
       const response: CreateUserResponse = {
         version: npmVersion,
-        message: USER_CREATED_MESSAGE,
+        message: isAdmin ? ADMIN_USER_CREATED_MESSAGE : USER_CREATED_MESSAGE,
         error: null,
         data: {
           user: createUserData,

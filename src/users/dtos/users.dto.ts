@@ -59,10 +59,12 @@ export class CreateUserDto {
   readonly postalCode: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly companyName: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly address: string;
 }

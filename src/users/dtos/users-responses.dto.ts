@@ -18,9 +18,42 @@ export class CreateUserResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
 
+  @ApiProperty({ example: 'User created' })
+  message: string;
+
   @ApiProperty({ type: CreateUserDataDto })
   data: {
     user: CreateUserDataDto;
+  };
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}
+
+class CreateAdminUserDataDto {
+  @ApiProperty({ example: 'john.doe@mail.com' })
+  email: string;
+
+  @ApiProperty({ example: 'John' })
+  name: string;
+
+  @ApiProperty({ example: 'Doe' })
+  lastName: string;
+
+  @ApiProperty({ example: ['user', 'admin'], isArray: true, required: false })
+  role: string[];
+}
+
+export class CreateAdminUserResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Admin user created' })
+  message: string;
+
+  @ApiProperty({ type: CreateAdminUserDataDto })
+  data: {
+    user: CreateAdminUserDataDto;
   };
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
