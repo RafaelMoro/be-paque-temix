@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -8,6 +8,9 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import config from './config';
 import { Example, ExampleSchema } from './example.entity';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { Example, ExampleSchema } from './example.entity';
         MONGO_DB_NAME: Joi.string().required(),
         MONGO_CONNECTION: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
+        JWT_KEY: Joi.string().required(),
+        PUBLIC_KEY: Joi.string().required(),
+        ROLE_KEY: Joi.string().required(),
       }),
     }),
     MongooseModule.forFeature([
@@ -31,8 +37,14 @@ import { Example, ExampleSchema } from './example.entity';
       },
     ]),
     DatabaseModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggedMiddleware).forRoutes('*');
+  }
+}
