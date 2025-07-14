@@ -2,8 +2,8 @@ import { RoleEnum } from '@/users/users.interface';
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
-@ApiSchema({ name: 'LoginDto' })
-export class LoginDto {
+@ApiSchema({ name: 'LoginBodyDto' })
+export class LoginBodyDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -19,7 +19,7 @@ export class LoginDto {
   name: 'LoginResponseUser',
   description: 'user object in login response',
 })
-export class LoginResponseUser {
+export class LoginUserDataDto {
   @ApiProperty()
   email: string;
 
@@ -33,9 +33,9 @@ export class LoginResponseUser {
   role: string[];
 }
 
-export class LoginResponse {
-  @ApiProperty({ type: () => LoginResponseUser })
-  user: LoginResponseUser;
+export class LoginResponseDto {
+  @ApiProperty({ type: () => LoginUserDataDto })
+  user: LoginUserDataDto;
 }
 
 export class LoginResponseUnauthorizedError {
