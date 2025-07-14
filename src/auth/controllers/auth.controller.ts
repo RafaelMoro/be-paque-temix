@@ -10,7 +10,7 @@ import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LoginBodyDto,
   LoginResponseDto,
-  LoginResponseUnauthorized,
+  LoginUnauthorizedResponseDto,
 } from '../dtos/auth-responses.dto';
 
 @Controller('auth')
@@ -33,7 +33,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    type: LoginResponseUnauthorized,
+    type: LoginUnauthorizedResponseDto,
     description: 'Email or password incorrect.',
   })
   loginLocal(

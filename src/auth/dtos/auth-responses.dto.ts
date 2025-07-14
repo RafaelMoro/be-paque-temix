@@ -38,7 +38,7 @@ export class LoginResponseDto {
   user: LoginUserDataDto;
 }
 
-export class LoginResponseUnauthorizedError {
+export class LoginUnauthorizedErrorDto {
   @ApiProperty({ default: 'Email or Password incorrect.' })
   message: string;
 
@@ -49,7 +49,7 @@ export class LoginResponseUnauthorizedError {
   statusCode: number;
 }
 
-export class LoginResponseUnauthorized {
+export class LoginUnauthorizedResponseDto {
   @ApiProperty()
   version: string;
 
@@ -59,6 +59,6 @@ export class LoginResponseUnauthorized {
   @ApiProperty({ type: 'null', nullable: true })
   message: null;
 
-  @ApiProperty({ type: () => LoginResponseUnauthorizedError })
-  error: LoginResponseUnauthorizedError;
+  @ApiProperty({ type: () => LoginUnauthorizedErrorDto })
+  error: LoginUnauthorizedErrorDto;
 }
