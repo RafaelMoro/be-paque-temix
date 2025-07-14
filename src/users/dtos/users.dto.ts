@@ -42,7 +42,7 @@ export class CreateUserDto {
   @ApiProperty({ default: 1234567890 })
   readonly phone: number;
 
-  @ValidateIf((obj) => obj.secondPhone !== null) // Skip validation if null
+  @ValidateIf((obj: CreateUserDto) => obj.secondPhone !== null) // Skip validation if null
   @IsOptional()
   @IsNumber()
   @ApiProperty({ default: 1234567890, required: false })
