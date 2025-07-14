@@ -11,10 +11,12 @@ import { Role, RoleEnum } from '../users.interface';
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly name: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly lastName: string;
 
   @IsArray()
@@ -26,22 +28,26 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @IsEmail()
+  @ApiProperty()
   readonly email: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly password: string;
 
   @IsNumber()
   @IsNotEmpty()
+  @ApiProperty({ default: 1234567890 })
   readonly phone: number;
 
   @IsNumber()
-  @ApiProperty({ required: false })
+  @ApiProperty({ default: 1234567890, required: false })
   readonly secondPhone: number;
 
   @IsNumber()
   @IsNotEmpty()
+  @ApiProperty({ default: 5264, required: false })
   readonly postalCode: number;
 
   @IsString()

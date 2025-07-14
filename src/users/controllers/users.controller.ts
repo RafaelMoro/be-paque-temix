@@ -5,7 +5,7 @@ import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @UseGuards(JwtGuardGuard)
 @Controller('users')
@@ -26,10 +26,17 @@ export class UsersController {
     return this.userService.findByEmail(email);
   }
 
+  /**
+   * Creates a new user.
+   */
   @Public()
   @Post()
   @ApiOperation({
     summary: 'Create a user.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User logged in successfully.',
   })
   createUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload });
