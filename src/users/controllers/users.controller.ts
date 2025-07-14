@@ -42,6 +42,9 @@ export class UsersController {
     return this.userService.createUser({ data: payload });
   }
 
+  /**
+   * Creates a new admin user.
+   */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
   @Post('admin')
