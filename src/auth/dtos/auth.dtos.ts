@@ -15,6 +15,10 @@ export class LoginDto {
   readonly password: string;
 }
 
+@ApiSchema({
+  name: 'LoginResponseUser',
+  description: 'user object in login response',
+})
 export class LoginResponseUser {
   @ApiProperty()
   email: string;
@@ -30,5 +34,31 @@ export class LoginResponseUser {
 }
 
 export class LoginResponse {
+  @ApiProperty({ type: () => LoginResponseUser })
   user: LoginResponseUser;
+}
+
+export class LoginResponseUnauthorizedError {
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  error: string;
+
+  @ApiProperty()
+  statusCode: number;
+}
+
+export class LoginResponseUnauthorized {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true })
+  message: null;
+
+  @ApiProperty({ type: () => LoginResponseUnauthorizedError })
+  error: LoginResponseUnauthorizedError;
 }

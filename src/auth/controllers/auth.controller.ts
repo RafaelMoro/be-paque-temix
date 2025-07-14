@@ -7,7 +7,11 @@ import { User } from '@/users/entities/users.entity';
 import { LOCAL_STRATEGY } from '../auth.constant';
 import { ACCESS_TOKEN_COOKIE_NAME, PROD_ENV } from '@/app.constant';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { LoginDto, LoginResponseUser } from '../dtos/auth.dtos';
+import {
+  LoginDto,
+  LoginResponseUnauthorized,
+  LoginResponseUser,
+} from '../dtos/auth.dtos';
 
 @Controller('auth')
 export class AuthController {
@@ -23,6 +27,11 @@ export class AuthController {
     status: 201,
     type: LoginResponseUser,
     description: 'User logged in successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    type: LoginResponseUnauthorized,
+    description: 'Email or password incorrect.',
   })
   loginLocal(
     @Req() request: Request,

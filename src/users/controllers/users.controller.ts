@@ -5,7 +5,7 @@ import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @UseGuards(JwtGuardGuard)
 @Controller('users')
@@ -39,6 +39,7 @@ export class UsersController {
     summary:
       'Create an admin user. Only admin users are allowed to access this endpoint.',
   })
+  @ApiBearerAuth()
   createAdminUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload, isAdmin: true });
   }

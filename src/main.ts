@@ -14,7 +14,7 @@ async function bootstrap() {
     .setTitle('Kraft envios API')
     .setDescription('This API is connected to mongoDB and uses and REST')
     .setVersion(VERSION_RESPONSE ?? '1.0.0')
-    .addTag('videogames')
+    .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
