@@ -11,6 +11,9 @@ export default registerAs('config', () => {
     ONE_TIME_JWT_KEY,
     PUBLIC_KEY,
     ROLE_KEY,
+    FRONTEND_PORT,
+    FRONTEND_URI,
+    NODE_ENV,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -28,6 +31,11 @@ export default registerAs('config', () => {
       roleKey: ROLE_KEY,
       oneTimeJwtKey: ONE_TIME_JWT_KEY,
     },
+    frontend: {
+      port: FRONTEND_PORT,
+      uri: FRONTEND_URI,
+    },
+    environment: NODE_ENV,
     version: npmVersion,
   };
 });

@@ -30,6 +30,8 @@ import { MailModule } from './mail/mail.module';
         ONE_TIME_JWT_KEY: Joi.string().required(),
         PUBLIC_KEY: Joi.string().required(),
         ROLE_KEY: Joi.string().required(),
+        FRONTEND_PORT: Joi.string().required(),
+        FRONTEND_URI: Joi.string().required(),
       }),
     }),
     MongooseModule.forFeature([

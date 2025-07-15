@@ -40,6 +40,12 @@ export interface DeleteUserResponse
   };
 }
 
+export interface ForgotResetPasswordResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: null;
+}
+
 export interface LoginDataUser {
   email: string;
   name: string;
