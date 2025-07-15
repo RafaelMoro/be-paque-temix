@@ -3,10 +3,29 @@ import { UsersController } from './users.controller';
 import { UsersService } from '../services/users.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { User, UserDoc } from '../entities/users.entity';
+import { ConfigType } from '@nestjs/config';
+import config from '@/config';
 
 describe('UsersController', () => {
   let usersController: UsersController;
   let usersService: UsersService;
+
+  const mockConfigService: ConfigType<typeof config> = {
+    version: '1.0.0', // Mock the version or other properties as needed
+    database: {
+      cluster: 'string',
+      mongoDbName: 'string',
+      user: 'string',
+      password: 'string',
+      connection: 'string',
+    },
+    auth: {
+      jwtKey: 'string',
+      publicKey: 'string',
+      roleKey: 'string',
+    },
+    // Add other mocked properties from your config if necessary
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -14,6 +33,10 @@ describe('UsersController', () => {
       providers: [
         UsersService,
         { provide: getModelToken(User.name), useValue: jest.fn() },
+        {
+          provide: config.KEY, // Provide the mocked config service
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
