@@ -2,50 +2,70 @@ import {
   IsString,
   IsNotEmpty,
   IsEmail,
-  IsNumber,
   IsArray,
+  MinLength,
+  MaxLength,
+  IsOptional,
 } from 'class-validator';
-import { PartialType } from '@nestjs/swagger';
-import { Role } from '../users.interface';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { Role, RoleEnum } from '../users.interface';
 
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly name: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly lastName: string;
 
   @IsArray()
   @IsString({ each: true })
-  @IsNotEmpty()
+  @ApiProperty({ enum: RoleEnum, required: false })
   readonly role: Role[];
 
   @IsString()
   @IsNotEmpty()
   @IsEmail()
+  @ApiProperty()
   readonly email: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   readonly password: string;
 
-  @IsNumber()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(10)
   @IsNotEmpty()
-  readonly phone: number;
-
-  @IsNumber()
-  readonly secondPhone: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  readonly postalCode: number;
+  @ApiProperty({ default: '1234567890' })
+  readonly phone: string;
 
   @IsString()
+  @IsOptional()
+  @MinLength(10)
+  @MaxLength(10)
+  @ApiProperty({ default: '1234567890', required: false })
+  readonly secondPhone: string;
+
+  @IsString()
+  @MinLength(4)
+  @MaxLength(4)
+  @IsNotEmpty()
+  @ApiProperty({ default: '5264', required: false })
+  readonly postalCode: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
   readonly companyName: string;
 
   @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
   readonly address: string;
 }
 

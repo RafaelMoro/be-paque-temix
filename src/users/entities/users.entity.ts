@@ -20,13 +20,13 @@ export class User extends Document {
   role: Role[];
 
   @Prop({ required: true })
-  phone: number;
+  phone: string;
 
   @Prop()
-  secondPhone: number;
+  secondPhone: string;
 
   @Prop({ required: true })
-  postalCode: number;
+  postalCode: string;
 
   @Prop()
   companyName: string;

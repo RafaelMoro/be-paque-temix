@@ -1,15 +1,31 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FlattenMaps, Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 
 import { User, UserDoc } from '../entities/users.entity';
-import { CreateUserProps, CreateUserResponse } from '../users.interface';
-import { USER_EXISTS_ERROR } from '../users.constant';
+import {
+  CreateUserProps,
+  CreateUserData,
+  CreateUserResponse,
+  DeleteUserResponse,
+} from '../users.interface';
+import {
+  ADMIN_USER_CREATED_MESSAGE,
+  USER_CREATED_MESSAGE,
+  USER_DELETED_MESSAGE,
+  USER_EXISTS_ERROR,
+  USER_NOT_FOUND_ERROR,
+} from '../users.constant';
+import config from '@/config';
+import { ConfigType } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @Inject(config.KEY) private configService: ConfigType<typeof config>,
+  ) {}
 
   async findByEmail(email: string): Promise<UserDoc | null> {
     try {
@@ -43,11 +59,53 @@ export class UsersService {
       const modelSaved: UserDoc = await userModel.save();
       const responseCreateUser: FlattenMaps<UserDoc> = modelSaved.toJSON();
       const { email, name, lastName, role: roleResponse } = responseCreateUser;
-      const response: CreateUserResponse = {
+      const createUserData: CreateUserData = {
         email,
         name,
         lastName,
         role: roleResponse,
+      };
+      const npmVersion: string = this.configService.version!;
+      const response: CreateUserResponse = {
+        version: npmVersion,
+        message: isAdmin ? ADMIN_USER_CREATED_MESSAGE : USER_CREATED_MESSAGE,
+        error: null,
+        data: {
+          user: createUserData,
+        },
+      };
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteUser(email: string | undefined) {
+    try {
+      if (!email) {
+        throw new BadRequestException('Email is missing');
+      }
+      const userDeletedModel: UserDoc | null =
+        await this.userModel.findOneAndDelete({ email });
+      if (!userDeletedModel)
+        throw new BadRequestException(USER_NOT_FOUND_ERROR);
+
+      const { name, lastName } = userDeletedModel;
+      const npmVersion: string = this.configService.version!;
+      const response: DeleteUserResponse = {
+        version: npmVersion,
+        error: null,
+        message: USER_DELETED_MESSAGE,
+        data: {
+          user: {
+            email,
+            name,
+            lastName,
+          },
+        },
       };
       return response;
     } catch (error) {
