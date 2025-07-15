@@ -14,6 +14,8 @@ export default registerAs('config', () => {
     FRONTEND_PORT,
     FRONTEND_URI,
     NODE_ENV,
+    RESEND_API_KEY,
+    MAILER_MAIL,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -34,6 +36,10 @@ export default registerAs('config', () => {
     frontend: {
       port: FRONTEND_PORT,
       uri: FRONTEND_URI,
+    },
+    mail: {
+      resendApiKey: RESEND_API_KEY,
+      mailerMail: MAILER_MAIL,
     },
     environment: NODE_ENV,
     version: npmVersion,

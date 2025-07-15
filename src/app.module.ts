@@ -32,6 +32,8 @@ import { MailModule } from './mail/mail.module';
         ROLE_KEY: Joi.string().required(),
         FRONTEND_PORT: Joi.string().required(),
         FRONTEND_URI: Joi.string().required(),
+        RESEND_API_KEY: Joi.string().required(),
+        MAILER_MAIL: Joi.string().email().required(),
       }),
     }),
     MongooseModule.forFeature([
