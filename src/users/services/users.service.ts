@@ -65,7 +65,7 @@ export class UsersService {
         lastName,
         role: roleResponse,
       };
-      const npmVersion: string = this.configService.version;
+      const npmVersion: string = this.configService.version!;
       const response: CreateUserResponse = {
         version: npmVersion,
         message: isAdmin ? ADMIN_USER_CREATED_MESSAGE : USER_CREATED_MESSAGE,
@@ -91,7 +91,7 @@ export class UsersService {
         throw new BadRequestException(USER_NOT_FOUND_ERROR);
 
       const { email, name, lastName } = userDeletedModel;
-      const npmVersion: string = this.configService.version;
+      const npmVersion: string = this.configService.version!;
       const response: DeleteUserResponse = {
         version: npmVersion,
         error: null,
