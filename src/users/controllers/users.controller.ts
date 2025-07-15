@@ -20,6 +20,7 @@ import {
   CreateAdminUserResponseDto,
   CreateUserEmailExistResDto,
   CreateUserResponseDto,
+  DeleteUserResponseDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -86,6 +87,15 @@ export class UsersController {
   }
 
   @Delete()
+  @ApiOperation({
+    summary: 'Deletes your own user.',
+  })
+  // Api Responses
+  @ApiResponse({
+    status: 200,
+    type: DeleteUserResponseDto,
+    description: 'User deleted successfully.',
+  })
   deleteUser(@RequestNest() request: Request) {
     const email: string | undefined = request?.user?.email;
     return this.userService.deleteUser(email);

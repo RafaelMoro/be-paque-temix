@@ -84,3 +84,30 @@ export class CreateUserEmailExistResDto {
   @ApiProperty({ type: () => CreateUserEmailExistError })
   error: CreateUserEmailExistError;
 }
+
+class DeleteUserDataDto {
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  lastName: string;
+}
+
+export class DeleteUserResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'User deleted' })
+  message: string;
+
+  @ApiProperty({ type: DeleteUserDataDto })
+  data: {
+    user: DeleteUserDataDto;
+  };
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}
