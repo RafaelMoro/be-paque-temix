@@ -39,6 +39,7 @@ export class UsersController {
     summary:
       'Get user by email. Only admin users are allowed to access this endpoint.',
   })
+  @ApiBearerAuth()
   getUser(@Param('email') email: string) {
     return this.userService.findByEmail(email);
   }
@@ -48,6 +49,7 @@ export class UsersController {
    */
   @Public()
   @Post()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a user.',
   })
@@ -72,6 +74,7 @@ export class UsersController {
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
   @Post('admin')
+  @ApiBearerAuth()
   @ApiOperation({
     summary:
       'Create an admin user. Only admin users are allowed to access this endpoint.',
@@ -87,10 +90,14 @@ export class UsersController {
     return this.userService.createUser({ data: payload, isAdmin: true });
   }
 
+  /**
+   * Deletes a user
+   */
   @Delete()
   @ApiOperation({
     summary: 'Deletes your own user.',
   })
+  @ApiBearerAuth()
   // Api Responses
   @ApiResponse({
     status: 200,
