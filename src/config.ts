@@ -8,6 +8,7 @@ export default registerAs('config', () => {
     MONGO_PWD,
     MONGO_CONNECTION,
     JWT_KEY,
+    ONE_TIME_JWT_KEY,
     PUBLIC_KEY,
     ROLE_KEY,
     npm_package_version: npmVersion,
@@ -25,6 +26,7 @@ export default registerAs('config', () => {
       jwtKey: JWT_KEY,
       publicKey: PUBLIC_KEY,
       roleKey: ROLE_KEY,
+      oneTimeJwtKey: ONE_TIME_JWT_KEY,
     },
     version: npmVersion,
   };

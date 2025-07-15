@@ -27,6 +27,7 @@ import { MailModule } from './mail/mail.module';
         MONGO_CONNECTION: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
         JWT_KEY: Joi.string().required(),
+        ONE_TIME_JWT_KEY: Joi.string().required(),
         PUBLIC_KEY: Joi.string().required(),
         ROLE_KEY: Joi.string().required(),
       }),
