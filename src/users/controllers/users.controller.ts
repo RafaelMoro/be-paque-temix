@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+  Request as RequestNest,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { UsersService } from '../services/users.service';
 import { CreateUserDto } from '../dtos/users.dto';
 import { Public } from '@/auth/decorators/public/public.decorator';
@@ -73,5 +83,11 @@ export class UsersController {
   })
   createAdminUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload, isAdmin: true });
+  }
+
+  @Delete()
+  deleteUser(@RequestNest() request: Request) {
+    const email: string | undefined = request?.user?.email;
+    return this.userService.deleteUser(email);
   }
 }

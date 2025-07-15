@@ -83,14 +83,17 @@ export class UsersService {
     }
   }
 
-  async deleteUser(userId: string) {
+  async deleteUser(email: string | undefined) {
     try {
+      if (!email) {
+        throw new BadRequestException('Email is missing');
+      }
       const userDeletedModel: UserDoc | null =
-        await this.userModel.findByIdAndDelete(userId);
+        await this.userModel.findOneAndDelete({ email });
       if (!userDeletedModel)
         throw new BadRequestException(USER_NOT_FOUND_ERROR);
 
-      const { email, name, lastName } = userDeletedModel;
+      const { name, lastName } = userDeletedModel;
       const npmVersion: string = this.configService.version!;
       const response: DeleteUserResponse = {
         version: npmVersion,
