@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+//#region Create user
 class CreateUserDataDto {
   @ApiProperty({ example: 'john.doe@mail.com' })
   email: string;
@@ -75,16 +76,17 @@ export class CreateUserEmailExistResDto {
   @ApiProperty()
   version: string;
 
-  @ApiProperty({ type: 'null', nullable: true })
+  @ApiProperty({ type: 'null', nullable: true, example: null })
   data: null;
 
-  @ApiProperty({ type: 'null', nullable: true })
+  @ApiProperty({ type: 'null', nullable: true, example: null })
   message: null;
 
   @ApiProperty({ type: () => CreateUserEmailExistError })
   error: CreateUserEmailExistError;
 }
 
+//#region Delete user
 class DeleteUserDataDto {
   @ApiProperty()
   email: string;
@@ -110,4 +112,29 @@ export class DeleteUserResponseDto {
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
+}
+
+class DeleteUserNotFoundError {
+  @ApiProperty({ default: 'User not found.' })
+  message: string;
+
+  @ApiProperty({ default: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class DeleteUserResNotFoundDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => DeleteUserNotFoundError })
+  error: DeleteUserNotFoundError;
 }

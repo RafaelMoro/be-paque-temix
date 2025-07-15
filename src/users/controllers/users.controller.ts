@@ -20,6 +20,7 @@ import {
   CreateAdminUserResponseDto,
   CreateUserEmailExistResDto,
   CreateUserResponseDto,
+  DeleteUserResNotFoundDto,
   DeleteUserResponseDto,
 } from '../dtos/users-responses.dto';
 
@@ -95,6 +96,11 @@ export class UsersController {
     status: 200,
     type: DeleteUserResponseDto,
     description: 'User deleted successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    type: DeleteUserResNotFoundDto,
+    description: 'User not found.',
   })
   deleteUser(@RequestNest() request: Request) {
     const email: string | undefined = request?.user?.email;
