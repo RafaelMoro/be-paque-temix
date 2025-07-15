@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   UseGuards,
+  Req,
   Request as RequestNest,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -22,6 +23,7 @@ import {
   CreateUserResponseDto,
   DeleteUserResNotFoundDto,
   DeleteUserResponseDto,
+  ForgotPasswordBodyDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -88,6 +90,12 @@ export class UsersController {
   })
   createAdminUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload, isAdmin: true });
+  }
+
+  @Public()
+  @Post('/forgot-password')
+  forgotPassword(@Body() payload: ForgotPasswordBodyDto) {
+    return this.userService.forgotPassword(payload);
   }
 
   /**

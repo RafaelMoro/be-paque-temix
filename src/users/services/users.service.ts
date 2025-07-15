@@ -31,6 +31,7 @@ import { PROD_ENV } from '@/app.constant';
 import { generateJWT } from '../users.utils';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from '@/mail/services/mail.service';
+import { ForgotPasswordBodyDto } from '../dtos/users-responses.dto';
 
 @Injectable()
 export class UsersService {
@@ -97,7 +98,7 @@ export class UsersService {
     }
   }
 
-  async forgotPassword(payload: MailForgotPasswordDto) {
+  async forgotPassword(payload: ForgotPasswordBodyDto) {
     try {
       const { email } = payload;
       const { frontend, environment } = this.configService;

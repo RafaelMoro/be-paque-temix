@@ -1,4 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class ForgotPasswordBodyDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsEmail()
+  @ApiProperty({ example: 'john.doe@mail.com' })
+  readonly email: string;
+}
 
 //#region Create user
 class CreateUserDataDto {
