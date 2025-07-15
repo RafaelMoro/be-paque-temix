@@ -30,6 +30,7 @@ import { MailForgotPasswordDto } from '@/mail/dtos/mail.dto';
 import { PROD_ENV } from '@/app.constant';
 import { generateJWT } from '../users.utils';
 import { JwtService } from '@nestjs/jwt';
+import { MailService } from '@/mail/services/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -37,6 +38,7 @@ export class UsersService {
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async findByEmail(email: string): Promise<UserDoc | null> {
@@ -121,7 +123,7 @@ export class UsersService {
         lastName,
         oneTimeToken,
       };
-      // await this.mailService.sendUserForgotPasswordEmail(emailPayload);
+      await this.mailService.sendUserForgotPasswordEmail(emailPayload);
 
       const npmVersion: string = this.configService.version!;
       const response: ForgotResetPasswordResponse = {
