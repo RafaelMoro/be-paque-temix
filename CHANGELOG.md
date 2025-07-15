@@ -1,3 +1,9 @@
+## v0.4.0 (2025-07-15)
+
+### Pull Requests
+[#4](https://github.com/RafaelMoro/be-paque-temix/pull/4) | Add swagger and unit test config
+
+
 ## v0.3.0 (2025-07-14)
 
 ### Pull Requests
