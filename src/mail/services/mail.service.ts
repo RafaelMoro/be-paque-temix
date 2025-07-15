@@ -1,4 +1,4 @@
-import React from 'react';
+import { createElement } from 'react';
 import { Resend } from 'resend';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -25,7 +25,7 @@ export class MailService {
         from: emailSender,
         to: email,
         subject: 'Recupera tu contraseña en Kraft Envios',
-        react: React.createElement(ResetPassword, { url, name, lastName }),
+        react: createElement(ResetPassword, { name, lastName, url }),
       });
     } catch (error) {
       if (error instanceof Error) {

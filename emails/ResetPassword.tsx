@@ -13,14 +13,14 @@ import {
 } from '@react-email/components';
 
 interface EmailForgotPasswordProps {
-  firstName: string;
+  name: string;
   lastName: string;
   url: string;
 }
 
 export default function EmailForgotPassword({
   url,
-  firstName,
+  name,
   lastName,
 }: EmailForgotPasswordProps): React.JSX.Element {
   return (
@@ -32,7 +32,7 @@ export default function EmailForgotPassword({
         <Body>
           <Container>
             <Heading as="h1" className="text-4xl font-bold text-center">
-              Hola {firstName} {lastName}
+              Hola {name} {lastName}
             </Heading>
             <Heading as="h2" className="mt-4 text-xl">
               ¿Olvidaste tu contraseña? Te ayudamos a recuperarla
