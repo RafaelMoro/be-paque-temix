@@ -161,3 +161,17 @@ export class ForgotPasswordResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
 }
+
+export class ResetPasswordResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Reset Password Successfully' })
+  message: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}

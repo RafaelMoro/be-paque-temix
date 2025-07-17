@@ -24,6 +24,7 @@ import {
   DeleteUserResponseDto,
   ForgotPasswordBodyDto,
   ForgotPasswordResponseDto,
+  ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -114,6 +115,15 @@ export class UsersController {
    */
   @Public()
   @Post('/reset-password/:oneTimeToken')
+  @ApiOperation({
+    summary: 'Reset password',
+  })
+  // Api responses
+  @ApiResponse({
+    status: 201,
+    type: ResetPasswordResponseDto,
+    description: 'Password reset successfully.',
+  })
   resetPassword(
     @Param('oneTimeToken') oneTimeToken: string,
     @Body() changes: ResetPasswordDto,
