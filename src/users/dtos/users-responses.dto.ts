@@ -227,3 +227,28 @@ export class JwtInvalidSignatureResErrorDto {
   @ApiProperty({ type: () => JwtInvalidSignatureError })
   error: JwtInvalidSignatureError;
 }
+
+class JwtMalformedError {
+  @ApiProperty({ example: 'jwt malformed' })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class JwtMalformedResErrorDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => JwtMalformedError })
+  error: JwtMalformedError;
+}

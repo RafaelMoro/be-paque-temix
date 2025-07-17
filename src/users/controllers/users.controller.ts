@@ -31,6 +31,7 @@ import {
   ForgotPasswordBodyDto,
   ForgotPasswordResponseDto,
   JwtInvalidSignatureResErrorDto,
+  JwtMalformedResErrorDto,
   JwtNotFoundResErrorDto,
   ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
@@ -132,11 +133,19 @@ export class UsersController {
     type: ResetPasswordResponseDto,
     description: 'Password reset successfully.',
   })
-  @ApiExtraModels(JwtNotFoundResErrorDto, JwtInvalidSignatureResErrorDto)
+  @ApiExtraModels(
+    JwtNotFoundResErrorDto,
+    JwtInvalidSignatureResErrorDto,
+    JwtMalformedResErrorDto,
+  )
   @ApiResponse({
     status: 400,
     schema: {
-      anyOf: refs(JwtNotFoundResErrorDto, JwtInvalidSignatureResErrorDto),
+      anyOf: refs(
+        JwtNotFoundResErrorDto,
+        JwtInvalidSignatureResErrorDto,
+        JwtMalformedResErrorDto,
+      ),
     },
   })
   resetPassword(
