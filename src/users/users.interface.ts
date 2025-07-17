@@ -8,6 +8,10 @@ export enum RoleEnum {
   user = 'user',
 }
 
+export interface PayloadTokenForgotPwd {
+  sub: string;
+}
+
 export interface CreateUserProps {
   data: CreateUserDto;
   isAdmin?: boolean;
@@ -41,6 +45,12 @@ export interface DeleteUserResponse
 }
 
 export interface ForgotResetPasswordResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: null;
+}
+
+export interface ResetPasswordResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: null;

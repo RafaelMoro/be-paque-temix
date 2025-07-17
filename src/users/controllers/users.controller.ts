@@ -10,12 +10,18 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from '../services/users.service';
-import { CreateUserDto } from '../dtos/users.dto';
+import { CreateUserDto, ResetPasswordDto } from '../dtos/users.dto';
 import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  refs,
+} from '@nestjs/swagger';
 import {
   CreateAdminUserResponseDto,
   CreateUserEmailExistResDto,
@@ -24,6 +30,10 @@ import {
   DeleteUserResponseDto,
   ForgotPasswordBodyDto,
   ForgotPasswordResponseDto,
+  JwtInvalidSignatureResErrorDto,
+  JwtMalformedResErrorDto,
+  JwtNotFoundResErrorDto,
+  ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -92,6 +102,9 @@ export class UsersController {
     return this.userService.createUser({ data: payload, isAdmin: true });
   }
 
+  /**
+   * Forgot password feature
+   */
   @Public()
   @Post('/forgot-password')
   @ApiOperation({
@@ -104,6 +117,43 @@ export class UsersController {
   })
   forgotPassword(@Body() payload: ForgotPasswordBodyDto) {
     return this.userService.forgotPassword(payload);
+  }
+
+  /**
+   * Reset password feature
+   */
+  @Public()
+  @Post('/reset-password/:oneTimeToken')
+  @ApiOperation({
+    summary: 'Reset password',
+  })
+  // Api responses
+  @ApiResponse({
+    status: 201,
+    type: ResetPasswordResponseDto,
+    description: 'Password reset successfully.',
+  })
+  @ApiExtraModels(
+    JwtNotFoundResErrorDto,
+    JwtInvalidSignatureResErrorDto,
+    JwtMalformedResErrorDto,
+  )
+  @ApiResponse({
+    status: 400,
+    schema: {
+      anyOf: refs(
+        JwtNotFoundResErrorDto,
+        JwtInvalidSignatureResErrorDto,
+        JwtMalformedResErrorDto,
+      ),
+    },
+  })
+  resetPassword(
+    @Param('oneTimeToken') oneTimeToken: string,
+    @Body() changes: ResetPasswordDto,
+  ) {
+    const { password } = changes;
+    return this.userService.resetPassword(oneTimeToken, password);
   }
 
   /**

@@ -15,14 +15,22 @@ import {
   CreateUserResponse,
   DeleteUserResponse,
   ForgotResetPasswordResponse,
+  ResetPasswordResponse,
+  PayloadTokenForgotPwd,
 } from '../users.interface';
 import {
   ADMIN_USER_CREATED_MESSAGE,
   FORGOT_PASSWORD_MESSAGE,
+  JWT_EXPIRED_ERROR,
+  JWT_INVALID_ERROR,
+  JWT_MALFORMED_ERROR,
+  JWT_NOT_FOUND,
+  RESET_PASSWORD_MESSAGE,
   USER_CREATED_MESSAGE,
   USER_DELETED_MESSAGE,
   USER_EXISTS_ERROR,
   USER_NOT_FOUND_ERROR,
+  WRONG_JWT_ERROR,
 } from '../users.constant';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
@@ -32,6 +40,7 @@ import { generateJWT } from '../users.utils';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from '@/mail/services/mail.service';
 import { ForgotPasswordBodyDto } from '../dtos/users-responses.dto';
+import { UpdateUserPasswordDto } from '../dtos/users.dto';
 
 @Injectable()
 export class UsersService {
@@ -130,6 +139,91 @@ export class UsersService {
       const response: ForgotResetPasswordResponse = {
         version: npmVersion,
         message: FORGOT_PASSWORD_MESSAGE,
+        data: null,
+        error: null,
+      };
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  verifyToken(token: string): PayloadTokenForgotPwd {
+    try {
+      return this.jwtService.verify(token);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error?.message === JWT_EXPIRED_ERROR) {
+          throw new BadRequestException(JWT_EXPIRED_ERROR);
+        }
+        if (error?.message === JWT_MALFORMED_ERROR) {
+          throw new BadRequestException(JWT_MALFORMED_ERROR);
+        }
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updatePassword(changes: UpdateUserPasswordDto) {
+    try {
+      const { uid, password } = changes;
+      const passwordHashed = await bcrypt.hash(password, 10);
+
+      const model: UserDoc | null = await this.userModel
+        .findByIdAndUpdate(
+          uid,
+          { $set: { password: passwordHashed } },
+          { new: true },
+        )
+        .exec();
+      if (!model) throw new BadRequestException(USER_NOT_FOUND_ERROR);
+      const response = {
+        message: 'password updated',
+        data: null,
+        error: null,
+      };
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async resetPassword(oneTimeToken: string, password: string) {
+    try {
+      const tokenVerified: PayloadTokenForgotPwd =
+        this.verifyToken(oneTimeToken);
+      if (!tokenVerified) throw new BadRequestException(JWT_INVALID_ERROR);
+
+      const userId: string = tokenVerified.sub;
+      const user: UserDoc | null = await this.userModel
+        .findOne({ _id: userId })
+        .exec();
+      if (!user) throw new BadRequestException(USER_NOT_FOUND_ERROR);
+      const { _id } = user;
+      const userIdGotten = _id as string;
+
+      const userOneTimeToken = user.oneTimeToken;
+      if (!userOneTimeToken) throw new BadRequestException(JWT_NOT_FOUND);
+
+      if (oneTimeToken !== userOneTimeToken)
+        throw new BadRequestException(WRONG_JWT_ERROR);
+
+      await this.userModel.updateOne(
+        { _id: user.id },
+        { $unset: { oneTimeToken: '' } },
+      );
+      await this.updatePassword({ uid: userIdGotten, password });
+      const npmVersion: string = this.configService.version!;
+      const response: ResetPasswordResponse = {
+        version: npmVersion,
+        message: RESET_PASSWORD_MESSAGE,
         data: null,
         error: null,
       };
