@@ -147,3 +147,17 @@ export class DeleteUserResNotFoundDto {
   @ApiProperty({ type: () => DeleteUserNotFoundError })
   error: DeleteUserNotFoundError;
 }
+
+export class ForgotPasswordResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Email sent' })
+  message: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}

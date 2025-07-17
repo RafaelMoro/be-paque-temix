@@ -6,7 +6,6 @@ import {
   Param,
   Post,
   UseGuards,
-  Req,
   Request as RequestNest,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -24,6 +23,7 @@ import {
   DeleteUserResNotFoundDto,
   DeleteUserResponseDto,
   ForgotPasswordBodyDto,
+  ForgotPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -94,6 +94,14 @@ export class UsersController {
 
   @Public()
   @Post('/forgot-password')
+  @ApiOperation({
+    summary: 'Send email to reset password',
+  })
+  @ApiResponse({
+    status: 201,
+    type: ForgotPasswordResponseDto,
+    description: 'User deleted successfully.',
+  })
   forgotPassword(@Body() payload: ForgotPasswordBodyDto) {
     return this.userService.forgotPassword(payload);
   }
