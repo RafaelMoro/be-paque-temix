@@ -10,5 +10,5 @@ export const RESET_PASSWORD_MESSAGE = 'Reset Password Successfully';
 export const JWT_EXPIRED_ERROR = 'jwt expired';
 export const JWT_MALFORMED_ERROR = 'jwt malformed';
 export const JWT_INVALID_ERROR = 'Invalid JWT.';
-export const JWT_NOT_FOUND = 'JWT not found.';
+export const JWT_NOT_FOUND = 'One time token missing.';
 export const WRONG_JWT_ERROR = 'JWT mismatch';

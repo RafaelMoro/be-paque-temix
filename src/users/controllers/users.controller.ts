@@ -15,7 +15,13 @@ import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  refs,
+} from '@nestjs/swagger';
 import {
   CreateAdminUserResponseDto,
   CreateUserEmailExistResDto,
@@ -24,6 +30,7 @@ import {
   DeleteUserResponseDto,
   ForgotPasswordBodyDto,
   ForgotPasswordResponseDto,
+  JwtInvalidSignatureResErrorDto,
   JwtNotFoundResErrorDto,
   ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
@@ -125,10 +132,12 @@ export class UsersController {
     type: ResetPasswordResponseDto,
     description: 'Password reset successfully.',
   })
+  @ApiExtraModels(JwtNotFoundResErrorDto, JwtInvalidSignatureResErrorDto)
   @ApiResponse({
     status: 400,
-    type: JwtNotFoundResErrorDto,
-    description: 'JWT not found. One time token not set',
+    schema: {
+      anyOf: refs(JwtNotFoundResErrorDto, JwtInvalidSignatureResErrorDto),
+    },
   })
   resetPassword(
     @Param('oneTimeToken') oneTimeToken: string,

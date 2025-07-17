@@ -162,6 +162,8 @@ export class ForgotPasswordResponseDto {
   error: null;
 }
 
+//#region Reset Password
+
 export class ResetPasswordResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
@@ -177,7 +179,7 @@ export class ResetPasswordResponseDto {
 }
 
 class JwtNotFoundError {
-  @ApiProperty({ example: 'JWT not found.' })
+  @ApiProperty({ example: 'One time token missing' })
   message: string;
 
   @ApiProperty({ example: 'Bad Request' })
@@ -199,4 +201,29 @@ export class JwtNotFoundResErrorDto {
 
   @ApiProperty({ type: () => JwtNotFoundError })
   error: JwtNotFoundError;
+}
+
+class JwtInvalidSignatureError {
+  @ApiProperty({ example: 'invalid signature' })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class JwtInvalidSignatureResErrorDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => JwtInvalidSignatureError })
+  error: JwtInvalidSignatureError;
 }
