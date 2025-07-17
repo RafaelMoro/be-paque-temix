@@ -175,3 +175,28 @@ export class ResetPasswordResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
 }
+
+class JwtNotFoundError {
+  @ApiProperty({ example: 'JWT not found.' })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class JwtNotFoundResErrorDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => JwtNotFoundError })
+  error: JwtNotFoundError;
+}

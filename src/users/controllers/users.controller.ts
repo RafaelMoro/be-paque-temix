@@ -24,6 +24,7 @@ import {
   DeleteUserResponseDto,
   ForgotPasswordBodyDto,
   ForgotPasswordResponseDto,
+  JwtNotFoundResErrorDto,
   ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
@@ -123,6 +124,11 @@ export class UsersController {
     status: 201,
     type: ResetPasswordResponseDto,
     description: 'Password reset successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    type: JwtNotFoundResErrorDto,
+    description: 'JWT not found. One time token not set',
   })
   resetPassword(
     @Param('oneTimeToken') oneTimeToken: string,
