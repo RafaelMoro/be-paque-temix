@@ -11,6 +11,7 @@ import { Example, ExampleSchema } from './example.entity';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -26,8 +27,13 @@ import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
         MONGO_CONNECTION: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
         JWT_KEY: Joi.string().required(),
+        ONE_TIME_JWT_KEY: Joi.string().required(),
         PUBLIC_KEY: Joi.string().required(),
         ROLE_KEY: Joi.string().required(),
+        FRONTEND_PORT: Joi.string().required(),
+        FRONTEND_URI: Joi.string().required(),
+        RESEND_API_KEY: Joi.string().required(),
+        MAILER_MAIL: Joi.string().email().required(),
       }),
     }),
     MongooseModule.forFeature([
@@ -39,6 +45,7 @@ import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

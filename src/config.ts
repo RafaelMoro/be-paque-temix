@@ -8,8 +8,14 @@ export default registerAs('config', () => {
     MONGO_PWD,
     MONGO_CONNECTION,
     JWT_KEY,
+    ONE_TIME_JWT_KEY,
     PUBLIC_KEY,
     ROLE_KEY,
+    FRONTEND_PORT,
+    FRONTEND_URI,
+    NODE_ENV,
+    RESEND_API_KEY,
+    MAILER_MAIL,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -25,7 +31,17 @@ export default registerAs('config', () => {
       jwtKey: JWT_KEY,
       publicKey: PUBLIC_KEY,
       roleKey: ROLE_KEY,
+      oneTimeJwtKey: ONE_TIME_JWT_KEY,
     },
+    frontend: {
+      port: FRONTEND_PORT,
+      uri: FRONTEND_URI,
+    },
+    mail: {
+      resendApiKey: RESEND_API_KEY,
+      mailerMail: MAILER_MAIL,
+    },
+    environment: NODE_ENV,
     version: npmVersion,
   };
 });

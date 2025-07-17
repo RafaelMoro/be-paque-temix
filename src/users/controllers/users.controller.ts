@@ -22,6 +22,8 @@ import {
   CreateUserResponseDto,
   DeleteUserResNotFoundDto,
   DeleteUserResponseDto,
+  ForgotPasswordBodyDto,
+  ForgotPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
 @UseGuards(JwtGuardGuard)
@@ -88,6 +90,20 @@ export class UsersController {
   })
   createAdminUser(@Body() payload: CreateUserDto) {
     return this.userService.createUser({ data: payload, isAdmin: true });
+  }
+
+  @Public()
+  @Post('/forgot-password')
+  @ApiOperation({
+    summary: 'Send email to reset password',
+  })
+  @ApiResponse({
+    status: 201,
+    type: ForgotPasswordResponseDto,
+    description: 'User deleted successfully.',
+  })
+  forgotPassword(@Body() payload: ForgotPasswordBodyDto) {
+    return this.userService.forgotPassword(payload);
   }
 
   /**

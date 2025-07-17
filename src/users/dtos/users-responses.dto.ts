@@ -1,4 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class ForgotPasswordBodyDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsEmail()
+  @ApiProperty({ example: 'john.doe@mail.com' })
+  readonly email: string;
+}
 
 //#region Create user
 class CreateUserDataDto {
@@ -137,4 +146,18 @@ export class DeleteUserResNotFoundDto {
 
   @ApiProperty({ type: () => DeleteUserNotFoundError })
   error: DeleteUserNotFoundError;
+}
+
+export class ForgotPasswordResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Email sent' })
+  message: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
 }

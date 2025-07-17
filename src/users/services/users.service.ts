@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FlattenMaps, Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -9,9 +14,11 @@ import {
   CreateUserData,
   CreateUserResponse,
   DeleteUserResponse,
+  ForgotResetPasswordResponse,
 } from '../users.interface';
 import {
   ADMIN_USER_CREATED_MESSAGE,
+  FORGOT_PASSWORD_MESSAGE,
   USER_CREATED_MESSAGE,
   USER_DELETED_MESSAGE,
   USER_EXISTS_ERROR,
@@ -19,12 +26,20 @@ import {
 } from '../users.constant';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
+import { MailForgotPasswordDto } from '@/mail/dtos/mail.dto';
+import { PROD_ENV } from '@/app.constant';
+import { generateJWT } from '../users.utils';
+import { JwtService } from '@nestjs/jwt';
+import { MailService } from '@/mail/services/mail.service';
+import { ForgotPasswordBodyDto } from '../dtos/users-responses.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
+    private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async findByEmail(email: string): Promise<UserDoc | null> {
@@ -73,6 +88,50 @@ export class UsersService {
         data: {
           user: createUserData,
         },
+      };
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async forgotPassword(payload: ForgotPasswordBodyDto) {
+    try {
+      const { email } = payload;
+      const { frontend, environment } = this.configService;
+      const { uri = 'http://localhost', port = '3000' } = frontend;
+      const completeHostname =
+        environment === PROD_ENV ? uri : `${uri}:${port}`;
+
+      const user: UserDoc | null = await this.findByEmail(email);
+      if (!user) throw new NotFoundException(USER_NOT_FOUND_ERROR);
+
+      const { name, lastName } = user;
+      const oneTimeToken = generateJWT(user, this.jwtService);
+      await this.userModel.updateOne(
+        { _id: user.id },
+        { oneTimeToken },
+        { multi: true },
+      );
+
+      const emailPayload: MailForgotPasswordDto = {
+        email,
+        name,
+        hostname: completeHostname,
+        lastName,
+        oneTimeToken,
+      };
+      await this.mailService.sendUserForgotPasswordEmail(emailPayload);
+
+      const npmVersion: string = this.configService.version!;
+      const response: ForgotResetPasswordResponse = {
+        version: npmVersion,
+        message: FORGOT_PASSWORD_MESSAGE,
+        data: null,
+        error: null,
       };
       return response;
     } catch (error) {
