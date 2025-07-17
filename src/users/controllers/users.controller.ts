@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from '../services/users.service';
-import { CreateUserDto } from '../dtos/users.dto';
+import { CreateUserDto, ResetPasswordDto } from '../dtos/users.dto';
 import { Public } from '@/auth/decorators/public/public.decorator';
 import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
@@ -107,6 +107,19 @@ export class UsersController {
   })
   forgotPassword(@Body() payload: ForgotPasswordBodyDto) {
     return this.userService.forgotPassword(payload);
+  }
+
+  /**
+   * Reset password feature
+   */
+  @Public()
+  @Post('/reset-password/:oneTimeToken')
+  resetPassword(
+    @Param('oneTimeToken') oneTimeToken: string,
+    @Body() changes: ResetPasswordDto,
+  ) {
+    const { password } = changes;
+    return this.userService.resetPassword(oneTimeToken, password);
   }
 
   /**

@@ -70,3 +70,19 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
+
+export class UpdateUserPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  readonly password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly uid: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  readonly password: string;
+}
