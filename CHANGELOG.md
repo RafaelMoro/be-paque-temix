@@ -1,3 +1,9 @@
+## v0.5.0 (2025-07-17)
+
+### Pull Requests
+[#5](https://github.com/RafaelMoro/be-paque-temix/pull/5) | Add forgot password
+
+
 ## v0.4.0 (2025-07-15)
 
 ### Pull Requests
