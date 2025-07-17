@@ -92,6 +92,9 @@ export class UsersController {
     return this.userService.createUser({ data: payload, isAdmin: true });
   }
 
+  /**
+   * Forgot password feature
+   */
   @Public()
   @Post('/forgot-password')
   @ApiOperation({
