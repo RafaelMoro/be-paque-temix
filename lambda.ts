@@ -6,6 +6,8 @@ import { Callback, Context, Handler } from 'aws-lambda';
 import { AppModule } from './src/app.module';
 import { GeneralAppExceptionFilter } from '@/exceptions/GeneralException.filter';
 import cookieParser from 'cookie-parser';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { VERSION_RESPONSE } from '@/app.constant';
 
 let cachedServer: Handler;
 const frontendUri = process.env.FRONTEND_URI;
@@ -14,6 +16,15 @@ const domainUri = process.env.DOMAIN_URI;
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = new DocumentBuilder()
+    .setTitle('Kraft envios API')
+    .setDescription('This API is connected to mongoDB and uses and REST')
+    .setVersion(VERSION_RESPONSE ?? '1.0.0')
+    .addBearerAuth()
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
+
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
