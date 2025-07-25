@@ -5,7 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { Callback, Context, Handler } from 'aws-lambda';
 import { AppModule } from './src/app.module';
 import { GeneralAppExceptionFilter } from '@/exceptions/GeneralException.filter';
-import cookieParser from 'cookie-parser';
+import * as cookieParser from 'cookie-parser';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { VERSION_RESPONSE } from '@/app.constant';
 
