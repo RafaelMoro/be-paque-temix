@@ -1,3 +1,9 @@
+## v0.7.0 (2025-07-25)
+
+### Pull Requests
+[#7](https://github.com/RafaelMoro/be-paque-temix/pull/7) | Add deploy AWS
+
+
 ## v0.6.0 (2025-07-17)
 
 ### Pull Requests
