@@ -11,7 +11,7 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getCotization() {
+  async getQuote() {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;

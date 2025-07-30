@@ -11,6 +11,11 @@ export class AppController {
     return this.appService.findExamples();
   }
 
+  @Get('/quote')
+  getQuote() {
+    return this.appService.getQuote();
+  }
+
   @Post()
   async createExample(@Body() payload: CreateVideogameDto) {
     return this.appService.createExample(payload);

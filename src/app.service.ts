@@ -3,11 +3,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Example, ExampleDoc } from './example.entity';
 import { CreateVideogameDto } from './example.dto';
+import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectModel(Example.name) private exampleModel: Model<Example>,
+    private guiaEnviaService: GuiaEnviaService,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -21,8 +23,10 @@ export class AppService {
       }
       return examples;
     } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      throw new BadRequestException(error.message);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
   }
 
@@ -32,8 +36,22 @@ export class AppService {
       const modelSaved: ExampleDoc = await model.save();
       return modelSaved;
     } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      throw new BadRequestException(error.message);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  getQuote() {
+    try {
+      // something
+      return 'hi';
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
   }
 }
