@@ -12,7 +12,7 @@ export class AppController {
   }
 
   @Get('/quote')
-  getQuote() {
+  async getQuote() {
     return this.appService.getQuote();
   }
 

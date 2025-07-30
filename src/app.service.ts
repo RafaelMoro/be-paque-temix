@@ -43,8 +43,9 @@ export class AppService {
     }
   }
 
-  getQuote() {
+  async getQuote() {
     try {
+      await this.guiaEnviaService.getQuote();
       // something
       return 'hi';
     } catch (error) {

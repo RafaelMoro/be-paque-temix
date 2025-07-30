@@ -23,10 +23,23 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException('URI for Guia Envia is not configured');
       }
-      const response = await axios.get(`${uri}${COTIZATION_ENDPOINT}`);
-      console.log('res', response);
+      const url = `${uri}${COTIZATION_ENDPOINT}`;
+      const data = {
+        origen: '72000',
+        destino: '94298',
+        peso: '5.0',
+        largo: '30',
+        alto: '20',
+        ancho: '20',
+      };
+      const response = await axios.post(url, data, {
+        headers: {
+          Authorization: apiKey,
+        },
+      });
+      // transform data and add a prop to identify that this service is coming from guia envia
+      console.log('res', response?.data);
       return 'ok';
-      // something
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
