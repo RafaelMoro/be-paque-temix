@@ -12,6 +12,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
 import { MailModule } from './mail/mail.module';
+import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { MailModule } from './mail/mail.module';
         RESEND_API_KEY: Joi.string().required(),
         MAILER_MAIL: Joi.string().email().required(),
         GUIA_ENVIA_KEY: Joi.string().required(),
+        GUIA_ENVIA_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forFeature([
@@ -47,6 +49,7 @@ import { MailModule } from './mail/mail.module';
     UsersModule,
     AuthModule,
     MailModule,
+    GuiaEnviaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
