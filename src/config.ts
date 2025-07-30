@@ -16,6 +16,7 @@ export default registerAs('config', () => {
     NODE_ENV,
     RESEND_API_KEY,
     MAILER_MAIL,
+    GUIA_ENVIA_KEY,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -40,6 +41,9 @@ export default registerAs('config', () => {
     mail: {
       resendApiKey: RESEND_API_KEY,
       mailerMail: MAILER_MAIL,
+    },
+    guiaEnvia: {
+      apiKey: GUIA_ENVIA_KEY,
     },
     environment: NODE_ENV,
     version: npmVersion,

@@ -34,6 +34,7 @@ import { MailModule } from './mail/mail.module';
         FRONTEND_URI: Joi.string().required(),
         RESEND_API_KEY: Joi.string().required(),
         MAILER_MAIL: Joi.string().email().required(),
+        GUIA_ENVIA_KEY: Joi.string().required(),
       }),
     }),
     MongooseModule.forFeature([
