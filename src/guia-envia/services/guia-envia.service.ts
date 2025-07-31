@@ -4,6 +4,7 @@ import axios from 'axios';
 
 import config from '@/config';
 import { COTIZATION_ENDPOINT } from '../guia-envia.constants';
+import { GetQuoteDto } from '../dtos/guia-envia.dtos';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -11,7 +12,7 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote() {
+  async getQuote(payload: GetQuoteDto) {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -24,15 +25,7 @@ export class GuiaEnviaService {
         throw new BadRequestException('URI for Guia Envia is not configured');
       }
       const url = `${uri}${COTIZATION_ENDPOINT}`;
-      const data = {
-        origen: '72000',
-        destino: '94298',
-        peso: '5.0',
-        largo: '30',
-        alto: '20',
-        ancho: '20',
-      };
-      const response = await axios.post(url, data, {
+      const response = await axios.post(url, payload, {
         headers: {
           Authorization: apiKey,
         },
