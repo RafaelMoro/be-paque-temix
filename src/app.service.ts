@@ -5,12 +5,14 @@ import { Example, ExampleDoc } from './example.entity';
 import { CreateVideogameDto } from './example.dto';
 import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
 import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
+import { T1Service } from './t1/services/t1.service';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectModel(Example.name) private exampleModel: Model<Example>,
     private guiaEnviaService: GuiaEnviaService,
+    private t1Service: T1Service,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -55,9 +57,13 @@ export class AppService {
         alto: '20',
         ancho: '20',
       };
-      const geQuotes = await this.guiaEnviaService.getQuote(tempData);
+      const [geQuotes, t1Quotes] = await Promise.all([
+        this.guiaEnviaService.getQuote(tempData),
+        this.t1Service.getQuote(tempData),
+      ]);
+
       return {
-        quotes: geQuotes,
+        quotes: [...t1Quotes, ...geQuotes],
       };
     } catch (error) {
       if (error instanceof Error) {
