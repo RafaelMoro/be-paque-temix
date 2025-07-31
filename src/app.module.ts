@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
 import { MailModule } from './mail/mail.module';
 import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
+import { T1Module } from './t1/t1.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
     AuthModule,
     MailModule,
     GuiaEnviaModule,
+    T1Module,
   ],
   controllers: [AppController],
   providers: [AppService],
