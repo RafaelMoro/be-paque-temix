@@ -37,6 +37,7 @@ import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
         MAILER_MAIL: Joi.string().email().required(),
         GUIA_ENVIA_KEY: Joi.string().required(),
         GUIA_ENVIA_URI: Joi.string().uri().required(),
+        T1_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forFeature([
