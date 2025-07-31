@@ -42,3 +42,10 @@ export interface T1GetQuoteResponse {
   message: string;
   result: T1QuoteResult[];
 }
+
+export interface T1FormattedQuote {
+  id: number;
+  servicio: string;
+  total: number;
+  source: 'T1';
+}

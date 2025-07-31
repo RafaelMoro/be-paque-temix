@@ -5,6 +5,7 @@ import axios, { AxiosResponse } from 'axios';
 import config from '@/config';
 import { COTIZATION_ENDPOINT } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
+import { formatT1QuoteData } from '../t1.utils';
 
 @Injectable()
 export class T1Service {
@@ -52,9 +53,8 @@ export class T1Service {
           },
         });
       const data = response?.data;
-      console.log('more data', response?.data?.result?.[0]);
-      return 'quote';
-      // something
+      const formattedQuotes = formatT1QuoteData(data);
+      return formattedQuotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
