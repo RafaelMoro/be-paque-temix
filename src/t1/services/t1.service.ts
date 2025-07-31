@@ -46,6 +46,7 @@ export class T1Service {
       const response = await axios.post(url, payload, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
+          shop_id: storeId,
         },
       });
       console.log('responde', response?.data);
