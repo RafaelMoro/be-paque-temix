@@ -1,10 +1,12 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import { COTIZATION_ENDPOINT } from '../guia-envia.constants';
 import { GetQuoteDto } from '../dtos/guia-envia.dtos';
+import { GEQuote } from '../guia-envia.interface';
+import { formatQuotes } from '../guia-envia.utils';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -25,14 +27,19 @@ export class GuiaEnviaService {
         throw new BadRequestException('URI for Guia Envia is not configured');
       }
       const url = `${uri}${COTIZATION_ENDPOINT}`;
-      const response = await axios.post(url, payload, {
-        headers: {
-          Authorization: apiKey,
+      const response: AxiosResponse<GEQuote[], unknown> = await axios.post(
+        url,
+        payload,
+        {
+          headers: {
+            Authorization: apiKey,
+          },
         },
-      });
+      );
       // transform data and add a prop to identify that this service is coming from guia envia
-      console.log('res', response?.data);
-      return 'ok';
+      const data = response?.data;
+      const formattedQuotes = formatQuotes(data);
+      return formattedQuotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
