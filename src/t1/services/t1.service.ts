@@ -1,9 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import { COTIZATION_ENDPOINT } from '../t1.constants';
+import { T1GetQuoteResponse } from '../t1.interface';
 
 @Injectable()
 export class T1Service {
@@ -43,13 +44,15 @@ export class T1Service {
         tipo_paquete: 0,
         comercio_id: storeId,
       };
-      const response = await axios.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          shop_id: storeId,
-        },
-      });
-      console.log('responde', response?.data);
+      const response: AxiosResponse<T1GetQuoteResponse, unknown> =
+        await axios.post(url, payload, {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            shop_id: storeId,
+          },
+        });
+      const data = response?.data;
+      console.log('more data', response?.data?.result?.[0]);
       return 'quote';
       // something
     } catch (error) {
