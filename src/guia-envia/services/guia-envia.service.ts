@@ -4,7 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import { COTIZATION_ENDPOINT } from '../guia-envia.constants';
-import { GetQuoteDto } from '../dtos/guia-envia.dtos';
+import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 import { GEQuote } from '../guia-envia.interface';
 import { formatQuotes } from '../guia-envia.utils';
 
@@ -14,7 +14,7 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto) {
+  async getQuote(payload: GetQuoteGEDto) {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;

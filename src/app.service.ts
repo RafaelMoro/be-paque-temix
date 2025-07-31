@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Example, ExampleDoc } from './example.entity';
 import { CreateVideogameDto } from './example.dto';
 import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
+import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
 
 @Injectable()
 export class AppService {
@@ -45,9 +46,19 @@ export class AppService {
 
   async getQuote() {
     try {
-      await this.guiaEnviaService.getQuote();
-      // something
-      return 'hi';
+      // TODO: Change this dynamically. Wait on what info the others APIs need to get a quote
+      const tempData: GetQuoteGEDto = {
+        origen: '72000',
+        destino: '94298',
+        peso: '5.0',
+        largo: '30',
+        alto: '20',
+        ancho: '20',
+      };
+      const geQuotes = await this.guiaEnviaService.getQuote(tempData);
+      return {
+        quotes: geQuotes,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
