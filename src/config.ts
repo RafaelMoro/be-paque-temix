@@ -19,6 +19,7 @@ export default registerAs('config', () => {
     GUIA_ENVIA_KEY,
     GUIA_ENVIA_URI,
     T1_URI,
+    T1_KEY,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -49,6 +50,7 @@ export default registerAs('config', () => {
       uri: GUIA_ENVIA_URI,
     },
     t1: {
+      apiKey: T1_KEY,
       uri: T1_URI,
     },
     environment: NODE_ENV,

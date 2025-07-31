@@ -39,6 +39,7 @@ import { T1Module } from './t1/t1.module';
         GUIA_ENVIA_KEY: Joi.string().required(),
         GUIA_ENVIA_URI: Joi.string().uri().required(),
         T1_URI: Joi.string().uri().required(),
+        T1_KEY: Joi.string().required(),
       }),
     }),
     MongooseModule.forFeature([
