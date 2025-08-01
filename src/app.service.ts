@@ -57,13 +57,18 @@ export class AppService {
         alto: '20',
         ancho: '20',
       };
-      const [geQuotes, t1Quotes] = await Promise.all([
+      const [geQuotes, t1Quotes] = await Promise.allSettled([
         this.guiaEnviaService.getQuote(tempData),
         this.t1Service.getQuote(tempData),
       ]);
 
+      const geQuotesData =
+        geQuotes.status === 'fulfilled' ? geQuotes.value : [];
+      const t1QuotesData =
+        t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+
       return {
-        quotes: [...t1Quotes, ...geQuotes],
+        quotes: [...geQuotesData, ...t1QuotesData],
       };
     } catch (error) {
       if (error instanceof Error) {
