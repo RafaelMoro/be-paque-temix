@@ -50,7 +50,5 @@ export interface PakkeQuote {
 }
 
 export interface PakkeGetQuoteResponse {
-  data: {
-    Pakke: PakkeQuote[];
-  };
+  Pakke: PakkeQuote[];
 }

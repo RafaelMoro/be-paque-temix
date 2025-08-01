@@ -45,8 +45,8 @@ export class PakkeService {
             Authorization: apiKey,
           },
         });
-      const data = response?.data;
-      console.log('data', data);
+      const quotes = response?.data?.Pakke;
+      console.log('quotes', quotes);
       return '';
       // something
     } catch (error) {
