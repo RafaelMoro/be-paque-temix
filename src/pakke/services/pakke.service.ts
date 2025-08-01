@@ -9,6 +9,7 @@ import {
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
+import { formatPakkeQuotes } from '../pakke.utils';
 
 @Injectable()
 export class PakkeService {
@@ -45,10 +46,9 @@ export class PakkeService {
             Authorization: apiKey,
           },
         });
-      const quotes = response?.data?.Pakke;
-      console.log('quotes', quotes);
-      return '';
-      // something
+      const data = response?.data;
+      const quotes = formatPakkeQuotes(data);
+      return quotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
