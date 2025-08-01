@@ -1,1 +1,1 @@
-export const COTIZATION_ENDPOINT = '/quote/create';
+export const QUOTE_ENDPOINT = '/quote/create';

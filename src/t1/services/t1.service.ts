@@ -3,7 +3,7 @@ import { ConfigType } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
-import { COTIZATION_ENDPOINT } from '../t1.constants';
+import { QUOTE_ENDPOINT } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayload, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
@@ -35,7 +35,7 @@ export class T1Service {
         throw new BadRequestException('Store ID for T1 is not configured');
       }
 
-      const url = `${uri}${COTIZATION_ENDPOINT}`;
+      const url = `${uri}${QUOTE_ENDPOINT}`;
       const response: AxiosResponse<T1GetQuoteResponse, unknown> =
         await axios.post(url, payloadFormatted, {
           headers: {
