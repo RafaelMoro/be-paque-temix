@@ -8,6 +8,7 @@ import {
   PAKKE_MISSING_URI_ERROR,
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
+import { PakkeGetQuoteResponse } from '../pakke.interface';
 
 @Injectable()
 export class PakkeService {
@@ -38,15 +39,12 @@ export class PakkeService {
           Length: '20',
         },
       };
-      const response: AxiosResponse<any, unknown> = await axios.post(
-        url,
-        payload,
-        {
+      const response: AxiosResponse<PakkeGetQuoteResponse, unknown> =
+        await axios.post(url, payload, {
           headers: {
             Authorization: apiKey,
           },
-        },
-      );
+        });
       const data = response?.data;
       console.log('data', data);
       return '';
