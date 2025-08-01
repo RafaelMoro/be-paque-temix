@@ -14,6 +14,7 @@ import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
 import { MailModule } from './mail/mail.module';
 import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
 import { T1Module } from './t1/t1.module';
+import { PakkeModule } from './pakke/pakke.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { T1Module } from './t1/t1.module';
     MailModule,
     GuiaEnviaModule,
     T1Module,
+    PakkeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
