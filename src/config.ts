@@ -21,6 +21,8 @@ export default registerAs('config', () => {
     T1_URI,
     T1_KEY,
     T1_STORE_ID,
+    PAKKE_KEY,
+    PAKKE_URI,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -54,6 +56,10 @@ export default registerAs('config', () => {
       apiKey: T1_KEY,
       uri: T1_URI,
       storeId: T1_STORE_ID,
+    },
+    pakke: {
+      apiKey: PAKKE_KEY,
+      uri: PAKKE_URI,
     },
     environment: NODE_ENV,
     version: npmVersion,

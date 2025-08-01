@@ -42,6 +42,8 @@ import { PakkeModule } from './pakke/pakke.module';
         T1_URI: Joi.string().uri().required(),
         T1_KEY: Joi.string().required(),
         T1_STORE_ID: Joi.string().required(),
+        PAKKE_KEY: Joi.string().required(),
+        PAKKE_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forFeature([
