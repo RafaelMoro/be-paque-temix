@@ -3,7 +3,12 @@ import { ConfigType } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
-import { QUOTE_ENDPOINT } from '../t1.constants';
+import {
+  QUOTE_T1_ENDPOINT,
+  T1_MISSING_API_KEY_ERROR,
+  T1_MISSING_STORE_ID_ERROR,
+  T1_MISSING_URI_ERROR,
+} from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayload, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
@@ -24,18 +29,16 @@ export class T1Service {
       const payloadFormatted = formatPayload({ payload, storeId });
 
       if (!apiKey) {
-        throw new BadRequestException(
-          'API key for Guia Envia is not configured',
-        );
+        throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
       }
       if (!uri) {
-        throw new BadRequestException('URI for Guia Envia is not configured');
+        throw new BadRequestException(T1_MISSING_URI_ERROR);
       }
       if (!storeId) {
-        throw new BadRequestException('Store ID for T1 is not configured');
+        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
       }
 
-      const url = `${uri}${QUOTE_ENDPOINT}`;
+      const url = `${uri}${QUOTE_T1_ENDPOINT}`;
       const response: AxiosResponse<T1GetQuoteResponse, unknown> =
         await axios.post(url, payloadFormatted, {
           headers: {
