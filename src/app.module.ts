@@ -16,6 +16,7 @@ import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
 import { T1Module } from './t1/t1.module';
 import { PakkeModule } from './pakke/pakke.module';
 import { ManuableModule } from './manuable/manuable.module';
+import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { ManuableModule } from './manuable/manuable.module';
     T1Module,
     PakkeModule,
     ManuableModule,
+    GeneralInfoDbModule,
   ],
   controllers: [AppController],
   providers: [AppService],
