@@ -6,6 +6,7 @@ import { CreateVideogameDto } from './example.dto';
 import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
 import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
 import { T1Service } from './t1/services/t1.service';
+import { PakkeService } from './pakke/services/pakke.service';
 
 @Injectable()
 export class AppService {
@@ -13,6 +14,7 @@ export class AppService {
     @InjectModel(Example.name) private exampleModel: Model<Example>,
     private guiaEnviaService: GuiaEnviaService,
     private t1Service: T1Service,
+    private pakkeService: PakkeService,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -57,18 +59,21 @@ export class AppService {
         alto: '20',
         ancho: '20',
       };
-      const [geQuotes, t1Quotes] = await Promise.allSettled([
+      const [geQuotes, t1Quotes, pakkeQuotes] = await Promise.allSettled([
         this.guiaEnviaService.getQuote(tempData),
         this.t1Service.getQuote(tempData),
+        this.pakkeService.getQuotePakke(tempData),
       ]);
 
       const geQuotesData =
         geQuotes.status === 'fulfilled' ? geQuotes.value : [];
       const t1QuotesData =
         t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+      const pakkeQuotesData =
+        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
 
       return {
-        quotes: [...geQuotesData, ...t1QuotesData],
+        quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       };
     } catch (error) {
       if (error instanceof Error) {
