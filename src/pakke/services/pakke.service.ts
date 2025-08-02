@@ -10,6 +10,7 @@ import {
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
 import { formatPakkeQuotes } from '../pakke.utils';
+import { GetQuotePakkeDto } from '../dtos/pakke.dto';
 
 @Injectable()
 export class PakkeService {
@@ -17,7 +18,7 @@ export class PakkeService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuotePakke() {
+  async getQuotePakke(payload: GetQuotePakkeDto) {
     try {
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
@@ -30,16 +31,6 @@ export class PakkeService {
       }
 
       const url = `${uri}${QUOTE_PAKKE_ENDPOINT}`;
-      const payload = {
-        ZipCodeFrom: '72000',
-        ZipCodeTo: '94298',
-        Parcel: {
-          Weight: '5',
-          Width: '20',
-          Height: '30',
-          Length: '20',
-        },
-      };
       const response: AxiosResponse<PakkeGetQuoteResponse, unknown> =
         await axios.post(url, payload, {
           headers: {
