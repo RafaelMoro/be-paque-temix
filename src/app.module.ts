@@ -45,6 +45,9 @@ import { ManuableModule } from './manuable/manuable.module';
         T1_STORE_ID: Joi.string().required(),
         PAKKE_KEY: Joi.string().required(),
         PAKKE_URI: Joi.string().uri().required(),
+        MANUABLE_EM: Joi.string().email().required(),
+        MANUABLE_PSS: Joi.string().required(),
+        MANUABLE_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forFeature([

@@ -23,6 +23,9 @@ export default registerAs('config', () => {
     T1_STORE_ID,
     PAKKE_KEY,
     PAKKE_URI,
+    MANUABLE_EM,
+    MANUABLE_PSS,
+    MANUABLE_URI,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -60,6 +63,11 @@ export default registerAs('config', () => {
     pakke: {
       apiKey: PAKKE_KEY,
       uri: PAKKE_URI,
+    },
+    manuable: {
+      email: MANUABLE_EM,
+      pwd: MANUABLE_PSS,
+      uri: MANUABLE_URI,
     },
     environment: NODE_ENV,
     version: npmVersion,
