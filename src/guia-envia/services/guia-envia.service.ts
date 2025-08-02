@@ -3,7 +3,11 @@ import { ConfigType } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
-import { COTIZATION_ENDPOINT } from '../guia-envia.constants';
+import {
+  COTIZATION_ENDPOINT,
+  GE_MISSING_API_KEY_ERROR,
+  GE_MISSING_URI_ERROR,
+} from '../guia-envia.constants';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 import { GEQuote } from '../guia-envia.interface';
 import { formatQuotes } from '../guia-envia.utils';
@@ -19,12 +23,10 @@ export class GuiaEnviaService {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
       if (!apiKey) {
-        throw new BadRequestException(
-          'API key for Guia Envia is not configured',
-        );
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
       }
       if (!uri) {
-        throw new BadRequestException('URI for Guia Envia is not configured');
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
       const url = `${uri}${COTIZATION_ENDPOINT}`;
       const response: AxiosResponse<GEQuote[], unknown> = await axios.post(
