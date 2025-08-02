@@ -1,4 +1,22 @@
+import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 import { PakkeFormattedQuote, PakkeGetQuoteResponse } from './pakke.interface';
+import { GetQuotePakkeDto } from './dtos/pakke.dto';
+
+export const convertPayloadToPakkeDto = (
+  payload: GetQuoteGEDto,
+): GetQuotePakkeDto => {
+  const { origen, destino, peso, largo, alto, ancho } = payload;
+  return {
+    ZipCodeFrom: origen,
+    ZipCodeTo: destino,
+    Parcel: {
+      Weight: peso,
+      Width: ancho,
+      Height: alto,
+      Length: largo,
+    },
+  };
+};
 
 export const formatPakkeQuotes = (
   data: PakkeGetQuoteResponse,

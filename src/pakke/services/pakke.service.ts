@@ -9,8 +9,8 @@ import {
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
-import { formatPakkeQuotes } from '../pakke.utils';
-import { GetQuotePakkeDto } from '../dtos/pakke.dto';
+import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
+import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 
 @Injectable()
 export class PakkeService {
@@ -18,7 +18,7 @@ export class PakkeService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuotePakke(payload: GetQuotePakkeDto) {
+  async getQuotePakke(payload: GetQuoteGEDto) {
     try {
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
@@ -30,9 +30,10 @@ export class PakkeService {
         throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
       }
 
+      const payloadTransformed = convertPayloadToPakkeDto(payload);
       const url = `${uri}${QUOTE_PAKKE_ENDPOINT}`;
       const response: AxiosResponse<PakkeGetQuoteResponse, unknown> =
-        await axios.post(url, payload, {
+        await axios.post(url, payloadTransformed, {
           headers: {
             Authorization: apiKey,
           },
