@@ -15,6 +15,7 @@ import { MailModule } from './mail/mail.module';
 import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
 import { T1Module } from './t1/t1.module';
 import { PakkeModule } from './pakke/pakke.module';
+import { ManuableModule } from './manuable/manuable.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { PakkeModule } from './pakke/pakke.module';
     GuiaEnviaModule,
     T1Module,
     PakkeModule,
+    ManuableModule,
   ],
   controllers: [AppController],
   providers: [AppService],
