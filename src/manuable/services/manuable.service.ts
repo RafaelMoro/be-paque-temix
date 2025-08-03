@@ -80,9 +80,9 @@ export class ManuableService {
       const res = await this.getManuableQuote(payload);
       const messages: string[] = [...res.messages];
       if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
-        messages.push('Attempting to re-fetch quotes with a new token');
+        messages.push('Mn: Attempting to re-fetch quotes with a new token');
         const quotes = await this.reAttemptGetManuableQuote(payload);
-        messages.push('Mn Quotes fetched successfully');
+        messages.push('Mn: Quotes fetched successfully');
         const formattedQuotes = formatManuableQuote(quotes);
         return {
           messages,
@@ -118,7 +118,7 @@ export class ManuableService {
       const apiKey = await this.generalInfoDbService.getMnTk();
 
       if (!apiKey) {
-        messages.push('Creating token');
+        messages.push('Mn: Creating token');
         const newToken = await this.createToken();
 
         // 4. Fetch quotes
@@ -127,30 +127,30 @@ export class ManuableService {
           newToken.mnTk,
         );
         if (!quotes) {
-          messages.push(MANUABLE_FAILED_FETCH_QUOTES);
+          messages.push(`Mn: ${MANUABLE_FAILED_FETCH_QUOTES}`);
           return {
             messages,
             quotes: [],
           };
         }
-        messages.push('Mn Quotes fetched successfully');
+        messages.push('Mn: Quotes fetched successfully');
         const formattedQuotes = formatManuableQuote(quotes);
         return {
           messages,
           quotes: formattedQuotes,
         };
       }
-      messages.push('Token exists');
+      messages.push('Mn: Token valid');
 
       // 2. Fetch quotes with existing token
       const quotes = await this.fetchManuableQuotes(
         formattedPayload,
         apiKey.mnTk,
       );
-      messages.push('Mn Quotes fetched successfully');
+      messages.push('Mn: Quotes fetched successfully');
       const formattedQuotes = formatManuableQuote(quotes);
       if (!quotes) {
-        messages.push(MANUABLE_FAILED_FETCH_QUOTES);
+        messages.push(`Mn: ${MANUABLE_FAILED_FETCH_QUOTES}`);
         return {
           messages,
           quotes: [],
@@ -165,21 +165,21 @@ export class ManuableService {
       if (error instanceof Error) {
         // The service fetchManuableQuotes returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
-          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
+          messages.push(`Mn: ${MANUABLE_ERROR_UNAUTHORIZED}`);
           return {
             messages,
             quotes: [],
           };
         }
 
-        messages.push(error.message);
+        messages.push(`Mn: ${error.message}`);
         return {
           messages,
           quotes: [],
         };
       }
 
-      messages.push('An unknown error occurred');
+      messages.push('Mn: An unknown error occurred');
       return {
         messages,
         quotes: [],

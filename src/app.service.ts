@@ -89,7 +89,7 @@ export class AppService {
         messages.push('T1 failed to get quotes');
       }
       if (pakkeQuotes.status === 'rejected') {
-        messages.push('Pakke failed to get quotes');
+        messages.push('Pkk failed to get quotes');
       }
       if (mnRes.status === 'rejected') {
         messages.push('Mn failed to get quotes');
