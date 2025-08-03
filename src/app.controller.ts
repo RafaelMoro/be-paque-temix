@@ -16,6 +16,11 @@ export class AppController {
     return this.appService.getQuote();
   }
 
+  @Get('/check-mntk')
+  async checkMnTk() {
+    return this.appService.checkMnTk();
+  }
+
   @Post()
   async createExample(@Body() payload: CreateVideogameDto) {
     return this.appService.createExample(payload);

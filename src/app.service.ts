@@ -7,6 +7,7 @@ import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
 import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
 import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
+import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
 
 @Injectable()
 export class AppService {
@@ -15,6 +16,7 @@ export class AppService {
     private guiaEnviaService: GuiaEnviaService,
     private t1Service: T1Service,
     private pakkeService: PakkeService,
+    private generalInfoDbService: GeneralInfoDbService,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -87,6 +89,25 @@ export class AppService {
         messages,
         quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async checkMnTk() {
+    try {
+      const mnTk = await this.generalInfoDbService.getMnTk();
+      // If the mnTk does not exist, then create it.
+      if (!mnTk) {
+        // TODO: Get token from Mn first
+        // TODO: Change the token value
+        const newMnTk = await this.generalInfoDbService.createMnTk('new-token');
+        return newMnTk;
+      }
+      return 'ok';
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
