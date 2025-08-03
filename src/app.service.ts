@@ -59,6 +59,7 @@ export class AppService {
         alto: '20',
         ancho: '20',
       };
+      const messages: string[] = [];
       const [geQuotes, t1Quotes, pakkeQuotes] = await Promise.allSettled([
         this.guiaEnviaService.getQuote(tempData),
         this.t1Service.getQuote(tempData),
@@ -72,7 +73,18 @@ export class AppService {
       const pakkeQuotesData =
         pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
 
+      if (geQuotes.status === 'rejected') {
+        messages.push('GE failed to get quotes');
+      }
+      if (t1Quotes.status === 'rejected') {
+        messages.push('T1 failed to get quotes');
+      }
+      if (pakkeQuotes.status === 'rejected') {
+        messages.push('Pakke failed to get quotes');
+      }
+
       return {
+        messages,
         quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       };
     } catch (error) {
