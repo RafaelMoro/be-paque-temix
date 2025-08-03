@@ -9,10 +9,6 @@ import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
 import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
 import { ManuableService } from './manuable/services/manuable.service';
-import {
-  MANUABLE_ERROR_UNAUTHORIZED,
-  MANUABLE_FAILED_TOKEN,
-} from './manuable/manuable.constants';
 
 @Injectable()
 export class AppService {
@@ -97,9 +93,10 @@ export class AppService {
       // };
       const mnQuotes =
         await this.manuableService.retrieveManuableQuotes(tempData);
+      const newMessages = [...messages, ...mnQuotes.messages];
       return {
-        messages,
-        quotes: mnQuotes,
+        messages: newMessages,
+        quotes: mnQuotes.quotes,
       };
     } catch (error) {
       if (error instanceof Error) {

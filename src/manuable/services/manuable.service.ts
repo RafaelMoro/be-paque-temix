@@ -73,14 +73,25 @@ export class ManuableService {
    * then attempt to replace the token and refetch the quotes
    * b: Fetch quotes
    */
-  async retrieveManuableQuotes(payload: GetQuoteGEDto) {
+  async retrieveManuableQuotes(
+    payload: GetQuoteGEDto,
+  ): Promise<GetManuableQuoteResponse> {
     try {
       const res = await this.getManuableQuote(payload);
-      if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
+      const messages: string[] = [...res.messages];
+      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
+        messages.push(
+          'Unauthorized error, attempting to re-fetch quotes with a new token',
+        );
         const quotes = await this.reAttemptGetManuableQuote(payload);
-        return quotes;
+        const formattedQuotes = formatManuableQuote(quotes);
+        return {
+          messages,
+          quotes: formattedQuotes,
+        };
       }
-      return res.quotes;
+
+      return res;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -100,6 +111,7 @@ export class ManuableService {
     payload: GetQuoteGEDto,
   ): Promise<GetManuableQuoteResponse> {
     try {
+      const messages: string[] = [];
       // Get token of Manuable first with general info db service
       const formattedPayload = this.formatManuablePayload(payload);
 
@@ -107,6 +119,7 @@ export class ManuableService {
       const apiKey = await this.generalInfoDbService.getMnTk();
 
       if (!apiKey) {
+        messages.push('Creating token');
         const newToken = await this.createToken();
 
         // 4. Fetch quotes
@@ -114,51 +127,62 @@ export class ManuableService {
           formattedPayload,
           newToken.mnTk,
         );
-        const formattedQuotes = formatManuableQuote(quotes);
         if (!quotes) {
+          messages.push(MANUABLE_FAILED_FETCH_QUOTES);
           return {
-            message: MANUABLE_FAILED_FETCH_QUOTES,
+            messages,
             quotes: [],
           };
         }
+        messages.push('Mn Quotes fetched successfully');
+        const formattedQuotes = formatManuableQuote(quotes);
         return {
-          message: 'ok',
+          messages,
           quotes: formattedQuotes,
         };
       }
+      messages.push('Token exists');
 
       // 2. Fetch quotes with existing token
       const quotes = await this.fetchManuableQuotes(
         formattedPayload,
         apiKey.mnTk,
       );
+      messages.push('Mn Quotes fetched successfully');
       const formattedQuotes = formatManuableQuote(quotes);
       if (!quotes) {
+        messages.push(MANUABLE_FAILED_FETCH_QUOTES);
         return {
-          message: MANUABLE_FAILED_FETCH_QUOTES,
+          messages,
           quotes: [],
         };
       }
       return {
-        message: 'ok',
+        messages,
         quotes: formattedQuotes,
       };
     } catch (error) {
+      const messages: string[] = [];
       if (error instanceof Error) {
         // The service fetchManuableQuotes returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
+          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
           return {
-            message: MANUABLE_ERROR_UNAUTHORIZED,
+            messages,
             quotes: [],
           };
         }
+
+        messages.push(error.message);
         return {
-          message: error.message,
+          messages,
           quotes: [],
         };
       }
+
+      messages.push('An unknown error occurred');
       return {
-        message: 'An unknown error occurred',
+        messages,
         quotes: [],
       };
     }

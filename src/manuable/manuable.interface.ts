@@ -54,6 +54,6 @@ export interface ManuableFormattedQuote {
 }
 
 export interface GetManuableQuoteResponse {
-  message: string;
+  messages: string[];
   quotes: ManuableFormattedQuote[];
 }
