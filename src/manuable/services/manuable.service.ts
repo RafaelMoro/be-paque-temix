@@ -13,7 +13,10 @@ import {
   MANUABLE_TOKEN_ENDPOINT,
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
-import { GetManuableSessionResponse } from '../manuable.interface';
+import {
+  FetchManuableQuotesResponse,
+  GetManuableSessionResponse,
+} from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 
 @Injectable()
@@ -146,17 +149,14 @@ export class ManuableService {
       }
 
       const url = `${uri}${QUOTE_MANUABLE_ENDPOINT}`;
-      const response: AxiosResponse<any, unknown> = await axios.post(
-        url,
-        payload,
-        {
+      const response: AxiosResponse<FetchManuableQuotesResponse, unknown> =
+        await axios.post(url, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
-      );
-      const data = response?.data;
-      return data;
+        });
+      const quotes = response?.data?.data;
+      return quotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

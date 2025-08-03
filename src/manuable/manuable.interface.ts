@@ -3,3 +3,20 @@ export interface GetManuableSessionResponse {
   token: string;
   email: string;
 }
+
+export interface ManuableQuote {
+  service: string;
+  currency: string;
+  uuid: string;
+  additional_fees: never[];
+  zone: number;
+  total_amount: string;
+  carrier: string;
+  cancellable: boolean;
+  shipping_type: string;
+  lead_time: string;
+}
+
+export interface FetchManuableQuotesResponse {
+  data: ManuableQuote[];
+}
