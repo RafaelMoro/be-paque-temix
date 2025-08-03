@@ -27,6 +27,21 @@ export class GeneralInfoDbService {
     }
   }
 
+  async getMnTk() {
+    try {
+      const mnTk = await this.generalInfoDbModel.find().exec();
+      if (mnTk.length === 0) {
+        return null;
+      }
+      return mnTk;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   async updateMbTk() {
     try {
       // something
