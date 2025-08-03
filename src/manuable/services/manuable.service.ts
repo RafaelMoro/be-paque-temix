@@ -80,10 +80,9 @@ export class ManuableService {
       const res = await this.getManuableQuote(payload);
       const messages: string[] = [...res.messages];
       if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
-        messages.push(
-          'Unauthorized error, attempting to re-fetch quotes with a new token',
-        );
+        messages.push('Attempting to re-fetch quotes with a new token');
         const quotes = await this.reAttemptGetManuableQuote(payload);
+        messages.push('Mn Quotes fetched successfully');
         const formattedQuotes = formatManuableQuote(quotes);
         return {
           messages,
