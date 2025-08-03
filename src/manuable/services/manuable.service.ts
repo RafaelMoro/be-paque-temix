@@ -31,6 +31,9 @@ export class ManuableService {
     private generalInfoDbService: GeneralInfoDbService,
   ) {}
 
+  /**
+   * This service is to get a new token for Manuable API.
+   */
   async getManuableSession() {
     try {
       // something
@@ -57,10 +60,16 @@ export class ManuableService {
     }
   }
 
+  /**
+   * This service is to format default payload to fetch quotes
+   */
   formatManuablePayload(payload: GetQuoteGEDto) {
     return formatPayload(payload);
   }
 
+  /**
+   * This service is to get quotes from Manuable API.
+   */
   async getManuableQuote(
     payload: GetQuoteGEDto,
   ): Promise<GetManuableQuoteResponse> {
@@ -72,16 +81,7 @@ export class ManuableService {
       const apiKey = await this.generalInfoDbService.getMnTk();
 
       if (!apiKey) {
-        // 2. Create token if it does not exist
-        const token = await this.getManuableSession();
-        if (!token) {
-          return {
-            message: MANUABLE_FAILED_CREATE_TOKEN,
-            quotes: [],
-          };
-        }
-        // 3. Save token
-        const newToken = await this.generalInfoDbService.createMnTk(token);
+        const newToken = await this.createToken();
 
         // 4. Fetch quotes
         const quotes = await this.fetchManuableQuotes(
@@ -135,6 +135,25 @@ export class ManuableService {
         message: 'An unknown error occurred',
         quotes: [],
       };
+    }
+  }
+
+  /**
+   * This service is meant when the token does not exist in the database
+   */
+  async createToken() {
+    try {
+      const token = await this.getManuableSession();
+      if (!token) {
+        throw new BadRequestException(MANUABLE_FAILED_CREATE_TOKEN);
+      }
+      const newToken = await this.generalInfoDbService.createMnTk(token);
+      return newToken;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
   }
 
