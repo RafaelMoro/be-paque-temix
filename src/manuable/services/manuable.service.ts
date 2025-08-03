@@ -17,9 +17,11 @@ import {
   FetchManuableQuotesResponse,
   GetManuableQuoteResponse,
   GetManuableSessionResponse,
+  ManuablePayload,
 } from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { formatManuableQuote } from '../manuable.utils';
+import { formatManuableQuote, formatPayload } from '../manuable.utils';
+import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 
 @Injectable()
 export class ManuableService {
@@ -54,32 +56,14 @@ export class ManuableService {
     }
   }
 
-  async getManuableQuote(): Promise<GetManuableQuoteResponse> {
+  async getManuableQuote(
+    payload: GetQuoteGEDto,
+  ): Promise<GetManuableQuoteResponse> {
     try {
       // Get token of Manuable first with general info db service
-      const payload = {
-        address_from: {
-          country_code: 'MX',
-          zip_code: '72000',
-        },
-        address_to: {
-          country_code: 'MX',
-          zip_code: '94298',
-        },
-        parcel: {
-          currency: 'MXN',
-          distance_unit: 'CM',
-          mass_unit: 'KG',
-          height: 30,
-          length: 20,
-          width: 20,
-          weight: 5,
-          product_id: '1',
-          product_value: 1,
-          quantity_products: 1,
-          content: 'Kraft',
-        },
-      };
+      const formattedPayload = formatPayload(payload);
+      console.log('formattedPayload', formattedPayload);
+
       // 1. Get token
       const apiKey = await this.generalInfoDbService.getMnTk();
 
@@ -96,7 +80,10 @@ export class ManuableService {
         const newToken = await this.generalInfoDbService.createMnTk(token);
 
         // 4. Fetch quotes
-        const quotes = await this.fetchManuableQuotes(payload, newToken.mnTk);
+        const quotes = await this.fetchManuableQuotes(
+          formattedPayload,
+          newToken.mnTk,
+        );
         const formattedQuotes = formatManuableQuote(quotes);
         if (!quotes) {
           return {
@@ -111,7 +98,10 @@ export class ManuableService {
       }
 
       // 2. Fetch quotes with existing token
-      const quotes = await this.fetchManuableQuotes(payload, apiKey.mnTk);
+      const quotes = await this.fetchManuableQuotes(
+        formattedPayload,
+        apiKey.mnTk,
+      );
       const formattedQuotes = formatManuableQuote(quotes);
       if (!quotes) {
         return {
@@ -144,8 +134,7 @@ export class ManuableService {
     }
   }
 
-  // TODO: Change payload type
-  async fetchManuableQuotes(payload: any, token: string) {
+  async fetchManuableQuotes(payload: ManuablePayload, token: string) {
     try {
       const { uri } = this.configService.manuable;
       if (!uri) {

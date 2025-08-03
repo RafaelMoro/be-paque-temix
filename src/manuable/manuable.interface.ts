@@ -4,6 +4,30 @@ export interface GetManuableSessionResponse {
   email: string;
 }
 
+export interface ManuablePayload {
+  address_from: {
+    country_code: string;
+    zip_code: string;
+  };
+  address_to: {
+    country_code: string;
+    zip_code: string;
+  };
+  parcel: {
+    currency: string;
+    distance_unit: string;
+    mass_unit: string;
+    height: number;
+    length: number;
+    width: number;
+    weight: number;
+    product_id: string;
+    product_value: number;
+    quantity_products: number;
+    content: string;
+  };
+}
+
 export interface ManuableQuote {
   service: string;
   currency: string;
