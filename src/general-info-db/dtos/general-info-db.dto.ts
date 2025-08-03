@@ -7,4 +7,8 @@ export class GeneralInfoDbDto {
   readonly mnTk: string;
 }
 
-export class UpdateGeneralInfoDbDto extends PartialType(GeneralInfoDbDto) {}
+export class UpdateGeneralInfoDbDto extends PartialType(GeneralInfoDbDto) {
+  @IsString()
+  @IsNotEmpty()
+  readonly mnTkId: string;
+}

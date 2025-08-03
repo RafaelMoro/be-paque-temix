@@ -8,6 +8,11 @@ import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
 import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
 import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
+import { ManuableService } from './manuable/services/manuable.service';
+import {
+  MANUABLE_ERROR_UNAUTHORIZED,
+  MANUABLE_FAILED_TOKEN,
+} from './manuable/manuable.constants';
 
 @Injectable()
 export class AppService {
@@ -16,6 +21,7 @@ export class AppService {
     private guiaEnviaService: GuiaEnviaService,
     private t1Service: T1Service,
     private pakkeService: PakkeService,
+    private manuableService: ManuableService,
     private generalInfoDbService: GeneralInfoDbService,
   ) {}
   getHello(): string {
@@ -62,33 +68,84 @@ export class AppService {
         ancho: '20',
       };
       const messages: string[] = [];
-      const [geQuotes, t1Quotes, pakkeQuotes] = await Promise.allSettled([
-        this.guiaEnviaService.getQuote(tempData),
-        this.t1Service.getQuote(tempData),
-        this.pakkeService.getQuotePakke(tempData),
-      ]);
+      // const [geQuotes, t1Quotes, pakkeQuotes] = await Promise.allSettled([
+      //   this.guiaEnviaService.getQuote(tempData),
+      //   this.t1Service.getQuote(tempData),
+      //   this.pakkeService.getQuotePakke(tempData),
+      // ]);
 
-      const geQuotesData =
-        geQuotes.status === 'fulfilled' ? geQuotes.value : [];
-      const t1QuotesData =
-        t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
-      const pakkeQuotesData =
-        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
+      // const geQuotesData =
+      //   geQuotes.status === 'fulfilled' ? geQuotes.value : [];
+      // const t1QuotesData =
+      //   t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+      // const pakkeQuotesData =
+      //   pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
 
-      if (geQuotes.status === 'rejected') {
-        messages.push('GE failed to get quotes');
-      }
-      if (t1Quotes.status === 'rejected') {
-        messages.push('T1 failed to get quotes');
-      }
-      if (pakkeQuotes.status === 'rejected') {
-        messages.push('Pakke failed to get quotes');
-      }
+      // if (geQuotes.status === 'rejected') {
+      //   messages.push('GE failed to get quotes');
+      // }
+      // if (t1Quotes.status === 'rejected') {
+      //   messages.push('T1 failed to get quotes');
+      // }
+      // if (pakkeQuotes.status === 'rejected') {
+      //   messages.push('Pakke failed to get quotes');
+      // }
 
-      return {
-        messages,
-        quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
-      };
+      // return {
+      //   messages,
+      //   quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
+      // };
+      const res = await this.manuableService.getManuableQuote();
+      console.log('res', res);
+      if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
+        console.log('manuable unauthorized');
+        // 1. Create new token
+        const token = await this.manuableService.getManuableSession();
+        if (!token) {
+          messages.push(MANUABLE_FAILED_TOKEN);
+          return;
+        }
+
+        // 2. Get old token
+        const oldMnTk = await this.generalInfoDbService.getMnTk();
+        if (!oldMnTk) {
+          messages.push(MANUABLE_FAILED_TOKEN);
+          return;
+        }
+        await this.generalInfoDbService.updateMbTk({
+          changes: { mnTkId: oldMnTk._id as string, mnTk: token },
+        });
+        // TODO: Change payload
+        const otherPayload = {
+          address_from: {
+            country_code: 'MX',
+            zip_code: '72000',
+          },
+          address_to: {
+            country_code: 'MX',
+            zip_code: '94298',
+          },
+          parcel: {
+            currency: 'MXN',
+            distance_unit: 'CM',
+            mass_unit: 'KG',
+            height: 30,
+            length: 20,
+            width: 20,
+            weight: 5,
+            product_id: '1',
+            product_value: 1,
+            quantity_products: 1,
+            content: 'Kraft',
+          },
+        };
+        const quotes = await this.manuableService.fetchManuableQuotes(
+          otherPayload,
+          token,
+        );
+        return quotes;
+      }
+      return 'ok';
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -107,7 +164,7 @@ export class AppService {
         const newMnTk = await this.generalInfoDbService.createMnTk('new-token');
         return newMnTk;
       }
-      return 'ok';
+      return mnTk;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

@@ -34,7 +34,8 @@ export class GeneralInfoDbService {
       if (mnTk.length === 0) {
         return null;
       }
-      return mnTk;
+      const [token] = mnTk;
+      return token;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -45,8 +46,9 @@ export class GeneralInfoDbService {
 
   async updateMbTk({ changes }: { changes: UpdateGeneralInfoDbDto }) {
     try {
+      const { mnTkId } = changes;
       const updated = await this.generalInfoDbModel
-        .updateOne({ mnTk: changes.mnTk }, { $set: changes })
+        .findByIdAndUpdate(mnTkId, { $set: changes })
         .exec();
       return updated;
     } catch (error) {
