@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { DeleteResult, Model } from 'mongoose';
 
 import {
   GeneralInfoDb,
   GeneralInfoDbDoc,
 } from '../entities/general-info-db.entity';
+import { UpdateGeneralInfoDbDto } from '../dtos/general-info-db.dto';
 
 @Injectable()
 export class GeneralInfoDbService {
@@ -42,9 +43,26 @@ export class GeneralInfoDbService {
     }
   }
 
-  async updateMbTk() {
+  async updateMbTk({ changes }: { changes: UpdateGeneralInfoDbDto }) {
     try {
-      // something
+      const updated = await this.generalInfoDbModel
+        .updateOne({ mnTk: changes.mnTk }, { $set: changes })
+        .exec();
+      return updated;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteMbTk(mnTk: string): Promise<DeleteResult | null> {
+    try {
+      const mnTkDeleted = await this.generalInfoDbModel
+        .deleteOne({ mnTk })
+        .exec();
+      return mnTkDeleted;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
