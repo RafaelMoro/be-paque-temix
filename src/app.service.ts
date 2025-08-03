@@ -96,9 +96,7 @@ export class AppService {
       //   quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       // };
       const res = await this.manuableService.getManuableQuote();
-      console.log('res', res);
       if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
-        console.log('manuable unauthorized');
         // 1. Create new token
         const token = await this.manuableService.getManuableSession();
         if (!token) {
@@ -145,7 +143,7 @@ export class AppService {
         );
         return quotes;
       }
-      return 'ok';
+      return res.quotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

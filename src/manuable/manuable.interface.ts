@@ -20,3 +20,16 @@ export interface ManuableQuote {
 export interface FetchManuableQuotesResponse {
   data: ManuableQuote[];
 }
+
+// TODO: Change this to english
+export interface ManuableFormattedQuote {
+  id: string;
+  servicio: string;
+  total: string;
+  source: 'Mn';
+}
+
+export interface GetManuableQuoteResponse {
+  message: string;
+  quotes: ManuableFormattedQuote[];
+}

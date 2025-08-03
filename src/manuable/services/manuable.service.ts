@@ -15,9 +15,11 @@ import {
 } from '../manuable.constants';
 import {
   FetchManuableQuotesResponse,
+  GetManuableQuoteResponse,
   GetManuableSessionResponse,
 } from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
+import { formatManuableQuote } from '../manuable.utils';
 
 @Injectable()
 export class ManuableService {
@@ -52,7 +54,7 @@ export class ManuableService {
     }
   }
 
-  async getManuableQuote() {
+  async getManuableQuote(): Promise<GetManuableQuoteResponse> {
     try {
       // Get token of Manuable first with general info db service
       const payload = {
@@ -95,6 +97,7 @@ export class ManuableService {
 
         // 4. Fetch quotes
         const quotes = await this.fetchManuableQuotes(payload, newToken.mnTk);
+        const formattedQuotes = formatManuableQuote(quotes);
         if (!quotes) {
           return {
             message: MANUABLE_FAILED_FETCH_QUOTES,
@@ -103,12 +106,13 @@ export class ManuableService {
         }
         return {
           message: 'ok',
-          quotes,
+          quotes: formattedQuotes,
         };
       }
 
       // 2. Fetch quotes with existing token
       const quotes = await this.fetchManuableQuotes(payload, apiKey.mnTk);
+      const formattedQuotes = formatManuableQuote(quotes);
       if (!quotes) {
         return {
           message: MANUABLE_FAILED_FETCH_QUOTES,
@@ -117,7 +121,7 @@ export class ManuableService {
       }
       return {
         message: 'ok',
-        quotes,
+        quotes: formattedQuotes,
       };
     } catch (error) {
       if (error instanceof Error) {
