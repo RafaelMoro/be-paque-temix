@@ -69,6 +69,32 @@ export class ManuableService {
 
   /**
    * This service is to get quotes from Manuable API.
+   * a: If the service gets and unauthorized error,
+   * then attempt to replace the token and refetch the quotes
+   * b: Fetch quotes
+   */
+  async retrieveManuableQuotes(payload: GetQuoteGEDto) {
+    try {
+      const res = await this.getManuableQuote(payload);
+      if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
+        const quotes = await this.reAttemptGetManuableQuote(payload);
+        return quotes;
+      }
+      return res.quotes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service is to get quotes from Manuable API by:
+   * 1. Getting token
+   * 2-a: If the token does not exist, create it and fetch quotes
+   * 2-b: Fetch quotes and return them.
+   * The result can return an unauthorized error or the quotes
    */
   async getManuableQuote(
     payload: GetQuoteGEDto,

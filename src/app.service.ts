@@ -95,13 +95,12 @@ export class AppService {
       //   messages,
       //   quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       // };
-      const res = await this.manuableService.getManuableQuote(tempData);
-      if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
-        const quotes =
-          await this.manuableService.reAttemptGetManuableQuote(tempData);
-        return quotes;
-      }
-      return res.quotes;
+      const mnQuotes =
+        await this.manuableService.retrieveManuableQuotes(tempData);
+      return {
+        messages,
+        quotes: mnQuotes,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
