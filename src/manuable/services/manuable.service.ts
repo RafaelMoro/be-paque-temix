@@ -56,13 +56,16 @@ export class ManuableService {
     }
   }
 
+  formatManuablePayload(payload: GetQuoteGEDto) {
+    return formatPayload(payload);
+  }
+
   async getManuableQuote(
     payload: GetQuoteGEDto,
   ): Promise<GetManuableQuoteResponse> {
     try {
       // Get token of Manuable first with general info db service
-      const formattedPayload = formatPayload(payload);
-      console.log('formattedPayload', formattedPayload);
+      const formattedPayload = this.formatManuablePayload(payload);
 
       // 1. Get token
       const apiKey = await this.generalInfoDbService.getMnTk();

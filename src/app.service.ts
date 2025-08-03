@@ -96,7 +96,6 @@ export class AppService {
       //   quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
       // };
       const res = await this.manuableService.getManuableQuote(tempData);
-      console.log('res', res);
       if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
         // 1. Create new token
         const token = await this.manuableService.getManuableSession();
@@ -114,32 +113,10 @@ export class AppService {
         await this.generalInfoDbService.updateMbTk({
           changes: { mnTkId: oldMnTk._id as string, mnTk: token },
         });
-        // TODO: Change payload
-        const otherPayload = {
-          address_from: {
-            country_code: 'MX',
-            zip_code: '72000',
-          },
-          address_to: {
-            country_code: 'MX',
-            zip_code: '94298',
-          },
-          parcel: {
-            currency: 'MXN',
-            distance_unit: 'CM',
-            mass_unit: 'KG',
-            height: 30,
-            length: 20,
-            width: 20,
-            weight: 5,
-            product_id: '1',
-            product_value: 1,
-            quantity_products: 1,
-            content: 'Kraft',
-          },
-        };
+        const manuablePayload =
+          this.manuableService.formatManuablePayload(tempData);
         const quotes = await this.manuableService.fetchManuableQuotes(
-          otherPayload,
+          manuablePayload,
           token,
         );
         return quotes;
