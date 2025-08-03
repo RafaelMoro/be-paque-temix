@@ -97,6 +97,7 @@ export class AppService {
       // };
       const res = await this.manuableService.getManuableQuote(tempData);
       if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
+        // TODO: Change this into a new manuable service
         // 1. Create new token
         const token = await this.manuableService.getManuableSession();
         if (!token) {
@@ -122,25 +123,6 @@ export class AppService {
         return quotes;
       }
       return res.quotes;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
-  async checkMnTk() {
-    try {
-      const mnTk = await this.generalInfoDbService.getMnTk();
-      // If the mnTk does not exist, then create it.
-      if (!mnTk) {
-        // TODO: Get token from Mn first
-        // TODO: Change the token value
-        const newMnTk = await this.generalInfoDbService.createMnTk('new-token');
-        return newMnTk;
-      }
-      return mnTk;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
