@@ -64,39 +64,48 @@ export class AppService {
         ancho: '20',
       };
       const messages: string[] = [];
-      // const [geQuotes, t1Quotes, pakkeQuotes] = await Promise.allSettled([
-      //   this.guiaEnviaService.getQuote(tempData),
-      //   this.t1Service.getQuote(tempData),
-      //   this.pakkeService.getQuotePakke(tempData),
-      // ]);
+      const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
+        [
+          this.guiaEnviaService.getQuote(tempData),
+          this.t1Service.getQuote(tempData),
+          this.pakkeService.getQuotePakke(tempData),
+          this.manuableService.retrieveManuableQuotes(tempData),
+        ],
+      );
 
-      // const geQuotesData =
-      //   geQuotes.status === 'fulfilled' ? geQuotes.value : [];
-      // const t1QuotesData =
-      //   t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
-      // const pakkeQuotesData =
-      //   pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
+      const geQuotesData =
+        geQuotes.status === 'fulfilled' ? geQuotes.value : [];
+      const t1QuotesData =
+        t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+      const pakkeQuotesData =
+        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
+      const mnQuotesData =
+        mnRes.status === 'fulfilled' ? mnRes.value.quotes : [];
 
-      // if (geQuotes.status === 'rejected') {
-      //   messages.push('GE failed to get quotes');
-      // }
-      // if (t1Quotes.status === 'rejected') {
-      //   messages.push('T1 failed to get quotes');
-      // }
-      // if (pakkeQuotes.status === 'rejected') {
-      //   messages.push('Pakke failed to get quotes');
-      // }
+      if (geQuotes.status === 'rejected') {
+        messages.push('GE failed to get quotes');
+      }
+      if (t1Quotes.status === 'rejected') {
+        messages.push('T1 failed to get quotes');
+      }
+      if (pakkeQuotes.status === 'rejected') {
+        messages.push('Pakke failed to get quotes');
+      }
+      if (mnRes.status === 'rejected') {
+        messages.push('Mn failed to get quotes');
+      }
+      if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
+        messages.push(...mnRes.value.messages);
+      }
 
-      // return {
-      //   messages,
-      //   quotes: [...geQuotesData, ...t1QuotesData, ...pakkeQuotesData],
-      // };
-      const mnQuotes =
-        await this.manuableService.retrieveManuableQuotes(tempData);
-      const newMessages = [...messages, ...mnQuotes.messages];
       return {
-        messages: newMessages,
-        quotes: mnQuotes.quotes,
+        messages,
+        quotes: [
+          ...geQuotesData,
+          ...t1QuotesData,
+          ...pakkeQuotesData,
+          ...mnQuotesData,
+        ],
       };
     } catch (error) {
       if (error instanceof Error) {
