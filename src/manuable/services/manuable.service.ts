@@ -10,6 +10,7 @@ import {
   MANUABLE_ERROR_UNAUTHORIZED,
   MANUABLE_FAILED_CREATE_TOKEN,
   MANUABLE_FAILED_FETCH_QUOTES,
+  MANUABLE_FAILED_TOKEN,
   MANUABLE_TOKEN_ENDPOINT,
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
@@ -137,6 +138,40 @@ export class ManuableService {
     }
   }
 
+  /**
+   * This service is meant when the token of Mn has expired and we need to get a new one,
+   * Update the token saved and fetch the quotes
+   */
+  async reAttemptGetManuableQuote(payload: GetQuoteGEDto) {
+    try {
+      // 1. Create new token
+      const token = await this.getManuableSession();
+      if (!token) {
+        throw new BadRequestException(MANUABLE_FAILED_CREATE_TOKEN);
+      }
+
+      // 2. Get old token
+      const oldMnTk = await this.generalInfoDbService.getMnTk();
+      if (!oldMnTk) {
+        throw new BadRequestException(MANUABLE_FAILED_TOKEN);
+      }
+      await this.generalInfoDbService.updateMbTk({
+        changes: { mnTkId: oldMnTk._id as string, mnTk: token },
+      });
+      const manuablePayload = this.formatManuablePayload(payload);
+      const quotes = await this.fetchManuableQuotes(manuablePayload, token);
+      return quotes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service is to fetch quotes from Manuable API.
+   */
   async fetchManuableQuotes(payload: ManuablePayload, token: string) {
     try {
       const { uri } = this.configService.manuable;

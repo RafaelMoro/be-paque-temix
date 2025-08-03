@@ -97,29 +97,8 @@ export class AppService {
       // };
       const res = await this.manuableService.getManuableQuote(tempData);
       if (res?.message === MANUABLE_ERROR_UNAUTHORIZED) {
-        // TODO: Change this into a new manuable service
-        // 1. Create new token
-        const token = await this.manuableService.getManuableSession();
-        if (!token) {
-          messages.push(MANUABLE_FAILED_TOKEN);
-          return;
-        }
-
-        // 2. Get old token
-        const oldMnTk = await this.generalInfoDbService.getMnTk();
-        if (!oldMnTk) {
-          messages.push(MANUABLE_FAILED_TOKEN);
-          return;
-        }
-        await this.generalInfoDbService.updateMbTk({
-          changes: { mnTkId: oldMnTk._id as string, mnTk: token },
-        });
-        const manuablePayload =
-          this.manuableService.formatManuablePayload(tempData);
-        const quotes = await this.manuableService.fetchManuableQuotes(
-          manuablePayload,
-          token,
-        );
+        const quotes =
+          await this.manuableService.reAttemptGetManuableQuote(tempData);
         return quotes;
       }
       return res.quotes;
