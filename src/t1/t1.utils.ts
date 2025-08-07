@@ -1,6 +1,6 @@
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 import { T1FormattedQuote, T1GetQuoteResponse } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
+import { GetQuoteDto } from '@/app.dto';
 
 export const formatT1QuoteData = (
   data: T1GetQuoteResponse,
@@ -19,17 +19,24 @@ export const formatPayload = ({
   payload,
   storeId,
 }: {
-  payload: GetQuoteGEDto;
+  payload: GetQuoteDto;
   storeId: string;
 }): GetQuoteT1Dto => {
-  const { origen, destino, peso, largo, alto, ancho } = payload;
+  const {
+    originPostalCode,
+    destinationPostalCode,
+    weight,
+    length,
+    height,
+    width,
+  } = payload;
   return {
-    codigo_postal_origen: origen,
-    codigo_postal_destino: destino,
-    peso: Number(peso),
-    largo: Number(largo),
-    alto: Number(alto),
-    ancho: Number(ancho),
+    codigo_postal_origen: originPostalCode,
+    codigo_postal_destino: destinationPostalCode,
+    peso: Number(weight),
+    largo: Number(length),
+    alto: Number(height),
+    ancho: Number(width),
     dias_embarque: 0, // Default value, can be changed as needed
     seguro: false, // Default value, can be changed as needed
     valor_paquete: 0, // Default value, can be changed as needed

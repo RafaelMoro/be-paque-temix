@@ -67,7 +67,7 @@ export class AppService {
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
           this.guiaEnviaService.getQuote(payload),
-          this.t1Service.getQuote(tempData),
+          this.t1Service.getQuote(payload),
           this.pakkeService.getQuotePakke(tempData),
           this.manuableService.retrieveManuableQuotes(tempData),
         ],

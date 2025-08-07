@@ -11,7 +11,7 @@ import {
 } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayload, formatT1QuoteData } from '../t1.utils';
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
+import { GetQuoteDto } from '@/app.dto';
 
 @Injectable()
 export class T1Service {
@@ -19,8 +19,7 @@ export class T1Service {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  // TODO: Receive standard get quote DTO
-  async getQuote(payload: GetQuoteGEDto) {
+  async getQuote(payload: GetQuoteDto) {
     try {
       const apiKey = this.configService.t1.apiKey!;
       const uri = this.configService.t1.uri!;
