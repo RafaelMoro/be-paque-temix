@@ -1,9 +1,9 @@
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 import {
   ManuableFormattedQuote,
   ManuablePayload,
   ManuableQuote,
 } from './manuable.interface';
+import { GetQuoteDto } from '@/app.dto';
 
 export const formatManuableQuote = (
   quotes: ManuableQuote[],
@@ -16,26 +16,35 @@ export const formatManuableQuote = (
   }));
 };
 
-export const formatPayload = (payload: GetQuoteGEDto): ManuablePayload => {
-  const { origen, destino, peso, largo, alto, ancho } = payload;
+export const formatPayloadManuable = (
+  payload: GetQuoteDto,
+): ManuablePayload => {
+  const {
+    originPostalCode,
+    destinationPostalCode,
+    weight,
+    length,
+    height,
+    width,
+  } = payload;
 
   return {
     address_from: {
       country_code: 'MX', // Assuming Mexico as default
-      zip_code: origen,
+      zip_code: originPostalCode,
     },
     address_to: {
       country_code: 'MX', // Assuming Mexico as default
-      zip_code: destino,
+      zip_code: destinationPostalCode,
     },
     parcel: {
       currency: 'MXN', // Assuming Mexican Peso as default
       distance_unit: 'CM',
       mass_unit: 'KG',
-      height: Number(alto),
-      length: Number(largo),
-      width: Number(ancho),
-      weight: Number(peso),
+      height: Number(height),
+      length: Number(length),
+      width: Number(width),
+      weight: Number(weight),
       product_id: '1', // This should be set based on your application logic
       product_value: 1, // Default value, can be changed as needed
       quantity_products: 1, // Default value, can be changed as needed

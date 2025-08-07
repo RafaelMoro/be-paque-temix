@@ -21,8 +21,8 @@ import {
   ManuablePayload,
 } from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { formatManuableQuote, formatPayload } from '../manuable.utils';
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
+import { formatManuableQuote, formatPayloadManuable } from '../manuable.utils';
+import { GetQuoteDto } from '@/app.dto';
 
 @Injectable()
 export class ManuableService {
@@ -63,8 +63,8 @@ export class ManuableService {
   /**
    * This service is to format default payload to fetch quotes
    */
-  formatManuablePayload(payload: GetQuoteGEDto) {
-    return formatPayload(payload);
+  formatManuablePayload(payload: GetQuoteDto) {
+    return formatPayloadManuable(payload);
   }
 
   /**
@@ -74,11 +74,12 @@ export class ManuableService {
    * b: Fetch quotes
    */
   async retrieveManuableQuotes(
-    payload: GetQuoteGEDto,
+    payload: GetQuoteDto,
   ): Promise<GetManuableQuoteResponse> {
     try {
       const res = await this.getManuableQuote(payload);
       const messages: string[] = [...res.messages];
+
       if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
         messages.push('Mn: Attempting to re-fetch quotes with a new token');
         const quotes = await this.reAttemptGetManuableQuote(payload);
@@ -107,7 +108,7 @@ export class ManuableService {
    * The result can return an unauthorized error or the quotes
    */
   async getManuableQuote(
-    payload: GetQuoteGEDto,
+    payload: GetQuoteDto,
   ): Promise<GetManuableQuoteResponse> {
     try {
       const messages: string[] = [];
@@ -210,7 +211,7 @@ export class ManuableService {
    * This service is meant when the token of Mn has expired and we need to get a new one,
    * Update the token saved and fetch the quotes
    */
-  async reAttemptGetManuableQuote(payload: GetQuoteGEDto) {
+  async reAttemptGetManuableQuote(payload: GetQuoteDto) {
     try {
       // 1. Create new token
       const token = await this.getManuableSession();

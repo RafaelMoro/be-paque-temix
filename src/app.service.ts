@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
 import { Example, ExampleDoc } from './example.entity';
 import { CreateVideogameDto } from './example.dto';
 import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
-import { GetQuoteGEDto } from './guia-envia/dtos/guia-envia.dtos';
 import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
 import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
@@ -55,21 +55,13 @@ export class AppService {
 
   async getQuote(payload: GetQuoteDto) {
     try {
-      const tempData: GetQuoteGEDto = {
-        origen: '72000',
-        destino: '94298',
-        peso: '5.0',
-        largo: '30',
-        alto: '20',
-        ancho: '20',
-      };
       const messages: string[] = [];
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
           this.guiaEnviaService.getQuote(payload),
           this.t1Service.getQuote(payload),
           this.pakkeService.getQuotePakke(payload),
-          this.manuableService.retrieveManuableQuotes(tempData),
+          this.manuableService.retrieveManuableQuotes(payload),
         ],
       );
 
