@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { CreateVideogameDto } from './example.dto';
+import { GetQuoteDto } from './app.dto';
 
 @Controller()
 export class AppController {
@@ -11,15 +12,10 @@ export class AppController {
     return this.appService.findExamples();
   }
 
-  @Get('/quote')
-  async getQuote() {
-    return this.appService.getQuote();
+  @Post('/quote')
+  async getQuote(@Body() payload: GetQuoteDto) {
+    return this.appService.getQuote(payload);
   }
-
-  // @Get('/check-mntk')
-  // async checkMnTk() {
-  //   return this.appService.checkMnTk();
-  // }
 
   @Post()
   async createExample(@Body() payload: CreateVideogameDto) {

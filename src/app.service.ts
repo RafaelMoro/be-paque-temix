@@ -9,6 +9,7 @@ import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
 import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
 import { ManuableService } from './manuable/services/manuable.service';
+import { GetQuoteDto } from './app.dto';
 
 @Injectable()
 export class AppService {
@@ -52,9 +53,8 @@ export class AppService {
     }
   }
 
-  async getQuote() {
+  async getQuote(payload: GetQuoteDto) {
     try {
-      // TODO: Change this dynamically. Wait on what info the others APIs need to get a quote
       const tempData: GetQuoteGEDto = {
         origen: '72000',
         destino: '94298',
