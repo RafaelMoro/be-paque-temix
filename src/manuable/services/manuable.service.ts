@@ -166,7 +166,7 @@ export class ManuableService {
       if (error instanceof Error) {
         // The service fetchManuableQuotes returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
-          messages.push(`Mn: ${MANUABLE_ERROR_UNAUTHORIZED}`);
+          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
           return {
             messages,
             quotes: [],
