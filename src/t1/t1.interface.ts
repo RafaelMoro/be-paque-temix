@@ -48,5 +48,5 @@ export interface T1FormattedQuote {
   id: number;
   servicio: string;
   total: number;
-  source: 'T1';
+  source: 'TONE';
 }

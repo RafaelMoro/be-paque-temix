@@ -11,7 +11,7 @@ export const formatT1QuoteData = (
     total:
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
         .costo_total,
-    source: 'T1',
+    source: 'TONE',
   }));
 };
 
