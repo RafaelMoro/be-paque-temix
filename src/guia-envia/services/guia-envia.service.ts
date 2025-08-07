@@ -4,13 +4,13 @@ import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import {
-  COTIZATION_ENDPOINT,
+  QUOTE_ENDPOINT_GE,
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
 } from '../guia-envia.constants';
-import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 import { GEQuote } from '../guia-envia.interface';
-import { formatQuotes } from '../guia-envia.utils';
+import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
+import { GetQuoteDto } from '@/app.dto';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -18,7 +18,7 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteGEDto) {
+  async getQuote(payload: GetQuoteDto) {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -28,10 +28,12 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
-      const url = `${uri}${COTIZATION_ENDPOINT}`;
+
+      const transformedPayload = formatPayloadGE(payload);
+      const url = `${uri}${QUOTE_ENDPOINT_GE}`;
       const response: AxiosResponse<GEQuote[], unknown> = await axios.post(
         url,
-        payload,
+        transformedPayload,
         {
           headers: {
             Authorization: apiKey,
@@ -40,7 +42,7 @@ export class GuiaEnviaService {
       );
       // transform data and add a prop to identify that this service is coming from guia envia
       const data = response?.data;
-      const formattedQuotes = formatQuotes(data);
+      const formattedQuotes = formatQuotesGE(data);
       return formattedQuotes;
     } catch (error) {
       if (error instanceof Error) {

@@ -66,7 +66,7 @@ export class AppService {
       const messages: string[] = [];
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
-          this.guiaEnviaService.getQuote(tempData),
+          this.guiaEnviaService.getQuote(payload),
           this.t1Service.getQuote(tempData),
           this.pakkeService.getQuotePakke(tempData),
           this.manuableService.retrieveManuableQuotes(tempData),
