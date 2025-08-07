@@ -15,7 +15,7 @@ export const formatT1QuoteData = (
   }));
 };
 
-export const formatPayload = ({
+export const formatPayloadT1 = ({
   payload,
   storeId,
 }: {

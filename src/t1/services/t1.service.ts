@@ -10,7 +10,7 @@ import {
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
-import { formatPayload, formatT1QuoteData } from '../t1.utils';
+import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/app.dto';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class T1Service {
       const uri = this.configService.t1.uri!;
       const storeId = this.configService.t1.storeId!;
 
-      const payloadFormatted = formatPayload({ payload, storeId });
+      const payloadFormatted = formatPayloadT1({ payload, storeId });
 
       if (!apiKey) {
         throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
