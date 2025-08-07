@@ -10,7 +10,7 @@ import {
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
 import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
+import { GetQuoteDto } from '@/app.dto';
 
 @Injectable()
 export class PakkeService {
@@ -18,7 +18,7 @@ export class PakkeService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuotePakke(payload: GetQuoteGEDto) {
+  async getQuotePakke(payload: GetQuoteDto) {
     try {
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;

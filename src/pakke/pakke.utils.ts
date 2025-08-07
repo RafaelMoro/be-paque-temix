@@ -1,19 +1,26 @@
-import { GetQuoteGEDto } from '@/guia-envia/dtos/guia-envia.dtos';
 import { PakkeFormattedQuote, PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
+import { GetQuoteDto } from '@/app.dto';
 
 export const convertPayloadToPakkeDto = (
-  payload: GetQuoteGEDto,
+  payload: GetQuoteDto,
 ): GetQuotePakkeDto => {
-  const { origen, destino, peso, largo, alto, ancho } = payload;
+  const {
+    originPostalCode,
+    destinationPostalCode,
+    weight,
+    length,
+    height,
+    width,
+  } = payload;
   return {
-    ZipCodeFrom: origen,
-    ZipCodeTo: destino,
+    ZipCodeFrom: originPostalCode,
+    ZipCodeTo: destinationPostalCode,
     Parcel: {
-      Weight: peso,
-      Width: ancho,
-      Height: alto,
-      Length: largo,
+      Weight: weight,
+      Width: width,
+      Height: height,
+      Length: length,
     },
   };
 };

@@ -68,7 +68,7 @@ export class AppService {
         [
           this.guiaEnviaService.getQuote(payload),
           this.t1Service.getQuote(payload),
-          this.pakkeService.getQuotePakke(tempData),
+          this.pakkeService.getQuotePakke(payload),
           this.manuableService.retrieveManuableQuotes(tempData),
         ],
       );
