@@ -24,6 +24,11 @@ class CreateUserDataDto {
   role: string[];
 }
 
+export class CreateUserDataWrapperDto {
+  @ApiProperty({ type: CreateUserDataDto })
+  user: CreateUserDataDto;
+}
+
 export class CreateUserResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
@@ -31,10 +36,8 @@ export class CreateUserResponseDto {
   @ApiProperty({ example: 'User created' })
   message: string;
 
-  @ApiProperty({ type: CreateUserDataDto })
-  data: {
-    user: CreateUserDataDto;
-  };
+  @ApiProperty({ type: CreateUserDataWrapperDto })
+  data: CreateUserDataWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
