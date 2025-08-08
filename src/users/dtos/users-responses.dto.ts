@@ -100,14 +100,19 @@ export class CreateUserEmailExistResDto {
 
 //#region Delete user
 class DeleteUserDataDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'john.doe@mail.com' })
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'John' })
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Doe' })
   lastName: string;
+}
+
+export class DeleteUserDataWrapperDto {
+  @ApiProperty({ type: DeleteUserDataDto })
+  user: DeleteUserDataDto;
 }
 
 export class DeleteUserResponseDto {
@@ -117,10 +122,8 @@ export class DeleteUserResponseDto {
   @ApiProperty({ example: 'User deleted' })
   message: string;
 
-  @ApiProperty({ type: DeleteUserDataDto })
-  data: {
-    user: DeleteUserDataDto;
-  };
+  @ApiProperty({ type: DeleteUserDataWrapperDto })
+  data: DeleteUserDataWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
