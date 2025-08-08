@@ -1,14 +1,33 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class GetQuoteDto {
   @IsString()
   @IsNotEmpty()
+  @MinLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
+  @MaxLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
   @ApiProperty({ example: '72000', description: 'Postal code of the origin' })
   readonly originPostalCode: string;
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
+  @MaxLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
   @ApiProperty({
     example: '94298',
     description: 'Postal code of the destination',
