@@ -53,10 +53,10 @@ export class LoginUnauthorizedResponseDto {
   @ApiProperty()
   version: string;
 
-  @ApiProperty({ type: 'null', nullable: true })
+  @ApiProperty({ type: 'null', nullable: true, example: null })
   data: null;
 
-  @ApiProperty({ type: 'null', nullable: true })
+  @ApiProperty({ type: 'null', nullable: true, example: null })
   message: null;
 
   @ApiProperty({ type: () => LoginUnauthorizedErrorDto })
