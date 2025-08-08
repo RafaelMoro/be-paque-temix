@@ -57,6 +57,11 @@ class CreateAdminUserDataDto {
   role: string[];
 }
 
+export class CreateAdminUserDatWrapperDto {
+  @ApiProperty({ type: CreateAdminUserDataDto })
+  user: CreateAdminUserDataDto;
+}
+
 export class CreateAdminUserResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
@@ -64,10 +69,8 @@ export class CreateAdminUserResponseDto {
   @ApiProperty({ example: 'Admin user created' })
   message: string;
 
-  @ApiProperty({ type: CreateAdminUserDataDto })
-  data: {
-    user: CreateAdminUserDataDto;
-  };
+  @ApiProperty({ type: CreateAdminUserDatWrapperDto })
+  data: CreateAdminUserDatWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
