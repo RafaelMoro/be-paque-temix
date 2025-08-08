@@ -2,6 +2,8 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { CreateVideogameDto } from './example.dto';
 import { GetQuoteDto } from './app.dto';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { GetQuoteResponseDto } from './dto/app-responses.dto';
 
 @Controller()
 export class AppController {
@@ -13,6 +15,15 @@ export class AppController {
   }
 
   @Post('/quote')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener una cotización.',
+  })
+  @ApiResponse({
+    status: 201,
+    type: GetQuoteResponseDto,
+    description: 'Cotización obtenido exitosamente.',
+  })
   async getQuote(@Body() payload: GetQuoteDto) {
     return this.appService.getQuote(payload);
   }
