@@ -4,13 +4,23 @@ import config from '@/config';
 import axios from 'axios';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import * as utils from '../manuable.utils';
-import { ManuablePayload } from '../manuable.interface';
+import { ManuablePayload, ManuableQuote } from '../manuable.interface';
+import { GeneralInfoDbDoc } from '@/general-info-db/entities/general-info-db.entity';
 import { GetQuoteDto } from '@/app.dto';
-import { MANUABLE_FAILED_CREATE_TOKEN } from '../manuable.constants';
+import {
+  MANUABLE_ERROR_MISSING_URI,
+  MANUABLE_FAILED_CREATE_TOKEN,
+  QUOTE_MANUABLE_ENDPOINT,
+} from '../manuable.constants';
 
 describe('ManuableService', () => {
   let service: ManuableService;
   let generalInfoDb: GeneralInfoDbService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -90,12 +100,16 @@ describe('ManuableService', () => {
 
   it('createToken returns newly created token record when session returns token', async () => {
     const token = 'mn-session-token';
-    const created: { _id: string; mnTk: string } = { _id: 'id1', mnTk: token };
+    const created: GeneralInfoDbDoc = {
+      _id: 'id1',
+      mnTk: token,
+    } as unknown as GeneralInfoDbDoc;
     const sessionSpy = jest
       .spyOn(service, 'getManuableSession')
       .mockResolvedValueOnce(token);
-    const createMnTkMock = generalInfoDb.createMnTk as jest.Mock;
-    createMnTkMock.mockResolvedValueOnce(created);
+    const createMnTkMock = jest
+      .spyOn(generalInfoDb, 'createMnTk')
+      .mockResolvedValueOnce(created);
 
     const res = await service.createToken();
 
@@ -109,6 +123,98 @@ describe('ManuableService', () => {
 
     await expect(service.createToken()).rejects.toThrow(
       MANUABLE_FAILED_CREATE_TOKEN,
+    );
+  });
+
+  it('fetchManuableQuotes posts with Bearer token and returns data', async () => {
+    const payload: ManuablePayload = {
+      address_from: { country_code: 'MX', zip_code: '01010' },
+      address_to: { country_code: 'MX', zip_code: '02020' },
+      parcel: {
+        currency: 'MXN',
+        distance_unit: 'CM',
+        mass_unit: 'KG',
+        height: 10,
+        length: 20,
+        width: 30,
+        weight: 4.5,
+        product_id: 'PID',
+        product_value: 100,
+        quantity_products: 1,
+        content: 'Test',
+      },
+    };
+    const token = 'tok-123';
+    const quotes: ManuableQuote[] = [
+      {
+        service: 'Carrier A',
+        currency: 'MXN',
+        uuid: 'u1',
+        additional_fees: [],
+        zone: 1,
+        total_amount: '200',
+        carrier: 'A',
+        cancellable: true,
+        shipping_type: 'ground',
+        lead_time: '2d',
+      },
+    ];
+    const postSpy = jest
+      .spyOn(axios, 'post')
+      .mockResolvedValueOnce({ data: { data: quotes } } as any);
+
+    const res = await service.fetchManuableQuotes(payload, token);
+
+    expect(res).toBe(quotes);
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    const expectedUrl = `https://mn.example.com${QUOTE_MANUABLE_ENDPOINT}`;
+    expect(postSpy.mock.calls[0][0]).toBe(expectedUrl);
+    expect(postSpy.mock.calls[0][1]).toBe(payload);
+    expect(postSpy.mock.calls[0][2]).toMatchObject({
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  });
+
+  it('fetchManuableQuotes throws when URI is missing in config', async () => {
+    // Build a separate module instance with missing URI
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ManuableService,
+        {
+          provide: config.KEY,
+          useValue: {
+            manuable: {
+              email: 'user@example.com',
+              pwd: 's3cr3t',
+              uri: '',
+            },
+          },
+        },
+        { provide: GeneralInfoDbService, useValue: {} },
+      ],
+    }).compile();
+    const svc = module.get<ManuableService>(ManuableService);
+
+    const payload: ManuablePayload = {
+      address_from: { country_code: 'MX', zip_code: '01010' },
+      address_to: { country_code: 'MX', zip_code: '02020' },
+      parcel: {
+        currency: 'MXN',
+        distance_unit: 'CM',
+        mass_unit: 'KG',
+        height: 10,
+        length: 20,
+        width: 30,
+        weight: 4.5,
+        product_id: 'PID',
+        product_value: 100,
+        quantity_products: 1,
+        content: 'Test',
+      },
+    };
+
+    await expect(svc.fetchManuableQuotes(payload, 'tok')).rejects.toThrow(
+      MANUABLE_ERROR_MISSING_URI,
     );
   });
 });
