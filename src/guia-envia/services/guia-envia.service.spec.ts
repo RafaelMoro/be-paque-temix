@@ -2,30 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GuiaEnviaService } from './guia-envia.service';
 import { GetQuoteData } from '@/global.interface';
 import { GetQuoteDto } from '@/app.dto';
-import { ConfigService } from '@nestjs/config';
+import config from '@/config';
 
 describe('GuiaEnviaService', () => {
   let service: GuiaEnviaService;
-  let config: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GuiaEnviaService,
         {
-          provide: ConfigService,
+          provide: config.KEY,
           useValue: {
-            get: jest.fn((key: string) => {
-              const GUIA_ENVIA_KEY = 'some-key-from-GE';
-              const GUIA_ENVIA_URI = 'https://GE-some-uri.com';
-              const config = {
-                guiaEnvia: {
-                  apiKey: GUIA_ENVIA_KEY,
-                  uri: GUIA_ENVIA_URI,
-                },
-              };
-              return config[key];
-            }),
+            guiaEnvia: {
+              apiKey: 'some-key-from-GE',
+              uri: 'https://GE-some-uri.com',
+            },
           },
         },
       ],
