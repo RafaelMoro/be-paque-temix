@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 
 export class GetQuoteDto {
   @IsString()
@@ -15,23 +15,27 @@ export class GetQuoteDto {
   })
   readonly destinationPostalCode: string;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '5.0' })
-  readonly weight: string;
+  @ApiProperty({ example: 5 })
+  readonly weight: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '30' })
-  readonly length: string;
+  @ApiProperty({ example: 30 })
+  readonly length: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '20' })
-  readonly height: string;
+  @ApiProperty({ example: 20 })
+  readonly height: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '10' })
-  readonly width: string;
+  @ApiProperty({ example: 10 })
+  readonly width: number;
 }

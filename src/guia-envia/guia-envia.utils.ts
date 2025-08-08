@@ -9,9 +9,9 @@ export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
   return {
     origen: payload.originPostalCode,
     destino: payload.destinationPostalCode,
-    peso: payload.weight,
-    largo: payload.length,
-    alto: payload.height,
-    ancho: payload.width,
+    peso: String(payload.weight),
+    largo: String(payload.length),
+    alto: String(payload.height),
+    ancho: String(payload.width),
   };
 };

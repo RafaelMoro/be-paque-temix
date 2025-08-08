@@ -17,10 +17,10 @@ export const convertPayloadToPakkeDto = (
     ZipCodeFrom: originPostalCode,
     ZipCodeTo: destinationPostalCode,
     Parcel: {
-      Weight: weight,
-      Width: width,
-      Height: height,
-      Length: length,
+      Weight: String(weight),
+      Width: String(width),
+      Height: String(height),
+      Length: String(length),
     },
   };
 };

@@ -33,10 +33,10 @@ export const formatPayloadT1 = ({
   return {
     codigo_postal_origen: originPostalCode,
     codigo_postal_destino: destinationPostalCode,
-    peso: Number(weight),
-    largo: Number(length),
-    alto: Number(height),
-    ancho: Number(width),
+    peso: weight,
+    largo: length,
+    alto: height,
+    ancho: width,
     dias_embarque: 0, // Default value, can be changed as needed
     seguro: false, // Default value, can be changed as needed
     valor_paquete: 0, // Default value, can be changed as needed

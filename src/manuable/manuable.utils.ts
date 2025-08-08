@@ -41,10 +41,10 @@ export const formatPayloadManuable = (
       currency: 'MXN', // Assuming Mexican Peso as default
       distance_unit: 'CM',
       mass_unit: 'KG',
-      height: Number(height),
-      length: Number(length),
-      width: Number(width),
-      weight: Number(weight),
+      height: height,
+      length: length,
+      width: width,
+      weight: weight,
       product_id: '1', // This should be set based on your application logic
       product_value: 1, // Default value, can be changed as needed
       quantity_products: 1, // Default value, can be changed as needed
