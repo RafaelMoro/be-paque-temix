@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { FlattenMaps } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -7,10 +7,14 @@ import { User, UserDoc } from '@/users/entities/users.entity';
 import { UsersService } from '@/users/services/users.service';
 import { LoginData, LoginDataUser } from '@/users/users.interface';
 import { generateJWT } from '../auth.utils';
+import config from '@/config';
+import { ConfigType } from '@nestjs/config';
+import { LoginResponse } from '../auth.interface';
 
 @Injectable()
 export class AuthService {
   constructor(
+    @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
@@ -48,5 +52,18 @@ export class AuthService {
       user: formattedUser,
     };
     return loginData;
+  }
+
+  formatLoginResponse(user: LoginDataUser) {
+    const npmVersion: string = this.configService.version!;
+    const response: LoginResponse = {
+      version: npmVersion,
+      message: null,
+      data: {
+        user,
+      },
+      error: null,
+    };
+    return response;
   }
 }
