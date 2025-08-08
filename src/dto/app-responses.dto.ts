@@ -26,6 +26,9 @@ export class GetQuoteResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   message: null;
 
+  @ApiProperty({ type: [String], example: ['Quotes fetched successfully'] })
+  messages: string[];
+
   @ApiProperty({
     type: GetQuoteDataWrapperDto,
   })
