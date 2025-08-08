@@ -20,22 +20,36 @@ export class LoginBodyDto {
   description: 'user object in login response',
 })
 export class LoginUserDataDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'john.doe@mail.com' })
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'John' })
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Doe' })
   lastName: string;
 
   @ApiProperty({ enum: RoleEnum })
   role: string[];
 }
 
-export class LoginResponseDto {
-  @ApiProperty({ type: () => LoginUserDataDto })
+export class LoginUserDataDtoWrapperDto {
+  @ApiProperty({ type: LoginUserDataDto })
   user: LoginUserDataDto;
+}
+
+export class LoginResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: LoginUserDataDtoWrapperDto })
+  data: LoginUserDataDtoWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
 }
 
 export class LoginUnauthorizedErrorDto {
