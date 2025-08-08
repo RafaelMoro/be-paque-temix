@@ -21,7 +21,12 @@ export class GetQuoteDto {
   @Matches(/^[0-9]+$/, {
     message: 'Origin postal code must contain only numbers',
   })
-  @ApiProperty({ example: '72000', description: 'Postal code of the origin' })
+  @ApiProperty({
+    example: '72000',
+    description: 'Postal code of the origin',
+    minLength: 5,
+    maxLength: 5,
+  })
   readonly originPostalCode: string;
 
   @IsString()
@@ -38,6 +43,8 @@ export class GetQuoteDto {
   @ApiProperty({
     example: '94298',
     description: 'Postal code of the destination',
+    minLength: 5,
+    maxLength: 5,
   })
   readonly destinationPostalCode: string;
 
