@@ -6,9 +6,11 @@ import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db
 import * as utils from '../manuable.utils';
 import { ManuablePayload } from '../manuable.interface';
 import { GetQuoteDto } from '@/app.dto';
+import { MANUABLE_FAILED_CREATE_TOKEN } from '../manuable.constants';
 
 describe('ManuableService', () => {
   let service: ManuableService;
+  let generalInfoDb: GeneralInfoDbService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,13 +29,15 @@ describe('ManuableService', () => {
         {
           provide: GeneralInfoDbService,
           useValue: {
-            // not used in getManuableSession tests
+            // minimal mocked API used across tests
+            createMnTk: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<ManuableService>(ManuableService);
+    generalInfoDb = module.get<GeneralInfoDbService>(GeneralInfoDbService);
   });
 
   it('getManuableSession returns token', async () => {
@@ -82,5 +86,29 @@ describe('ManuableService', () => {
 
     expect(spy).toHaveBeenCalledWith(payload);
     expect(res).toBe(formatted);
+  });
+
+  it('createToken returns newly created token record when session returns token', async () => {
+    const token = 'mn-session-token';
+    const created: { _id: string; mnTk: string } = { _id: 'id1', mnTk: token };
+    const sessionSpy = jest
+      .spyOn(service, 'getManuableSession')
+      .mockResolvedValueOnce(token);
+    const createMnTkMock = generalInfoDb.createMnTk as jest.Mock;
+    createMnTkMock.mockResolvedValueOnce(created);
+
+    const res = await service.createToken();
+
+    expect(sessionSpy).toHaveBeenCalledTimes(1);
+    expect(createMnTkMock).toHaveBeenCalledWith(token);
+    expect(res).toBe(created);
+  });
+
+  it('createToken throws BadRequestException when session returns no token', async () => {
+    jest.spyOn(service, 'getManuableSession').mockResolvedValueOnce('');
+
+    await expect(service.createToken()).rejects.toThrow(
+      MANUABLE_FAILED_CREATE_TOKEN,
+    );
   });
 });
