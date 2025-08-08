@@ -42,11 +42,3 @@ export interface T1GetQuoteResponse {
   message: string;
   result: T1QuoteResult[];
 }
-
-// TODO: Change this to english
-export interface T1FormattedQuote {
-  id: number;
-  servicio: string;
-  total: number;
-  source: 'TONE';
-}

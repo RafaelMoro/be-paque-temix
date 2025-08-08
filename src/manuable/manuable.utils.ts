@@ -1,17 +1,14 @@
-import {
-  ManuableFormattedQuote,
-  ManuablePayload,
-  ManuableQuote,
-} from './manuable.interface';
+import { GetQuoteData } from '@/global.interface';
+import { ManuablePayload, ManuableQuote } from './manuable.interface';
 import { GetQuoteDto } from '@/app.dto';
 
 export const formatManuableQuote = (
   quotes: ManuableQuote[],
-): ManuableFormattedQuote[] => {
+): GetQuoteData[] => {
   return quotes.map((quote) => ({
     id: quote.uuid,
-    servicio: quote.carrier,
-    total: quote.total_amount,
+    service: quote.carrier,
+    total: Number(quote.total_amount),
     source: 'Mn',
   }));
 };

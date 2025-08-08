@@ -12,6 +12,7 @@ import {
 import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/global.interface';
 
 @Injectable()
 export class T1Service {
@@ -19,7 +20,7 @@ export class T1Service {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto) {
+  async getQuote(payload: GetQuoteDto): Promise<GetQuoteData[]> {
     try {
       const apiKey = this.configService.t1.apiKey!;
       const uri = this.configService.t1.uri!;

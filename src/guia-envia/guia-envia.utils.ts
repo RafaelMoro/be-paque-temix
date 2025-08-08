@@ -1,9 +1,15 @@
 import { GetQuoteDto } from '@/app.dto';
-import { GEFormattedQuote, GEQuote } from './guia-envia.interface';
+import { GEQuote } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
+import { GetQuoteData } from '@/global.interface';
 
-export const formatQuotesGE = (quotes: GEQuote[]): GEFormattedQuote[] =>
-  quotes.map((quote) => ({ ...quote, source: 'GE' }));
+export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
+  quotes.map((quote) => ({
+    id: quote.id,
+    service: quote.servicio,
+    total: quote.total,
+    source: 'GE',
+  }));
 
 export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
   return {

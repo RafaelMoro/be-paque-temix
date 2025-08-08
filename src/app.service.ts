@@ -1,25 +1,27 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ConfigType } from '@nestjs/config';
 
 import { Example, ExampleDoc } from './example.entity';
 import { CreateVideogameDto } from './example.dto';
 import { GuiaEnviaService } from './guia-envia/services/guia-envia.service';
 import { T1Service } from './t1/services/t1.service';
 import { PakkeService } from './pakke/services/pakke.service';
-import { GeneralInfoDbService } from './general-info-db/services/general-info-db.service';
 import { ManuableService } from './manuable/services/manuable.service';
 import { GetQuoteDto } from './app.dto';
+import { GetQuoteDataResponse } from './global.interface';
+import config from '@/config';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectModel(Example.name) private exampleModel: Model<Example>,
+    @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private guiaEnviaService: GuiaEnviaService,
     private t1Service: T1Service,
     private pakkeService: PakkeService,
     private manuableService: ManuableService,
-    private generalInfoDbService: GeneralInfoDbService,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -53,7 +55,7 @@ export class AppService {
     }
   }
 
-  async getQuote(payload: GetQuoteDto) {
+  async getQuote(payload: GetQuoteDto): Promise<GetQuoteDataResponse> {
     try {
       const messages: string[] = [];
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
@@ -90,14 +92,20 @@ export class AppService {
         messages.push(...mnRes.value.messages);
       }
 
+      const npmVersion: string = this.configService.version!;
       return {
+        version: npmVersion,
+        message: null,
         messages,
-        quotes: [
-          ...geQuotesData,
-          ...t1QuotesData,
-          ...pakkeQuotesData,
-          ...mnQuotesData,
-        ],
+        error: null,
+        data: {
+          quotes: [
+            ...geQuotesData,
+            ...t1QuotesData,
+            ...pakkeQuotesData,
+            ...mnQuotesData,
+          ],
+        },
       };
     } catch (error) {
       if (error instanceof Error) {

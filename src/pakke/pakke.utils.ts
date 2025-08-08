@@ -1,6 +1,7 @@
-import { PakkeFormattedQuote, PakkeGetQuoteResponse } from './pakke.interface';
+import { PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/global.interface';
 
 export const convertPayloadToPakkeDto = (
   payload: GetQuoteDto,
@@ -27,10 +28,10 @@ export const convertPayloadToPakkeDto = (
 
 export const formatPakkeQuotes = (
   data: PakkeGetQuoteResponse,
-): PakkeFormattedQuote[] => {
+): GetQuoteData[] => {
   return (data?.Pakke ?? []).map((item) => ({
     id: `${item.CourierCode}-${item.CourierName}-${item.CourierServiceId}`,
-    servicio: `${item.CourierName} ${item.CourierServiceName}`,
+    service: `${item.CourierName} ${item.CourierServiceName}`,
     total: item.TotalPrice,
     source: 'Pkk',
   }));

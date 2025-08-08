@@ -11,6 +11,7 @@ import {
 import { PakkeGetQuoteResponse } from '../pakke.interface';
 import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
 import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/global.interface';
 
 @Injectable()
 export class PakkeService {
@@ -18,7 +19,7 @@ export class PakkeService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuotePakke(payload: GetQuoteDto) {
+  async getQuotePakke(payload: GetQuoteDto): Promise<GetQuoteData[]> {
     try {
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;

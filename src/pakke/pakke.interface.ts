@@ -52,10 +52,3 @@ export interface PakkeQuote {
 export interface PakkeGetQuoteResponse {
   Pakke: PakkeQuote[];
 }
-
-export interface PakkeFormattedQuote {
-  id: string;
-  servicio: string;
-  total: number;
-  source: 'Pkk';
-}

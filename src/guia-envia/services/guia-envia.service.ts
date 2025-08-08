@@ -11,6 +11,7 @@ import {
 import { GEQuote } from '../guia-envia.interface';
 import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
 import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/global.interface';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -18,7 +19,7 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto) {
+  async getQuote(payload: GetQuoteDto): Promise<GetQuoteData[]> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
