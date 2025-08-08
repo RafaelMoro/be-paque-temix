@@ -6,6 +6,7 @@ import {
   Min,
   MaxLength,
   MinLength,
+  Matches,
 } from 'class-validator';
 
 export class GetQuoteDto {
@@ -17,6 +18,9 @@ export class GetQuoteDto {
   @MaxLength(5, {
     message: 'Origin postal code must be 5 characters long',
   })
+  @Matches(/^[0-9]+$/, {
+    message: 'Origin postal code must contain only numbers',
+  })
   @ApiProperty({ example: '72000', description: 'Postal code of the origin' })
   readonly originPostalCode: string;
 
@@ -27,6 +31,9 @@ export class GetQuoteDto {
   })
   @MaxLength(5, {
     message: 'Origin postal code must be 5 characters long',
+  })
+  @Matches(/^[0-9]+$/, {
+    message: 'Origin postal code must contain only numbers',
   })
   @ApiProperty({
     example: '94298',
