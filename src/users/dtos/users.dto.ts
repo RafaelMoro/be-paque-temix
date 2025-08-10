@@ -52,10 +52,10 @@ export class CreateUserDto {
   readonly secondPhone: string;
 
   @IsString()
-  @MinLength(4)
-  @MaxLength(4)
+  @MinLength(5)
+  @MaxLength(5)
   @IsNotEmpty()
-  @ApiProperty({ default: '5264', required: false })
+  @ApiProperty({ default: '52641', required: false })
   readonly postalCode: string;
 
   @IsString()
