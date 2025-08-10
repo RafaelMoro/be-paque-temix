@@ -1,3 +1,9 @@
+## v0.8.0 (2025-08-10)
+
+### Pull Requests
+[#8](https://github.com/RafaelMoro/be-paque-temix/pull/8) | Add quotes feature
+
+
 ## v0.7.0 (2025-07-25)
 
 ### Pull Requests
