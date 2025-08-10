@@ -10,6 +10,7 @@ import { GetQuoteDto } from '@/app.dto';
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
+  MANUABLE_FAILED_TOKEN,
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
 
@@ -41,6 +42,8 @@ describe('ManuableService', () => {
           useValue: {
             // minimal mocked API used across tests
             createMnTk: jest.fn(),
+            getMnTk: jest.fn(),
+            updateMbTk: jest.fn(),
           },
         },
       ],
@@ -216,5 +219,111 @@ describe('ManuableService', () => {
     await expect(svc.fetchManuableQuotes(payload, 'tok')).rejects.toThrow(
       MANUABLE_ERROR_MISSING_URI,
     );
+  });
+
+  it('reAttemptGetManuableQuote updates token and fetches quotes', async () => {
+    const dto: GetQuoteDto = {
+      originPostalCode: '01010',
+      destinationPostalCode: '02020',
+      height: 5,
+      length: 6,
+      width: 7,
+      weight: 1.2,
+    };
+    const manuablePayload: ManuablePayload = {
+      address_from: { country_code: 'MX', zip_code: '01010' },
+      address_to: { country_code: 'MX', zip_code: '02020' },
+      parcel: {
+        currency: 'MXN',
+        distance_unit: 'CM',
+        mass_unit: 'KG',
+        height: 5,
+        length: 6,
+        width: 7,
+        weight: 1.2,
+        product_id: 'PID',
+        product_value: 50,
+        quantity_products: 1,
+        content: 'Test',
+      },
+    };
+    const quotes: ManuableQuote[] = [
+      {
+        service: 'Carrier B',
+        currency: 'MXN',
+        uuid: 'u2',
+        additional_fees: [],
+        zone: 2,
+        total_amount: '120',
+        carrier: 'B',
+        cancellable: true,
+        shipping_type: 'air',
+        lead_time: '1d',
+      },
+    ];
+
+    const getSessionSpy = jest
+      .spyOn(service, 'getManuableSession')
+      .mockResolvedValueOnce('new-token');
+    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce({
+      _id: 'oldId',
+      mnTk: 'old-token',
+    });
+    (generalInfoDb.updateMbTk as jest.Mock).mockResolvedValueOnce(null);
+    const formatPayloadSpy = jest
+      .spyOn(service, 'formatManuablePayload')
+      .mockReturnValueOnce(manuablePayload);
+    const fetchQuotesSpy = jest
+      .spyOn(service, 'fetchManuableQuotes')
+      .mockResolvedValueOnce(quotes);
+
+    const res = await service.reAttemptGetManuableQuote(dto);
+    expect(getSessionSpy).toHaveBeenCalledTimes(1);
+    expect((generalInfoDb.getMnTk as jest.Mock).mock.calls.length).toBe(1);
+    const updateCalls = (generalInfoDb.updateMbTk as jest.Mock).mock
+      .calls as unknown[];
+    expect(updateCalls.length).toBeGreaterThan(0);
+    const [firstUpdateArg] = updateCalls[0] as [
+      { changes: { mnTkId: string; mnTk: string } },
+    ];
+    expect(firstUpdateArg).toEqual({
+      changes: { mnTkId: 'oldId', mnTk: 'new-token' },
+    });
+    expect(formatPayloadSpy).toHaveBeenCalledWith(dto);
+    expect(fetchQuotesSpy).toHaveBeenCalledWith(manuablePayload, 'new-token');
+    expect(res).toBe(quotes);
+  });
+
+  it('reAttemptGetManuableQuote throws when new token cannot be created', async () => {
+    jest.spyOn(service, 'getManuableSession').mockResolvedValueOnce('');
+
+    await expect(
+      service.reAttemptGetManuableQuote({
+        originPostalCode: '0',
+        destinationPostalCode: '0',
+        height: 1,
+        length: 1,
+        width: 1,
+        weight: 1,
+      }),
+    ).rejects.toThrow(MANUABLE_FAILED_CREATE_TOKEN);
+  });
+
+  it('reAttemptGetManuableQuote throws when old token missing', async () => {
+    jest
+      .spyOn(service, 'getManuableSession')
+      .mockResolvedValueOnce('new-token');
+    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce(null);
+
+    await expect(
+      service.reAttemptGetManuableQuote({
+        originPostalCode: '0',
+        destinationPostalCode: '0',
+        height: 1,
+        length: 1,
+        width: 1,
+        weight: 1,
+      }),
+    ).rejects.toThrow(MANUABLE_FAILED_TOKEN);
   });
 });
