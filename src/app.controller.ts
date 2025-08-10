@@ -17,12 +17,12 @@ export class AppController {
   @Post('/quote')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Obtener una cotización.',
+    summary: 'Get a quote.',
   })
   @ApiResponse({
     status: 201,
     type: GetQuoteResponseDto,
-    description: 'Cotización obtenido exitosamente.',
+    description: 'Quote retrieved successfully.',
   })
   async getQuote(@Body() payload: GetQuoteDto) {
     return this.appService.getQuote(payload);
