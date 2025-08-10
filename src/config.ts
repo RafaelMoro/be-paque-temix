@@ -16,6 +16,16 @@ export default registerAs('config', () => {
     NODE_ENV,
     RESEND_API_KEY,
     MAILER_MAIL,
+    GUIA_ENVIA_KEY,
+    GUIA_ENVIA_URI,
+    T1_URI,
+    T1_KEY,
+    T1_STORE_ID,
+    PAKKE_KEY,
+    PAKKE_URI,
+    MANUABLE_EM,
+    MANUABLE_PSS,
+    MANUABLE_URI,
     npm_package_version: npmVersion,
   } = process.env;
 
@@ -40,6 +50,24 @@ export default registerAs('config', () => {
     mail: {
       resendApiKey: RESEND_API_KEY,
       mailerMail: MAILER_MAIL,
+    },
+    guiaEnvia: {
+      apiKey: GUIA_ENVIA_KEY,
+      uri: GUIA_ENVIA_URI,
+    },
+    t1: {
+      apiKey: T1_KEY,
+      uri: T1_URI,
+      storeId: T1_STORE_ID,
+    },
+    pakke: {
+      apiKey: PAKKE_KEY,
+      uri: PAKKE_URI,
+    },
+    manuable: {
+      email: MANUABLE_EM,
+      pwd: MANUABLE_PSS,
+      uri: MANUABLE_URI,
     },
     environment: NODE_ENV,
     version: npmVersion,

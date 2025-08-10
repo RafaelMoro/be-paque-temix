@@ -24,6 +24,11 @@ class CreateUserDataDto {
   role: string[];
 }
 
+export class CreateUserDataWrapperDto {
+  @ApiProperty({ type: CreateUserDataDto })
+  user: CreateUserDataDto;
+}
+
 export class CreateUserResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
@@ -31,10 +36,8 @@ export class CreateUserResponseDto {
   @ApiProperty({ example: 'User created' })
   message: string;
 
-  @ApiProperty({ type: CreateUserDataDto })
-  data: {
-    user: CreateUserDataDto;
-  };
+  @ApiProperty({ type: CreateUserDataWrapperDto })
+  data: CreateUserDataWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
@@ -54,6 +57,11 @@ class CreateAdminUserDataDto {
   role: string[];
 }
 
+export class CreateAdminUserDatWrapperDto {
+  @ApiProperty({ type: CreateAdminUserDataDto })
+  user: CreateAdminUserDataDto;
+}
+
 export class CreateAdminUserResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
@@ -61,10 +69,8 @@ export class CreateAdminUserResponseDto {
   @ApiProperty({ example: 'Admin user created' })
   message: string;
 
-  @ApiProperty({ type: CreateAdminUserDataDto })
-  data: {
-    user: CreateAdminUserDataDto;
-  };
+  @ApiProperty({ type: CreateAdminUserDatWrapperDto })
+  data: CreateAdminUserDatWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
@@ -97,14 +103,19 @@ export class CreateUserEmailExistResDto {
 
 //#region Delete user
 class DeleteUserDataDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'john.doe@mail.com' })
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'John' })
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Doe' })
   lastName: string;
+}
+
+export class DeleteUserDataWrapperDto {
+  @ApiProperty({ type: DeleteUserDataDto })
+  user: DeleteUserDataDto;
 }
 
 export class DeleteUserResponseDto {
@@ -114,10 +125,8 @@ export class DeleteUserResponseDto {
   @ApiProperty({ example: 'User deleted' })
   message: string;
 
-  @ApiProperty({ type: DeleteUserDataDto })
-  data: {
-    user: DeleteUserDataDto;
-  };
+  @ApiProperty({ type: DeleteUserDataWrapperDto })
+  data: DeleteUserDataWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;

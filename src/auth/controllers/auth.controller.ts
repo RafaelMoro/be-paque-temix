@@ -49,8 +49,6 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60 * 24 * 5, // 5 days
     });
-    return {
-      user: res.user,
-    };
+    return this.authService.formatLoginResponse(res.user);
   }
 }

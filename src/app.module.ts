@@ -12,6 +12,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
 import { MailModule } from './mail/mail.module';
+import { GuiaEnviaModule } from './guia-envia/guia-envia.module';
+import { T1Module } from './t1/t1.module';
+import { PakkeModule } from './pakke/pakke.module';
+import { ManuableModule } from './manuable/manuable.module';
+import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 
 @Module({
   imports: [
@@ -34,6 +39,16 @@ import { MailModule } from './mail/mail.module';
         FRONTEND_URI: Joi.string().required(),
         RESEND_API_KEY: Joi.string().required(),
         MAILER_MAIL: Joi.string().email().required(),
+        GUIA_ENVIA_KEY: Joi.string().required(),
+        GUIA_ENVIA_URI: Joi.string().uri().required(),
+        T1_URI: Joi.string().uri().required(),
+        T1_KEY: Joi.string().required(),
+        T1_STORE_ID: Joi.string().required(),
+        PAKKE_KEY: Joi.string().required(),
+        PAKKE_URI: Joi.string().uri().required(),
+        MANUABLE_EM: Joi.string().email().required(),
+        MANUABLE_PSS: Joi.string().required(),
+        MANUABLE_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forFeature([
@@ -46,6 +61,11 @@ import { MailModule } from './mail/mail.module';
     UsersModule,
     AuthModule,
     MailModule,
+    GuiaEnviaModule,
+    T1Module,
+    PakkeModule,
+    ManuableModule,
+    GeneralInfoDbModule,
   ],
   controllers: [AppController],
   providers: [AppService],
