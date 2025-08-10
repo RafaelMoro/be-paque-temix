@@ -1,3 +1,9 @@
+## v0.8.1 (2025-08-10)
+
+### Pull Requests
+[#9](https://github.com/RafaelMoro/be-paque-temix/pull/9) | Fix zipcode length to be 5 digits and admin guard not working
+
+
 ## v0.8.0 (2025-08-10)
 
 ### Pull Requests
