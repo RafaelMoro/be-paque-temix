@@ -11,6 +11,7 @@ import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
   MANUABLE_FAILED_TOKEN,
+  MANUABLE_ERROR_UNAUTHORIZED,
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
 
@@ -325,5 +326,79 @@ describe('ManuableService', () => {
         weight: 1,
       }),
     ).rejects.toThrow(MANUABLE_FAILED_TOKEN);
+  });
+
+  it('retrieveManuableQuotes returns direct result when no unauthorized message', async () => {
+    const dto: GetQuoteDto = {
+      originPostalCode: '01010',
+      destinationPostalCode: '02020',
+      height: 5,
+      length: 5,
+      width: 5,
+      weight: 1,
+    };
+    const baseResult = { messages: ['Mn: Token valid'], quotes: [] };
+    const getQuoteSpy = jest
+      .spyOn(service, 'getManuableQuote')
+      .mockResolvedValueOnce(baseResult);
+    const reAttemptSpy = jest.spyOn(service, 'reAttemptGetManuableQuote');
+    const formatSpy = jest.spyOn(utils, 'formatManuableQuote');
+
+    const res = await service.retrieveManuableQuotes(dto);
+
+    expect(getQuoteSpy).toHaveBeenCalledWith(dto);
+    expect(reAttemptSpy).not.toHaveBeenCalled();
+    expect(formatSpy).not.toHaveBeenCalled();
+    expect(res).toBe(baseResult);
+  });
+
+  it('retrieveManuableQuotes retries on unauthorized and formats quotes', async () => {
+    const dto: GetQuoteDto = {
+      originPostalCode: '01010',
+      destinationPostalCode: '02020',
+      height: 5,
+      length: 5,
+      width: 5,
+      weight: 1,
+    };
+    const unauthorizedResult = {
+      messages: [MANUABLE_ERROR_UNAUTHORIZED],
+      quotes: [],
+    };
+    const rawQuotes = [
+      {
+        service: 'Carrier C',
+        currency: 'MXN',
+        uuid: 'u3',
+        additional_fees: [],
+        zone: 3,
+        total_amount: '300',
+        carrier: 'C',
+        cancellable: true,
+        shipping_type: 'air',
+        lead_time: '3d',
+      },
+    ] as ManuableQuote[];
+    const formattedQuotes: any = [
+      { id: 'u3', service: 'Carrier C', total: 300, source: 'Mn' },
+    ];
+    jest
+      .spyOn(service, 'getManuableQuote')
+      .mockResolvedValueOnce(unauthorizedResult);
+    jest
+      .spyOn(service, 'reAttemptGetManuableQuote')
+      .mockResolvedValueOnce(rawQuotes);
+    jest
+      .spyOn(utils, 'formatManuableQuote')
+      .mockReturnValueOnce(formattedQuotes);
+
+    const res = await service.retrieveManuableQuotes(dto);
+
+    expect(res.quotes).toBe(formattedQuotes);
+    expect(res.messages).toEqual([
+      MANUABLE_ERROR_UNAUTHORIZED,
+      'Mn: Attempting to re-fetch quotes with a new token',
+      'Mn: Quotes fetched successfully',
+    ]);
   });
 });
