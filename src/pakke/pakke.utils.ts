@@ -2,6 +2,7 @@ import { PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/app.dto';
 import { GetQuoteData } from '@/global.interface';
+import { getTypeService } from '@/app.utils';
 
 export const convertPayloadToPakkeDto = (
   payload: GetQuoteDto,
@@ -33,6 +34,7 @@ export const formatPakkeQuotes = (
     id: `${item.CourierCode}-${item.CourierName}-${item.CourierServiceId}`,
     service: `${item.CourierName} ${item.CourierServiceName}`,
     total: item.TotalPrice,
+    typeService: getTypeService(item.typeService),
     source: 'Pkk',
   }));
 };
