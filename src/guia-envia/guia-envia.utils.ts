@@ -3,12 +3,14 @@ import { GEQuote } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
 
-const NEXT_DAY_REGEX = /^.expres.$/i;
-const STANDARD_REGEX = /^.terrestre.$/i;
+const NEXT_DAY_REGEX = /expres/i;
+const STANDARD_REGEX = /terrestre/i;
 
 export const getTypeServiceGe = (service: string): QuoteTypeSevice | null => {
-  if (NEXT_DAY_REGEX.test(service)) return 'nextDay';
-  if (STANDARD_REGEX.test(service)) return 'standard';
+  const serviceLowerCase = service.toLowerCase();
+
+  if (NEXT_DAY_REGEX.test(serviceLowerCase)) return 'nextDay';
+  if (STANDARD_REGEX.test(serviceLowerCase)) return 'standard';
   return null;
 };
 
