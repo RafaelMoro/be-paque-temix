@@ -1,8 +1,15 @@
 import { PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
-import { getTypeService } from '@/app.utils';
+import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
+
+export const getTypeServicePakke = (
+  service: string,
+): QuoteTypeSevice | null => {
+  if (service === 'nextDay') return 'nextDay';
+  if (service === 'standard') return 'standard';
+  return null;
+};
 
 export const convertPayloadToPakkeDto = (
   payload: GetQuoteDto,
@@ -34,7 +41,7 @@ export const formatPakkeQuotes = (
     id: `${item.CourierCode}-${item.CourierName}-${item.CourierServiceId}`,
     service: `${item.CourierName} ${item.CourierServiceName}`,
     total: item.TotalPrice,
-    typeService: getTypeService(item.typeService),
+    typeService: getTypeServicePakke(item.typeService),
     source: 'Pkk',
   }));
 };
