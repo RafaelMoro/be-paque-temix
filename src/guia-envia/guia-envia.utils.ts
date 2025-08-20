@@ -5,10 +5,12 @@ import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
+const EXCLUDE_REGEX = /paquetexpres/i;
 
 export const getTypeServiceGe = (service: string): QuoteTypeSevice | null => {
   const serviceLowerCase = service.toLowerCase();
 
+  if (EXCLUDE_REGEX.test(serviceLowerCase)) return null;
   if (NEXT_DAY_REGEX.test(serviceLowerCase)) return 'nextDay';
   if (STANDARD_REGEX.test(serviceLowerCase)) return 'standard';
   return null;
