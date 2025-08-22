@@ -1,3 +1,9 @@
+## v0.9.0 (2025-08-22)
+
+### Pull Requests
+[#11](https://github.com/RafaelMoro/be-paque-temix/pull/11) | Add type of service (express or nextDay)
+
+
 ## v0.8.1 (2025-08-10)
 
 ### Pull Requests
