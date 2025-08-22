@@ -391,6 +391,7 @@ describe('T1Service', () => {
         id: '1',
         service: 'Carrier Express',
         total: 199.99,
+        typeService: null,
         source: 'TONE',
       },
     ];

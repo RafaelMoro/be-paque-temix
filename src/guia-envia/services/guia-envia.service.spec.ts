@@ -336,6 +336,7 @@ describe('GuiaEnviaService', () => {
         id: '1',
         service: 'Estafeta Terreste',
         total: 126.9,
+        typeService: null,
         source: 'GE',
       },
     ];

@@ -340,6 +340,7 @@ describe('PakkeService', () => {
         id: '1',
         service: 'Pakke Express',
         total: 150.5,
+        typeService: null,
         source: 'Pkk',
       },
     ];

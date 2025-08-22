@@ -13,8 +13,7 @@ export interface GetQuoteData {
   id: string | number;
   service: string;
   total: number;
-  // TODO: Change this mandatory
-  typeService?: QuoteTypeSevice | null;
+  typeService: QuoteTypeSevice | null;
   source: QuoteSource;
 }
 
