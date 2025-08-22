@@ -7,6 +7,7 @@ import * as utils from '../manuable.utils';
 import { ManuablePayload, ManuableQuote } from '../manuable.interface';
 import { GeneralInfoDbDoc } from '@/general-info-db/entities/general-info-db.entity';
 import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/global.interface';
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
@@ -151,13 +152,13 @@ describe('ManuableService', () => {
     const token = 'tok-123';
     const quotes: ManuableQuote[] = [
       {
-        service: 'Carrier A',
+        service: 'express',
         currency: 'MXN',
         uuid: 'u1',
         additional_fees: [],
         zone: 1,
         total_amount: '200',
-        carrier: 'A',
+        carrier: 'Carrier A',
         cancellable: true,
         shipping_type: 'ground',
         lead_time: '2d',
@@ -250,13 +251,13 @@ describe('ManuableService', () => {
     };
     const quotes: ManuableQuote[] = [
       {
-        service: 'Carrier B',
+        service: 'standard',
         currency: 'MXN',
         uuid: 'u2',
         additional_fees: [],
         zone: 2,
         total_amount: '120',
-        carrier: 'B',
+        carrier: 'Carrier B',
         cancellable: true,
         shipping_type: 'air',
         lead_time: '1d',
@@ -365,22 +366,28 @@ describe('ManuableService', () => {
       messages: [MANUABLE_ERROR_UNAUTHORIZED],
       quotes: [],
     };
-    const rawQuotes = [
+    const rawQuotes: ManuableQuote[] = [
       {
-        service: 'Carrier C',
+        service: 'express',
         currency: 'MXN',
         uuid: 'u3',
         additional_fees: [],
         zone: 3,
         total_amount: '300',
-        carrier: 'C',
+        carrier: 'Carrier C',
         cancellable: true,
         shipping_type: 'air',
         lead_time: '3d',
       },
-    ] as ManuableQuote[];
-    const formattedQuotes: any = [
-      { id: 'u3', service: 'Carrier C', total: 300, source: 'Mn' },
+    ];
+    const formattedQuotes: GetQuoteData[] = [
+      {
+        id: 'u3',
+        service: 'Carrier C',
+        total: 300,
+        source: 'Mn',
+        typeService: 'nextDay',
+      },
     ];
     jest
       .spyOn(service, 'getManuableQuote')
