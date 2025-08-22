@@ -1,5 +1,7 @@
 import { GetQuoteData } from '@/global.interface';
 
+export type TypeServiceMn = 'standard' | 'express';
+
 export interface GetManuableSessionResponse {
   id: string;
   token: string;
@@ -31,7 +33,7 @@ export interface ManuablePayload {
 }
 
 export interface ManuableQuote {
-  service: string;
+  service: TypeServiceMn;
   currency: string;
   uuid: string;
   additional_fees: never[];

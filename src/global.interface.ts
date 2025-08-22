@@ -7,10 +7,13 @@ export interface GeneralResponse {
 
 export type QuoteSource = 'Pkk' | 'GE' | 'TONE' | 'Mn';
 
+export type QuoteTypeSevice = 'standard' | 'nextDay';
+
 export interface GetQuoteData {
   id: string | number;
   service: string;
   total: number;
+  typeService: QuoteTypeSevice | null;
   source: QuoteSource;
 }
 

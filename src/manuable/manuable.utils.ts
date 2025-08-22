@@ -1,6 +1,18 @@
-import { GetQuoteData } from '@/global.interface';
-import { ManuablePayload, ManuableQuote } from './manuable.interface';
+import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
+import {
+  ManuablePayload,
+  ManuableQuote,
+  TypeServiceMn,
+} from './manuable.interface';
 import { GetQuoteDto } from '@/app.dto';
+
+export const getTypeServiceMn = (
+  service: TypeServiceMn,
+): QuoteTypeSevice | null => {
+  if (service === 'express') return 'nextDay';
+  if (service === 'standard') return 'standard';
+  return null;
+};
 
 export const formatManuableQuote = (
   quotes: ManuableQuote[],
@@ -9,6 +21,7 @@ export const formatManuableQuote = (
     id: quote.uuid,
     service: quote.carrier,
     total: Number(quote.total_amount),
+    typeService: getTypeServiceMn(quote.service),
     source: 'Mn',
   }));
 };
