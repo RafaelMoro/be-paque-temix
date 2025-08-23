@@ -27,4 +27,20 @@ export class GlobalConfigsService {
       throw new BadRequestException('An unknown error occurred');
     }
   }
+
+  async readProfitMargin() {
+    try {
+      const profitMarginArray = await this.globalConfigModel.find().exec();
+      if (profitMarginArray.length === 0) {
+        return null;
+      }
+      const [profitMargin] = profitMarginArray;
+      return profitMargin;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
 }
