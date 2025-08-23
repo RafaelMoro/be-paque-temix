@@ -118,9 +118,9 @@ export class GlobalConfigsService {
         ...payload,
         profitMarginId: profitMargin._id as string,
       };
-      const editedProfitMargin = await this.updateProfitMargin(editPayload);
-      const value = editedProfitMargin?.profitMargin.value;
-      const type = editedProfitMargin?.profitMargin.type;
+      await this.updateProfitMargin(editPayload);
+      const value = payload.profitMargin.value;
+      const type = payload.profitMargin.type;
       if (!value || !type) {
         return new BadRequestException('Could not update profit margin');
       }
