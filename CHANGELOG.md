@@ -1,3 +1,9 @@
+## v0.12.0 (2025-08-23)
+
+### Pull Requests
+[#14](https://github.com/RafaelMoro/be-paque-temix/pull/14) | Order quotes by price
+
+
 ## v0.11.0 (2025-08-23)
 
 ### Pull Requests
