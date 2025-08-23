@@ -1,3 +1,9 @@
+## v0.13.0 (2025-08-23)
+
+### Pull Requests
+[#15](https://github.com/RafaelMoro/be-paque-temix/pull/15) | Add profit margin
+
+
 ## v0.12.0 (2025-08-23)
 
 ### Pull Requests
