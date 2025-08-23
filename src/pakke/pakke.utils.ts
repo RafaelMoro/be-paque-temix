@@ -1,7 +1,11 @@
-import { PakkeGetQuoteResponse } from './pakke.interface';
+import { PakkeCourier, PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
+import {
+  GetQuoteData,
+  QuoteCourier,
+  QuoteTypeSevice,
+} from '@/global.interface';
 
 export const getTypeServicePakke = (
   service: string,
@@ -9,6 +13,27 @@ export const getTypeServicePakke = (
   if (service === 'nextDay') return 'nextDay';
   if (service === 'standard') return 'standard';
   return null;
+};
+
+export const getPakkeCourier = (
+  courierName: PakkeCourier,
+): QuoteCourier | null => {
+  switch (courierName) {
+    case 'Estafeta':
+      return 'Estafeta';
+    case 'AMPM':
+      return 'AMPM';
+    case 'DHL':
+      return 'DHL';
+    case 'FedEx':
+      return 'Fedex';
+    case 'Paquete Express':
+      return 'Paquetexpress';
+    case 'Tres Guerras Logistics':
+      return 'Tres guerras';
+    default:
+      return null;
+  }
 };
 
 export const convertPayloadToPakkeDto = (
@@ -42,6 +67,7 @@ export const formatPakkeQuotes = (
     service: `${item.CourierName} ${item.CourierServiceName}`,
     total: item.TotalPrice,
     typeService: getTypeServicePakke(item.typeService),
+    courier: getPakkeCourier(item.CourierName),
     source: 'Pkk',
   }));
 };

@@ -17,7 +17,8 @@ export type QuoteCourier =
   | 'Paquetexpress'
   | 'AMPM'
   // Corresponding to 99 or 99MIN
-  | 'NextDay';
+  | 'NextDay'
+  | 'Tres guerras';
 
 export interface GetQuoteData {
   id: string | number;
