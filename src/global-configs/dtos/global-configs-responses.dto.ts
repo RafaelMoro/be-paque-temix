@@ -17,8 +17,8 @@ export class GetMarginProfitResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
 
-  @ApiProperty({ example: 'User created' })
-  message: string;
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
 
   @ApiProperty({ type: GetMarginProfitDataWrapperDto })
   data: GetMarginProfitDataWrapperDto;
