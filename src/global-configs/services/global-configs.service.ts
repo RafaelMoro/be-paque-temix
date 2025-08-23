@@ -88,7 +88,7 @@ export class GlobalConfigsService {
         } = newProfitMargin;
         const response: ProfitMarginResponse = {
           version: npmVersion,
-          message: null,
+          message: 'Profit margin created',
           error: null,
           data: {
             profitMargin: {
@@ -113,7 +113,7 @@ export class GlobalConfigsService {
 
       const response: ProfitMarginResponse = {
         version: npmVersion,
-        message: null,
+        message: 'Profit margin updated',
         error: null,
         data: {
           profitMargin: {
