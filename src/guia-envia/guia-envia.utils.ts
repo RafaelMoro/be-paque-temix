@@ -1,7 +1,11 @@
 import { GetQuoteDto } from '@/app.dto';
 import { GEQuote } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
-import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
+import {
+  GetQuoteData,
+  QuoteCourier,
+  QuoteTypeSevice,
+} from '@/global.interface';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
@@ -16,12 +20,24 @@ export const getTypeServiceGe = (service: string): QuoteTypeSevice | null => {
   return null;
 };
 
+export const getGeCourier = (service: string): QuoteCourier | null => {
+  const serviceLowerCase = service.toLowerCase();
+
+  if (serviceLowerCase.includes('estafeta')) return 'Estafeta';
+  if (serviceLowerCase.includes('dhl')) return 'DHL';
+  if (serviceLowerCase.includes('ups')) return 'UPS';
+  if (serviceLowerCase.includes('fedex')) return 'Fedex';
+
+  return null;
+};
+
 export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
   quotes.map((quote) => ({
     id: quote.id,
     service: quote.servicio,
     total: quote.total,
     typeService: getTypeServiceGe(quote.servicio),
+    courier: getGeCourier(quote.servicio),
     source: 'GE',
   }));
 

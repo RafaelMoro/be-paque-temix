@@ -2,6 +2,8 @@ import { GetQuoteData } from '@/global.interface';
 
 export type TypeServiceMn = 'standard' | 'express';
 
+export type MnCarrier = 'FEDEX' | 'DHL';
+
 export interface GetManuableSessionResponse {
   id: string;
   token: string;
@@ -39,7 +41,7 @@ export interface ManuableQuote {
   additional_fees: never[];
   zone: number;
   total_amount: string;
-  carrier: string;
+  carrier: MnCarrier;
   cancellable: boolean;
   shipping_type: string;
   lead_time: string;
