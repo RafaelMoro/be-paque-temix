@@ -12,7 +12,7 @@ import { Request } from 'express';
 import { UsersService } from '../services/users.service';
 import { CreateUserDto, ResetPasswordDto } from '../dtos/users.dto';
 import { Public } from '@/auth/decorators/public/public.decorator';
-import { JwtGuardGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
+import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import {
@@ -36,7 +36,7 @@ import {
   ResetPasswordResponseDto,
 } from '../dtos/users-responses.dto';
 
-@UseGuards(JwtGuardGuard)
+@UseGuards(JwtGuard)
 @Controller('users')
 export class UsersController {
   constructor(private userService: UsersService) {}

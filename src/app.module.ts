@@ -18,6 +18,7 @@ import { PakkeModule } from './pakke/pakke.module';
 import { ManuableModule } from './manuable/manuable.module';
 import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 import { QuotesModule } from './quotes/quotes.module';
+import { GlobalConfigsModule } from './global-configs/global-configs.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { QuotesModule } from './quotes/quotes.module';
     ManuableModule,
     GeneralInfoDbModule,
     QuotesModule,
+    GlobalConfigsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

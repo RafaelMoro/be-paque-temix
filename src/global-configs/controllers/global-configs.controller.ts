@@ -1,0 +1,85 @@
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { GlobalConfigsService } from '../services/global-configs.service';
+import { RolesGuard } from '@/auth/guards/roles/roles.guard';
+import { Roles } from '@/auth/decorators/roles/roles.decorator';
+import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  GetMarginProfitUnauthorizedErrorDto,
+  GetMarginProfitResponseDto,
+  GetMarginProfitForbiddenErrorDto,
+  GetMarginProfitNotFoundErrorDto,
+  ManageMarginProfitResponseDto,
+} from '../dtos/global-configs-responses.dto';
+import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
+
+@UseGuards(JwtGuard)
+@Controller('global-configs')
+export class GlobalConfigsController {
+  constructor(private readonly globalConfigsService: GlobalConfigsService) {}
+
+  /**
+   * Get the profit margin.
+   */
+  @Roles('admin', 'user')
+  @UseGuards(RolesGuard)
+  @Get('profit-margin')
+  @ApiOperation({
+    summary: 'Get the profit margin',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    type: GetMarginProfitResponseDto,
+    description: 'Profit margin retrieved successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    type: GetMarginProfitUnauthorizedErrorDto,
+    description: 'Unauthorized. The user has not logged in.',
+  })
+  @ApiResponse({
+    status: 403,
+    type: GetMarginProfitForbiddenErrorDto,
+    description:
+      'The user does not have admin role. Forbidden resource for those users.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: GetMarginProfitNotFoundErrorDto,
+    description: 'The profit margin was not found.',
+  })
+  async getProfitMargin() {
+    return this.globalConfigsService.getProfitMargin();
+  }
+
+  /**
+   * Creates or updates a the profit margin.
+   */
+  @Roles('admin', 'user')
+  @UseGuards(RolesGuard)
+  @Post('profit-margin')
+  @ApiOperation({
+    summary: 'Manage the profit margin',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    type: ManageMarginProfitResponseDto,
+    description: 'Profit margin created successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    type: GetMarginProfitUnauthorizedErrorDto,
+    description: 'Unauthorized. The user has not logged in.',
+  })
+  @ApiResponse({
+    status: 403,
+    type: GetMarginProfitForbiddenErrorDto,
+    description:
+      'The user does not have admin role. Forbidden resource for those users.',
+  })
+  async manageProfitMargin(@Body() payload: CreateGlobalConfigsDto) {
+    return this.globalConfigsService.manageProfitMargin(payload);
+  }
+}
