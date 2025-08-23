@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
@@ -19,7 +20,6 @@ import config from '@/config';
 describe('GlobalConfigsService', () => {
   let service: GlobalConfigsService;
   let globalConfigModel: jest.Mocked<Model<GlobalConfigs>>;
-  let configService: any;
 
   const mockProfitMarginDoc: GlobalConfigsDoc = {
     _id: 'profit-margin-id-123',
@@ -28,7 +28,7 @@ describe('GlobalConfigsService', () => {
       type: 'percentage',
     },
     save: jest.fn(),
-  } as any;
+  } as unknown as GlobalConfigsDoc;
 
   const mockCreateGlobalConfigsDto: CreateGlobalConfigsDto = {
     profitMargin: {
@@ -72,7 +72,6 @@ describe('GlobalConfigsService', () => {
 
     service = module.get<GlobalConfigsService>(GlobalConfigsService);
     globalConfigModel = module.get(getModelToken(GlobalConfigs.name));
-    configService = module.get(config.KEY);
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -355,10 +354,10 @@ describe('GlobalConfigsService', () => {
     it('should throw BadRequestException when value or type is missing on update', async () => {
       const incompleteDto = {
         profitMargin: {
-          value: undefined as any,
+          value: undefined,
           type: 'percentage' as TypeProfitMargin,
         },
-      };
+      } as unknown as CreateGlobalConfigsDto;
 
       jest
         .spyOn(service, 'readProfitMargin')
