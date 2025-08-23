@@ -3,18 +3,45 @@ import { GlobalConfigsService } from '../services/global-configs.service';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  GetMarginProfitResErrorDto,
+  GetMarginProfitResponseDto,
+} from '../dtos/global-configs-responses.dto';
+import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 
+@UseGuards(JwtGuard)
 @Controller('global-configs')
 export class GlobalConfigsController {
   constructor(private readonly globalConfigsService: GlobalConfigsService) {}
 
+  /**
+   * Get the profit margin.
+   */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
-  @Get()
+  @Get('profit-margin')
+  @ApiOperation({
+    summary: 'Get the profit margin',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    type: GetMarginProfitResponseDto,
+    description: 'Profit margin retrieved successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    type: GetMarginProfitResErrorDto,
+    description: 'Unauthorized.',
+  })
   async getProfitMargin() {
     return this.globalConfigsService.getProfitMargin();
   }
 
+  /**
+   * Creates or updates a the profit margin.
+   */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
   @Post()
