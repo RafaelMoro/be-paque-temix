@@ -16,4 +16,8 @@ export class GlobalConfigs extends Document {
   profitMargin: ProfitMargin;
 }
 
+export interface GlobalConfigsDoc extends GlobalConfigs {
+  _id: unknown;
+}
+
 export const GlobalConfigsSchema = SchemaFactory.createForClass(GlobalConfigs);
