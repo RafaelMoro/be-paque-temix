@@ -61,4 +61,29 @@ export class GlobalConfigsService {
       throw new BadRequestException('An unknown error occurred');
     }
   }
+
+  /**
+   * This service is to update or create the profit margin
+   */
+  async manageProfitMargin(payload: CreateGlobalConfigsDto) {
+    try {
+      const profitMargin = await this.readProfitMargin();
+      // If it does not exist, then create it
+      if (!profitMargin) {
+        const newProfitMargin = await this.createProfitMargin(payload);
+        return newProfitMargin;
+      }
+      const editPayload: UpdateGlobalConfigsDto = {
+        ...payload,
+        profitMarginId: profitMargin._id as string,
+      };
+      const editedProfitMargin = await this.updateProfitMargin(editPayload);
+      return editedProfitMargin;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
 }
