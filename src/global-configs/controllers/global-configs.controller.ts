@@ -5,8 +5,9 @@ import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  GetMarginProfitResErrorDto,
+  GetMarginProfitUnauthorizedErrorDto,
   GetMarginProfitResponseDto,
+  GetMarginProfitForbiddenErrorDto,
 } from '../dtos/global-configs-responses.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 
@@ -32,8 +33,14 @@ export class GlobalConfigsController {
   })
   @ApiResponse({
     status: 401,
-    type: GetMarginProfitResErrorDto,
-    description: 'Unauthorized.',
+    type: GetMarginProfitUnauthorizedErrorDto,
+    description: 'Unauthorized. The user has not logged in.',
+  })
+  @ApiResponse({
+    status: 403,
+    type: GetMarginProfitForbiddenErrorDto,
+    description:
+      'The user does not have admin role. Forbidden resource for those users.',
   })
   async getProfitMargin() {
     return this.globalConfigsService.getProfitMargin();

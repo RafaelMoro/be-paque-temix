@@ -35,7 +35,7 @@ class GetMarginProfitUnauthorizedError {
   statusCode: number;
 }
 
-export class GetMarginProfitResErrorDto {
+export class GetMarginProfitUnauthorizedErrorDto {
   @ApiProperty()
   version: string;
 
@@ -47,4 +47,29 @@ export class GetMarginProfitResErrorDto {
 
   @ApiProperty({ type: () => GetMarginProfitUnauthorizedError })
   error: GetMarginProfitUnauthorizedError;
+}
+
+class GetMarginProfitForbiddenError {
+  @ApiProperty({ default: 'Forbidden resource.' })
+  message: string;
+
+  @ApiProperty({ default: 'Forbidden' })
+  error: string;
+
+  @ApiProperty({ default: 400 })
+  statusCode: number;
+}
+
+export class GetMarginProfitForbiddenErrorDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => GetMarginProfitForbiddenError })
+  error: GetMarginProfitForbiddenError;
 }
