@@ -19,5 +19,6 @@ import {
   ],
   providers: [GlobalConfigsService],
   controllers: [GlobalConfigsController],
+  exports: [GlobalConfigsService],
 })
 export class GlobalConfigsModule {}
