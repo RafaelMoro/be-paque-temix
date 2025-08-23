@@ -175,10 +175,26 @@ describe('QuotesService', () => {
         error: null,
         data: {
           quotes: [
-            ...mockGeQuotes,
-            ...mockT1Quotes,
-            ...mockPakkeQuotes,
-            ...mockManuableResponse.quotes,
+            // Ordered by price: 120.5, 150.5, 180.25, 200, 250.75
+            ...mockManuableResponse.quotes, // 120.5
+            {
+              id: 'ge-1',
+              service: 'Estafeta Standard',
+              total: 150.5,
+              typeService: 'standard',
+              courier: 'Estafeta',
+              source: 'GE',
+            },
+            ...mockT1Quotes, // 180.25
+            ...mockPakkeQuotes, // 200
+            {
+              id: 'ge-2',
+              service: 'DHL Express',
+              total: 250.75,
+              typeService: 'nextDay',
+              courier: 'DHL',
+              source: 'GE',
+            },
           ],
         },
       });
@@ -397,15 +413,20 @@ describe('QuotesService', () => {
 
       const result = await service.getQuote(mockQuoteDto);
 
-      // Verify the order is maintained: GE, T1, Pakke, Manuable
-      const expectedOrder = [
+      // Verify all quotes are included (though they will be ordered by price)
+      const expectedQuotes = [
         ...mockGeQuotes,
         ...mockT1Quotes,
         ...mockPakkeQuotes,
         ...mockManuableResponse.quotes,
       ];
 
-      expect(result.data.quotes).toEqual(expectedOrder);
+      expect(result.data.quotes).toHaveLength(expectedQuotes.length);
+
+      // Verify all original quotes are present (regardless of order)
+      expectedQuotes.forEach((originalQuote) => {
+        expect(result.data.quotes).toContainEqual(originalQuote);
+      });
     });
 
     it('should correctly format response structure', async () => {
@@ -429,6 +450,91 @@ describe('QuotesService', () => {
       expect(Array.isArray(result.messages)).toBe(true);
       expect(result.error).toBeNull();
       expect(result.version).toBe(configService.version);
+    });
+
+    it('should order quotes by price from lowest to highest', async () => {
+      // Create quotes with different prices to test ordering
+      const unorderedGeQuotes: GetQuoteData[] = [
+        {
+          id: 'ge-1',
+          service: 'Estafeta Express',
+          total: 300.5, // Highest price
+          typeService: 'nextDay',
+          courier: 'Estafeta',
+          source: 'GE',
+        },
+        {
+          id: 'ge-2',
+          service: 'Estafeta Standard',
+          total: 150.25, // Middle price
+          typeService: 'standard',
+          courier: 'Estafeta',
+          source: 'GE',
+        },
+      ];
+
+      const unorderedT1Quotes: GetQuoteData[] = [
+        {
+          id: 't1-1',
+          service: 'UPS Ground',
+          total: 99.75, // Lowest price
+          typeService: 'standard',
+          courier: 'UPS',
+          source: 'TONE',
+        },
+      ];
+
+      const unorderedPakkeQuotes: GetQuoteData[] = [
+        {
+          id: 'pkk-1',
+          service: 'Fedex Express',
+          total: 275.0, // Second highest price
+          typeService: 'nextDay',
+          courier: 'Fedex',
+          source: 'Pkk',
+        },
+      ];
+
+      const unorderedManuableResponse = {
+        quotes: [
+          {
+            id: 'mn-1',
+            service: 'Tres Guerras Standard',
+            total: 125.5, // Second lowest price
+            typeService: 'standard' as const,
+            courier: 'Tres guerras' as const,
+            source: 'Mn' as const,
+          },
+        ],
+        messages: [],
+      };
+
+      guiaEnviaService.getQuote.mockResolvedValue(unorderedGeQuotes);
+      t1Service.getQuote.mockResolvedValue(unorderedT1Quotes);
+      pakkeService.getQuotePakke.mockResolvedValue(unorderedPakkeQuotes);
+      manuableService.retrieveManuableQuotes.mockResolvedValue(
+        unorderedManuableResponse,
+      );
+
+      const result = await service.getQuote(mockQuoteDto);
+
+      // Verify quotes are ordered by price (lowest to highest)
+      const quotes = result.data.quotes;
+      expect(quotes).toHaveLength(5);
+
+      // Check that prices are in ascending order
+      expect(quotes[0].total).toBe(99.75); // UPS Ground (lowest)
+      expect(quotes[1].total).toBe(125.5); // Tres Guerras Standard
+      expect(quotes[2].total).toBe(150.25); // Estafeta Standard
+      expect(quotes[3].total).toBe(275.0); // Fedex Express
+      expect(quotes[4].total).toBe(300.5); // Estafeta Express (highest)
+
+      // Verify the correct services are in the right order
+      expect(quotes[0].service).toBe('UPS Ground');
+      expect(quotes[1].service).toBe('Tres Guerras Standard');
+      expect(quotes[2].service).toBe('Estafeta Standard');
+      expect(quotes[3].service).toBe('Fedex Express');
+      expect(quotes[4].service).toBe('Estafeta Express');
     });
   });
 });
