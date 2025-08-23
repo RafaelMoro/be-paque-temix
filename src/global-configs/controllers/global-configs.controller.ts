@@ -66,7 +66,7 @@ export class GlobalConfigsController {
   @ApiResponse({
     status: 201,
     type: ManageMarginProfitResponseDto,
-    description: 'Profit margin retrieved successfully.',
+    description: 'Profit margin created successfully.',
   })
   @ApiResponse({
     status: 401,
