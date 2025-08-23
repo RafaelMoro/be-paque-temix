@@ -1,6 +1,34 @@
-import { GetQuoteData } from '@/global.interface';
-import { ManuablePayload, ManuableQuote } from './manuable.interface';
-import { GetQuoteDto } from '@/app.dto';
+import {
+  GetQuoteData,
+  QuoteCourier,
+  QuoteTypeSevice,
+} from '@/quotes/quotes.interface';
+import {
+  ManuablePayload,
+  ManuableQuote,
+  MnCarrier,
+  TypeServiceMn,
+} from './manuable.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+
+export const getTypeServiceMn = (
+  service: TypeServiceMn,
+): QuoteTypeSevice | null => {
+  if (service === 'express') return 'nextDay';
+  if (service === 'standard') return 'standard';
+  return null;
+};
+
+export const getPakkeCourier = (carrier: MnCarrier): QuoteCourier | null => {
+  switch (carrier) {
+    case 'FEDEX':
+      return 'Fedex';
+    case 'DHL':
+      return 'DHL';
+    default:
+      return null;
+  }
+};
 
 export const formatManuableQuote = (
   quotes: ManuableQuote[],
@@ -9,6 +37,8 @@ export const formatManuableQuote = (
     id: quote.uuid,
     service: quote.carrier,
     total: Number(quote.total_amount),
+    typeService: getTypeServiceMn(quote.service),
+    courier: getPakkeCourier(quote.carrier),
     source: 'Mn',
   }));
 };

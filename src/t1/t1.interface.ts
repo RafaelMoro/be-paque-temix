@@ -1,3 +1,5 @@
+export type T1Courier = 'EXPRESS' | 'DHL' | 'FEDEX' | 'UPS' | '99MIN' | 'AMPM';
+
 export interface ShippingService {
   servicio: string;
   tipo_servicio: string;
@@ -31,7 +33,7 @@ export interface T1QuoteInfo {
 
 export interface T1QuoteResult {
   id: number;
-  clave: string;
+  clave: T1Courier;
   comercio: string;
   seguro: boolean;
   cotizacion: T1QuoteInfo;

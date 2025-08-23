@@ -1,3 +1,11 @@
+export type PakkeCourier =
+  | 'Estafeta'
+  | 'AMPM'
+  | 'DHL'
+  | 'FedEx'
+  | 'Paquete Express'
+  | 'Tres Guerras Logistics';
+
 export interface PakkeLabelInstructions {
   label: string;
   icon: string;
@@ -5,7 +13,7 @@ export interface PakkeLabelInstructions {
 
 export interface PakkeQuote {
   CourierCode: string;
-  CourierName: string;
+  CourierName: PakkeCourier;
   CourierServiceId: string;
   CourierServiceName: string;
   DeliveryDays: string;

@@ -1,3 +1,39 @@
+## v0.14.0 (2025-08-23)
+
+### Pull Requests
+[#16](https://github.com/RafaelMoro/be-paque-temix/pull/16) | Add profit margin into the quotes
+
+
+## v0.13.0 (2025-08-23)
+
+### Pull Requests
+[#15](https://github.com/RafaelMoro/be-paque-temix/pull/15) | Add profit margin
+
+
+## v0.12.0 (2025-08-23)
+
+### Pull Requests
+[#14](https://github.com/RafaelMoro/be-paque-temix/pull/14) | Order quotes by price
+
+
+## v0.11.0 (2025-08-23)
+
+### Pull Requests
+[#13](https://github.com/RafaelMoro/be-paque-temix/pull/13) | Add quotes module
+
+
+## v0.10.0 (2025-08-23)
+
+### Pull Requests
+[#12](https://github.com/RafaelMoro/be-paque-temix/pull/12) | Add courier into quote
+
+
+## v0.9.0 (2025-08-22)
+
+### Pull Requests
+[#11](https://github.com/RafaelMoro/be-paque-temix/pull/11) | Add type of service (express or nextDay)
+
+
 ## v0.8.1 (2025-08-10)
 
 ### Pull Requests
