@@ -98,3 +98,30 @@ export class GetMarginProfitNotFoundErrorDto {
   @ApiProperty({ type: () => GetMarginProfitNotFoundError })
   error: GetMarginProfitNotFoundError;
 }
+
+class ManageMarginProfitDataDto {
+  @ApiProperty({ example: '13' })
+  value: number;
+
+  @ApiProperty({ example: 'percentage' })
+  type: string;
+}
+
+export class ManageMarginProfitDataWrapperDto {
+  @ApiProperty({ type: ManageMarginProfitDataDto })
+  profitMargin: ManageMarginProfitDataDto;
+}
+
+export class ManageMarginProfitResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Profit margin created' })
+  message: string;
+
+  @ApiProperty({ type: ManageMarginProfitDataWrapperDto })
+  data: ManageMarginProfitDataWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}

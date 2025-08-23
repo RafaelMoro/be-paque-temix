@@ -9,6 +9,7 @@ import {
   GetMarginProfitResponseDto,
   GetMarginProfitForbiddenErrorDto,
   GetMarginProfitNotFoundErrorDto,
+  ManageMarginProfitResponseDto,
 } from '../dtos/global-configs-responses.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 
@@ -57,7 +58,27 @@ export class GlobalConfigsController {
    */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
-  @Post()
+  @Post('profit-margin')
+  @ApiOperation({
+    summary: 'Manage the profit margin',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    type: ManageMarginProfitResponseDto,
+    description: 'Profit margin retrieved successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    type: GetMarginProfitUnauthorizedErrorDto,
+    description: 'Unauthorized. The user has not logged in.',
+  })
+  @ApiResponse({
+    status: 403,
+    type: GetMarginProfitForbiddenErrorDto,
+    description:
+      'The user does not have admin role. Forbidden resource for those users.',
+  })
   async manageProfitMargin(@Body() payload: CreateGlobalConfigsDto) {
     return this.globalConfigsService.manageProfitMargin(payload);
   }
