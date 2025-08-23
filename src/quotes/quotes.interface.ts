@@ -20,7 +20,7 @@ export interface GetQuoteData {
   service: string;
   total: number;
   typeService: QuoteTypeSevice | null;
-  courier?: QuoteCourier | null;
+  courier: QuoteCourier | null;
   source: QuoteSource;
 }
 
