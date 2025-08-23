@@ -17,6 +17,7 @@ import { T1Module } from './t1/t1.module';
 import { PakkeModule } from './pakke/pakke.module';
 import { ManuableModule } from './manuable/manuable.module';
 import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
+import { QuotesModule } from './quotes/quotes.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
     PakkeModule,
     ManuableModule,
     GeneralInfoDbModule,
+    QuotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
