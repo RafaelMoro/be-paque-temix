@@ -69,13 +69,11 @@ export class QuotesService {
       // Calculate the margin profit
       const marginProfitValue =
         await this.globalConfigsService.readProfitMargin();
-      if (!marginProfitValue) {
-        messages.push('No profit margin configured');
-      }
 
       const updatedQuotes = calculateQuotesValue(
         allQuotesInfo,
         marginProfitValue,
+        messages,
       );
 
       // Order the quotes by price
