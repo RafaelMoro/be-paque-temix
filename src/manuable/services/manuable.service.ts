@@ -22,7 +22,7 @@ import {
 } from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { formatManuableQuote, formatPayloadManuable } from '../manuable.utils';
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 
 @Injectable()
 export class ManuableService {

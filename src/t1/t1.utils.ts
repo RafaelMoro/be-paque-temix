@@ -1,11 +1,11 @@
 import { T1Courier, T1GetQuoteResponse } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import {
   GetQuoteData,
   QuoteCourier,
   QuoteTypeSevice,
-} from '@/global.interface';
+} from '@/quotes/quotes.interface';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;

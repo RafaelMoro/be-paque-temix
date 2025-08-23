@@ -1,11 +1,11 @@
 import { PakkeCourier, PakkeGetQuoteResponse } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import {
   GetQuoteData,
   QuoteCourier,
   QuoteTypeSevice,
-} from '@/global.interface';
+} from '@/quotes/quotes.interface';
 
 export const getTypeServicePakke = (
   service: string,

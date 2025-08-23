@@ -1,4 +1,4 @@
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 
 export type TypeServiceMn = 'standard' | 'express';
 

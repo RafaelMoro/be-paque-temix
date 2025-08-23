@@ -2,14 +2,14 @@ import {
   GetQuoteData,
   QuoteCourier,
   QuoteTypeSevice,
-} from '@/global.interface';
+} from '@/quotes/quotes.interface';
 import {
   ManuablePayload,
   ManuableQuote,
   MnCarrier,
   TypeServiceMn,
 } from './manuable.interface';
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 
 export const getTypeServiceMn = (
   service: TypeServiceMn,

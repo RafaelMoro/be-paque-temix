@@ -10,8 +10,8 @@ import {
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
 import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class GuiaEnviaService {

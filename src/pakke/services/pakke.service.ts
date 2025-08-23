@@ -10,8 +10,8 @@ import {
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
 import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class PakkeService {
