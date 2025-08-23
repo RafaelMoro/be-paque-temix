@@ -29,3 +29,29 @@ export const addPercentageMarginProfit = (
 
   return quoteAmount * (1 + marginProfitValue / 100);
 };
+
+/**
+ * Add an absolute margin value to a quote amount.
+ * Example: marginProfitValue = 15, quoteAmount = 100 -> returns 115
+ *
+ * @param marginProfitValue absolute value to add (e.g. 15)
+ * @param quoteAmount base amount to which the absolute value will be added
+ * @returns new amount with the absolute value added
+ * @throws {TypeError} when inputs are not valid numbers
+ */
+export const addAbsoluteMarginProfit = (
+  marginProfitValue: number,
+  quoteAmount: number,
+): number => {
+  if (
+    typeof marginProfitValue !== 'number' ||
+    Number.isNaN(marginProfitValue)
+  ) {
+    throw new TypeError('marginProfitValue must be a valid number');
+  }
+  if (typeof quoteAmount !== 'number' || Number.isNaN(quoteAmount)) {
+    throw new TypeError('quoteAmount must be a valid number');
+  }
+
+  return quoteAmount + marginProfitValue;
+};
