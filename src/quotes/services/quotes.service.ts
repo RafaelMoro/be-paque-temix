@@ -8,6 +8,7 @@ import { T1Service } from '@/t1/services/t1.service';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
+import { orderQuotesByPrice } from '../quotes.utils';
 
 @Injectable()
 export class QuotesService {
@@ -55,6 +56,12 @@ export class QuotesService {
       if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
         messages.push(...mnRes.value.messages);
       }
+      const currentQuotes = orderQuotesByPrice([
+        ...geQuotesData,
+        ...t1QuotesData,
+        ...pakkeQuotesData,
+        ...mnQuotesData,
+      ]);
 
       const npmVersion: string = this.configService.version!;
       return {
@@ -63,12 +70,7 @@ export class QuotesService {
         messages,
         error: null,
         data: {
-          quotes: [
-            ...geQuotesData,
-            ...t1QuotesData,
-            ...pakkeQuotesData,
-            ...mnQuotesData,
-          ],
+          quotes: currentQuotes,
         },
       };
     } catch (error) {
