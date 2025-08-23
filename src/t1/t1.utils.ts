@@ -1,7 +1,11 @@
-import { T1GetQuoteResponse } from './t1.interface';
+import { T1Courier, T1GetQuoteResponse } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
 import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData, QuoteTypeSevice } from '@/global.interface';
+import {
+  GetQuoteData,
+  QuoteCourier,
+  QuoteTypeSevice,
+} from '@/global.interface';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;
@@ -16,6 +20,25 @@ export const getTypeServiceT1 = (
   return null;
 };
 
+export const getT1Courier = (clave: T1Courier): QuoteCourier | null => {
+  switch (clave) {
+    case 'EXPRESS':
+      return 'Paquetexpress';
+    case 'DHL':
+      return 'DHL';
+    case 'FEDEX':
+      return 'Fedex';
+    case 'UPS':
+      return 'UPS';
+    case '99MIN':
+      return 'NextDay';
+    case 'AMPM':
+      return 'AMPM';
+    default:
+      return null;
+  }
+};
+
 export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
   return data?.result.map((item) => ({
     id: item.id,
@@ -27,6 +50,7 @@ export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
         .tipo_servicio,
     ),
+    courier: getT1Courier(item.clave),
     source: 'TONE',
   }));
 };
