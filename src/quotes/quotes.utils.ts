@@ -28,7 +28,8 @@ export const addPercentageMarginProfit = (
     throw new TypeError('quoteAmount must be a valid number');
   }
 
-  return quoteAmount * (1 + marginProfitValue / 100);
+  const result = quoteAmount * (1 + marginProfitValue / 100);
+  return Math.round(result * 100) / 100;
 };
 
 /**
@@ -54,7 +55,8 @@ export const addAbsoluteMarginProfit = (
     throw new TypeError('quoteAmount must be a valid number');
   }
 
-  return quoteAmount + marginProfitValue;
+  const result = quoteAmount + marginProfitValue;
+  return Math.round(result * 100) / 100;
 };
 
 /**
