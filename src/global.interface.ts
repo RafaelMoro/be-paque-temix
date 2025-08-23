@@ -9,11 +9,14 @@ export type QuoteSource = 'Pkk' | 'GE' | 'TONE' | 'Mn';
 
 export type QuoteTypeSevice = 'standard' | 'nextDay';
 
+export type QuoteCourier = 'Estafeta' | 'DHL' | 'UPS' | 'Fedex';
+
 export interface GetQuoteData {
   id: string | number;
   service: string;
   total: number;
   typeService: QuoteTypeSevice | null;
+  courier?: QuoteCourier | null;
   source: QuoteSource;
 }
 
