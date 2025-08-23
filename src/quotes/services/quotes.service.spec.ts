@@ -355,6 +355,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         mockManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -374,6 +375,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         mockManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -410,6 +412,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         mockManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -444,6 +447,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockRejectedValue(
         new Error('Manuable service failed'),
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -480,6 +484,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         mockManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -504,6 +509,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockRejectedValue(
         new Error('Manuable service failed'),
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -522,10 +528,13 @@ describe('QuotesService', () => {
         quotes: [],
         messages: [],
       });
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
-      expect(result.messages).toEqual([]);
+      expect(result.messages).toEqual([
+        'Profit margin not applied: global configuration not found',
+      ]);
       expect(result.data.quotes).toEqual([]);
     });
 
@@ -544,6 +553,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         manuableResponseWithMessages,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -563,6 +573,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         manuableResponseWithoutMessages,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -609,6 +620,7 @@ describe('QuotesService', () => {
         quotes: [],
         messages: [],
       });
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       await expect(service.getQuote(mockQuoteDto)).rejects.toThrow(
         new BadRequestException('Unexpected system error'),
@@ -622,6 +634,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         mockManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -649,6 +662,7 @@ describe('QuotesService', () => {
         quotes: [],
         messages: [],
       });
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
@@ -727,6 +741,7 @@ describe('QuotesService', () => {
       manuableService.retrieveManuableQuotes.mockResolvedValue(
         unorderedManuableResponse,
       );
+      globalConfigsService.readProfitMargin.mockResolvedValue(null);
 
       const result = await service.getQuote(mockQuoteDto);
 
