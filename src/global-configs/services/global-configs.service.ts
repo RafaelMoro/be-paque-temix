@@ -17,7 +17,10 @@ import {
 } from '../dtos/global-configs.dto';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
-import { ProfitMarginResponse } from '../global-configs.interface';
+import {
+  ProfitMarginResponse,
+  TypeProfitMargin,
+} from '../global-configs.interface';
 
 @Injectable()
 export class GlobalConfigsService {
@@ -73,6 +76,15 @@ export class GlobalConfigsService {
     }
   }
 
+  validateTypeMargin(type: string): void {
+    const validTypes: TypeProfitMargin[] = ['percentage', 'absolute'];
+    if (!validTypes.includes(type as TypeProfitMargin)) {
+      throw new BadRequestException(
+        `Invalid type: ${type}. Type must be either 'percentage' or 'absolute'`,
+      );
+    }
+  }
+
   /**
    * This service is to update or create the profit margin
    */
@@ -86,6 +98,8 @@ export class GlobalConfigsService {
         const {
           profitMargin: { value, type },
         } = newProfitMargin;
+        this.validateTypeMargin(type);
+
         const response: ProfitMarginResponse = {
           version: npmVersion,
           message: 'Profit margin created',
@@ -110,6 +124,7 @@ export class GlobalConfigsService {
       if (!value || !type) {
         return new BadRequestException('Could not update profit margin');
       }
+      this.validateTypeMargin(type);
 
       const response: ProfitMarginResponse = {
         version: npmVersion,
