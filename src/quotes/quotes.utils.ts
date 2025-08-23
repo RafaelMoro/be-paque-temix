@@ -1,4 +1,5 @@
 import { GetQuoteData } from './quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 export const orderQuotesByPrice = (quotes: GetQuoteData[]) => {
   return quotes.sort((a, b) => a.total - b.total);
@@ -54,4 +55,35 @@ export const addAbsoluteMarginProfit = (
   }
 
   return quoteAmount + marginProfitValue;
+};
+
+/**
+ * Calculate quote totals applying the configured profit margin.
+ * If `globalConfigDoc` is null or missing profitMargin, returns the quotes unchanged.
+ *
+ * @param quotes array of quotes to calculate
+ * @param globalConfigDoc global config document that may contain profitMargin
+ * @returns new array of quotes with updated totals
+ */
+export const calculateQuotesValue = (
+  quotes: GetQuoteData[],
+  globalConfigDoc: GlobalConfigsDoc | null,
+): GetQuoteData[] => {
+  if (!globalConfigDoc) return quotes;
+
+  const profitMargin = globalConfigDoc.profitMargin;
+  if (!profitMargin || typeof profitMargin.value !== 'number') return quotes;
+
+  const { value: marginValue, type } = profitMargin;
+
+  return quotes.map((quote) => {
+    const newTotal =
+      type === 'percentage'
+        ? addPercentageMarginProfit(marginValue, quote.total)
+        : addAbsoluteMarginProfit(marginValue, quote.total);
+    return {
+      ...quote,
+      total: newTotal,
+    } as GetQuoteData;
+  });
 };
