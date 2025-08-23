@@ -8,7 +8,8 @@ import { T1Service } from '@/t1/services/t1.service';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
-import { orderQuotesByPrice } from '../quotes.utils';
+import { calculateQuotesValue, orderQuotesByPrice } from '../quotes.utils';
+import { GlobalConfigsService } from '@/global-configs/services/global-configs.service';
 
 @Injectable()
 export class QuotesService {
@@ -18,6 +19,7 @@ export class QuotesService {
     private t1Service: T1Service,
     private pakkeService: PakkeService,
     private manuableService: ManuableService,
+    private globalConfigsService: GlobalConfigsService,
   ) {}
 
   async getQuote(payload: GetQuoteDto): Promise<GetQuoteDataResponse> {
@@ -56,12 +58,28 @@ export class QuotesService {
       if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
         messages.push(...mnRes.value.messages);
       }
-      const currentQuotes = orderQuotesByPrice([
+
+      const allQuotesInfo = [
         ...geQuotesData,
         ...t1QuotesData,
         ...pakkeQuotesData,
         ...mnQuotesData,
-      ]);
+      ];
+
+      // Calculate the margin profit
+      const marginProfitValue =
+        await this.globalConfigsService.readProfitMargin();
+      if (!marginProfitValue) {
+        messages.push('No profit margin configured');
+      }
+
+      const updatedQuotes = calculateQuotesValue(
+        allQuotesInfo,
+        marginProfitValue,
+      );
+
+      // Order the quotes by price
+      const currentQuotes = orderQuotesByPrice(updatedQuotes);
 
       const npmVersion: string = this.configService.version!;
       return {
