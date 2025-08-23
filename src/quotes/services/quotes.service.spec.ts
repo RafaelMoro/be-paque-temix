@@ -214,9 +214,10 @@ describe('QuotesService', () => {
 
       expect(result.messages).toContain('GE failed to get quotes');
       expect(result.data.quotes).toEqual([
-        ...mockT1Quotes,
-        ...mockPakkeQuotes,
-        ...mockManuableResponse.quotes,
+        // Ordered by price: 120.5, 180.25, 200
+        ...mockManuableResponse.quotes, // 120.5
+        ...mockT1Quotes, // 180.25
+        ...mockPakkeQuotes, // 200
       ]);
     });
 
@@ -232,9 +233,25 @@ describe('QuotesService', () => {
 
       expect(result.messages).toContain('T1 failed to get quotes');
       expect(result.data.quotes).toEqual([
-        ...mockGeQuotes,
-        ...mockPakkeQuotes,
-        ...mockManuableResponse.quotes,
+        // Ordered by price: 120.5, 150.5, 200, 250.75
+        ...mockManuableResponse.quotes, // 120.5
+        {
+          id: 'ge-1',
+          service: 'Estafeta Standard',
+          total: 150.5,
+          typeService: 'standard',
+          courier: 'Estafeta',
+          source: 'GE',
+        }, // 150.5
+        ...mockPakkeQuotes, // 200
+        {
+          id: 'ge-2',
+          service: 'DHL Express',
+          total: 250.75,
+          typeService: 'nextDay',
+          courier: 'DHL',
+          source: 'GE',
+        }, // 250.75
       ]);
     });
 
@@ -252,9 +269,25 @@ describe('QuotesService', () => {
 
       expect(result.messages).toContain('Pkk failed to get quotes');
       expect(result.data.quotes).toEqual([
-        ...mockGeQuotes,
-        ...mockT1Quotes,
-        ...mockManuableResponse.quotes,
+        // Ordered by price: 120.5, 150.5, 180.25, 250.75
+        ...mockManuableResponse.quotes, // 120.5
+        {
+          id: 'ge-1',
+          service: 'Estafeta Standard',
+          total: 150.5,
+          typeService: 'standard',
+          courier: 'Estafeta',
+          source: 'GE',
+        }, // 150.5
+        ...mockT1Quotes, // 180.25
+        {
+          id: 'ge-2',
+          service: 'DHL Express',
+          total: 250.75,
+          typeService: 'nextDay',
+          courier: 'DHL',
+          source: 'GE',
+        }, // 250.75
       ]);
     });
 
@@ -270,9 +303,25 @@ describe('QuotesService', () => {
 
       expect(result.messages).toContain('Mn failed to get quotes');
       expect(result.data.quotes).toEqual([
-        ...mockGeQuotes,
-        ...mockT1Quotes,
-        ...mockPakkeQuotes,
+        // Ordered by price: 150.5, 180.25, 200, 250.75
+        {
+          id: 'ge-1',
+          service: 'Estafeta Standard',
+          total: 150.5,
+          typeService: 'standard',
+          courier: 'Estafeta',
+          source: 'GE',
+        }, // 150.5
+        ...mockT1Quotes, // 180.25
+        ...mockPakkeQuotes, // 200
+        {
+          id: 'ge-2',
+          service: 'DHL Express',
+          total: 250.75,
+          typeService: 'nextDay',
+          courier: 'DHL',
+          source: 'GE',
+        }, // 250.75
       ]);
     });
 
@@ -292,8 +341,9 @@ describe('QuotesService', () => {
       expect(result.messages).toContain('T1 failed to get quotes');
       expect(result.messages).toContain('Manuable service response');
       expect(result.data.quotes).toEqual([
-        ...mockPakkeQuotes,
-        ...mockManuableResponse.quotes,
+        // Ordered by price: 120.5, 200
+        ...mockManuableResponse.quotes, // 120.5
+        ...mockPakkeQuotes, // 200
       ]);
     });
 
@@ -371,10 +421,26 @@ describe('QuotesService', () => {
       const result = await service.getQuote(mockQuoteDto);
 
       expect(result.data.quotes).toEqual([
-        ...mockGeQuotes,
-        ...mockT1Quotes,
-        ...mockPakkeQuotes,
-        ...mockManuableResponse.quotes,
+        // Ordered by price: 120.5, 150.5, 180.25, 200, 250.75
+        ...mockManuableResponse.quotes, // 120.5
+        {
+          id: 'ge-1',
+          service: 'Estafeta Standard',
+          total: 150.5,
+          typeService: 'standard',
+          courier: 'Estafeta',
+          source: 'GE',
+        }, // 150.5
+        ...mockT1Quotes, // 180.25
+        ...mockPakkeQuotes, // 200
+        {
+          id: 'ge-2',
+          service: 'DHL Express',
+          total: 250.75,
+          typeService: 'nextDay',
+          courier: 'DHL',
+          source: 'GE',
+        }, // 250.75
       ]);
     });
 
