@@ -1,18 +1,225 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+
 import { GlobalConfigsController } from './global-configs.controller';
+import { GlobalConfigsService } from '../services/global-configs.service';
+import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import { ProfitMarginResponse } from '../global-configs.interface';
 
 describe('GlobalConfigsController', () => {
   let controller: GlobalConfigsController;
+  let globalConfigsService: jest.Mocked<GlobalConfigsService>;
+
+  const mockCreateGlobalConfigsDto: CreateGlobalConfigsDto = {
+    profitMargin: {
+      value: 20,
+      type: 'percentage',
+    },
+  };
+
+  const mockProfitMarginResponse: ProfitMarginResponse = {
+    version: '1.0.0',
+    message: null,
+    error: null,
+    data: {
+      profitMargin: {
+        value: 15,
+        type: 'percentage',
+      },
+    },
+  };
+
+  const mockManageProfitMarginResponse: ProfitMarginResponse = {
+    version: '1.0.0',
+    message: 'Profit margin created',
+    error: null,
+    data: {
+      profitMargin: {
+        value: 20,
+        type: 'percentage',
+      },
+    },
+  };
 
   beforeEach(async () => {
+    const mockGlobalConfigsService = {
+      getProfitMargin: jest.fn(),
+      manageProfitMargin: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GlobalConfigsController],
+      providers: [
+        {
+          provide: GlobalConfigsService,
+          useValue: mockGlobalConfigsService,
+        },
+      ],
     }).compile();
 
     controller = module.get<GlobalConfigsController>(GlobalConfigsController);
+    globalConfigsService = module.get(GlobalConfigsService);
+
+    // Reset all mocks
+    jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  describe('getProfitMargin', () => {
+    it('should return profit margin successfully', async () => {
+      globalConfigsService.getProfitMargin.mockResolvedValue(
+        mockProfitMarginResponse,
+      );
+
+      const result = await controller.getProfitMargin();
+
+      expect(globalConfigsService.getProfitMargin).toHaveBeenCalledWith();
+      expect(result).toEqual(mockProfitMarginResponse);
+    });
+
+    it('should throw NotFoundException when service throws NotFoundException', async () => {
+      const notFoundError = new NotFoundException('Profit margin not found');
+      globalConfigsService.getProfitMargin.mockRejectedValue(notFoundError);
+
+      await expect(controller.getProfitMargin()).rejects.toThrow(notFoundError);
+      expect(globalConfigsService.getProfitMargin).toHaveBeenCalledWith();
+    });
+
+    it('should throw BadRequestException when service throws BadRequestException', async () => {
+      const badRequestError = new BadRequestException('Database error');
+      globalConfigsService.getProfitMargin.mockRejectedValue(badRequestError);
+
+      await expect(controller.getProfitMargin()).rejects.toThrow(
+        badRequestError,
+      );
+      expect(globalConfigsService.getProfitMargin).toHaveBeenCalledWith();
+    });
+
+    it('should propagate any other errors from service', async () => {
+      const genericError = new Error('Unexpected error');
+      globalConfigsService.getProfitMargin.mockRejectedValue(genericError);
+
+      await expect(controller.getProfitMargin()).rejects.toThrow(genericError);
+      expect(globalConfigsService.getProfitMargin).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('manageProfitMargin', () => {
+    it('should create profit margin successfully', async () => {
+      globalConfigsService.manageProfitMargin.mockResolvedValue(
+        mockManageProfitMarginResponse,
+      );
+
+      const result = await controller.manageProfitMargin(
+        mockCreateGlobalConfigsDto,
+      );
+
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        mockCreateGlobalConfigsDto,
+      );
+      expect(result).toEqual(mockManageProfitMarginResponse);
+    });
+
+    it('should update profit margin successfully', async () => {
+      const updateResponse = {
+        ...mockManageProfitMarginResponse,
+        message: 'Profit margin updated',
+      };
+      globalConfigsService.manageProfitMargin.mockResolvedValue(updateResponse);
+
+      const result = await controller.manageProfitMargin(
+        mockCreateGlobalConfigsDto,
+      );
+
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        mockCreateGlobalConfigsDto,
+      );
+      expect(result).toEqual(updateResponse);
+    });
+
+    it('should handle absolute type profit margin', async () => {
+      const absoluteDto: CreateGlobalConfigsDto = {
+        profitMargin: {
+          value: 50,
+          type: 'absolute',
+        },
+      };
+      const absoluteResponse: ProfitMarginResponse = {
+        ...mockManageProfitMarginResponse,
+        data: {
+          profitMargin: {
+            value: 50,
+            type: 'absolute',
+          },
+        },
+      };
+      globalConfigsService.manageProfitMargin.mockResolvedValue(
+        absoluteResponse,
+      );
+
+      const result = await controller.manageProfitMargin(absoluteDto);
+
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        absoluteDto,
+      );
+      expect(result).toEqual(absoluteResponse);
+    });
+
+    it('should throw BadRequestException when service throws BadRequestException', async () => {
+      const badRequestError = new BadRequestException(
+        'Invalid profit margin type',
+      );
+      globalConfigsService.manageProfitMargin.mockRejectedValue(
+        badRequestError,
+      );
+
+      await expect(
+        controller.manageProfitMargin(mockCreateGlobalConfigsDto),
+      ).rejects.toThrow(badRequestError);
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        mockCreateGlobalConfigsDto,
+      );
+    });
+
+    it('should propagate any other errors from service', async () => {
+      const genericError = new Error('Database connection failed');
+      globalConfigsService.manageProfitMargin.mockRejectedValue(genericError);
+
+      await expect(
+        controller.manageProfitMargin(mockCreateGlobalConfigsDto),
+      ).rejects.toThrow(genericError);
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        mockCreateGlobalConfigsDto,
+      );
+    });
+
+    it('should pass the exact DTO to service without modification', async () => {
+      const complexDto: CreateGlobalConfigsDto = {
+        profitMargin: {
+          value: 99.99,
+          type: 'percentage',
+        },
+      };
+      globalConfigsService.manageProfitMargin.mockResolvedValue(
+        mockManageProfitMarginResponse,
+      );
+
+      await controller.manageProfitMargin(complexDto);
+
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+        complexDto,
+      );
+      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('controller definition', () => {
+    it('should be defined', () => {
+      expect(controller).toBeDefined();
+    });
+
+    it('should have globalConfigsService injected', () => {
+      expect(globalConfigsService).toBeDefined();
+    });
   });
 });
