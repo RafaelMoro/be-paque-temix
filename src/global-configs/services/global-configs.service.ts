@@ -6,7 +6,10 @@ import {
   GlobalConfigs,
   GlobalConfigsDoc,
 } from '../entities/global-configs.entity';
-import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import {
+  CreateGlobalConfigsDto,
+  UpdateGlobalConfigsDto,
+} from '../dtos/global-configs.dto';
 
 @Injectable()
 export class GlobalConfigsService {
@@ -36,6 +39,21 @@ export class GlobalConfigsService {
       }
       const [profitMargin] = profitMarginArray;
       return profitMargin;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateProfitMargin(changes: UpdateGlobalConfigsDto) {
+    try {
+      const { profitMarginId } = changes;
+      const updated = await this.globalConfigModel
+        .findByIdAndUpdate(profitMarginId, { $set: changes })
+        .exec();
+      return updated;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

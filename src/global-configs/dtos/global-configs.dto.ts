@@ -22,4 +22,8 @@ export class CreateGlobalConfigsDto {
 
 export class UpdateGlobalConfigsDto extends PartialType(
   CreateGlobalConfigsDto,
-) {}
+) {
+  @IsString()
+  @IsNotEmpty()
+  readonly profitMarginId: string;
+}
