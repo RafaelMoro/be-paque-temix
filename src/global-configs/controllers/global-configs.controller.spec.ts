@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 import { GlobalConfigsController } from './global-configs.controller';
 import { GlobalConfigsService } from '../services/global-configs.service';
 import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
 import { ProfitMarginResponse } from '../global-configs.interface';
+import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
+import { RolesGuard } from '@/auth/guards/roles/roles.guard';
+import config from '@/config';
 
 describe('GlobalConfigsController', () => {
   let controller: GlobalConfigsController;
@@ -48,12 +52,50 @@ describe('GlobalConfigsController', () => {
       manageProfitMargin: jest.fn(),
     };
 
+    const mockConfigService = {
+      version: '1.0.0',
+      auth: {
+        jwtKey: 'test-jwt-key',
+        publicKey: 'test-public-key',
+        roleKey: 'test-role-key',
+      },
+    };
+
+    const mockReflector = {
+      get: jest.fn(),
+      getAllAndOverride: jest.fn(),
+    };
+
+    const mockJwtGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+
+    const mockRolesGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GlobalConfigsController],
       providers: [
         {
           provide: GlobalConfigsService,
           useValue: mockGlobalConfigsService,
+        },
+        {
+          provide: config.KEY,
+          useValue: mockConfigService,
+        },
+        {
+          provide: Reflector,
+          useValue: mockReflector,
+        },
+        {
+          provide: JwtGuard,
+          useValue: mockJwtGuard,
+        },
+        {
+          provide: RolesGuard,
+          useValue: mockRolesGuard,
         },
       ],
     }).compile();
