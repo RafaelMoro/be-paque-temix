@@ -6,8 +6,8 @@ import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db
 import * as utils from '../manuable.utils';
 import { ManuablePayload, ManuableQuote } from '../manuable.interface';
 import { GeneralInfoDbDoc } from '@/general-info-db/entities/general-info-db.entity';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
@@ -158,7 +158,7 @@ describe('ManuableService', () => {
         additional_fees: [],
         zone: 1,
         total_amount: '200',
-        carrier: 'Carrier A',
+        carrier: 'DHL',
         cancellable: true,
         shipping_type: 'ground',
         lead_time: '2d',
@@ -257,7 +257,7 @@ describe('ManuableService', () => {
         additional_fees: [],
         zone: 2,
         total_amount: '120',
-        carrier: 'Carrier B',
+        carrier: 'DHL',
         cancellable: true,
         shipping_type: 'air',
         lead_time: '1d',
@@ -374,7 +374,7 @@ describe('ManuableService', () => {
         additional_fees: [],
         zone: 3,
         total_amount: '300',
-        carrier: 'Carrier C',
+        carrier: 'FEDEX',
         cancellable: true,
         shipping_type: 'air',
         lead_time: '3d',
@@ -386,6 +386,7 @@ describe('ManuableService', () => {
         service: 'Carrier C',
         total: 300,
         source: 'Mn',
+        courier: 'Fedex',
         typeService: 'nextDay',
       },
     ];

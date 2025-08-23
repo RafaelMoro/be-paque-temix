@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { GuiaEnviaService } from './guia-envia.service';
-import { GetQuoteData } from '@/global.interface';
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import config from '@/config';
 import axios from 'axios';
 import * as utils from '../guia-envia.utils';
@@ -64,6 +64,7 @@ describe('GuiaEnviaService', () => {
       service: 'Estafeta Express',
       total: 150.75,
       typeService: 'nextDay',
+      courier: 'Estafeta',
       source: 'GE',
     },
     {
@@ -71,6 +72,7 @@ describe('GuiaEnviaService', () => {
       service: 'DHL Terrestre',
       total: 120.5,
       typeService: 'standard',
+      courier: 'DHL',
       source: 'GE',
     },
   ];
@@ -227,6 +229,7 @@ describe('GuiaEnviaService', () => {
           service: 'FedEx Express Premium',
           total: 300.0,
           typeService: 'nextDay',
+          courier: 'Fedex',
           source: 'GE',
         },
       ];
@@ -297,6 +300,7 @@ describe('GuiaEnviaService', () => {
           service: 'PAQUETEXPRES NACIONAL ZONA1',
           total: 200.0,
           typeService: null, // Should be null due to PAQUETEXPRES exclusion
+          courier: 'Paquetexpress',
           source: 'GE',
         },
         {
@@ -304,6 +308,7 @@ describe('GuiaEnviaService', () => {
           service: 'Estafeta Express Regular',
           total: 150.0,
           typeService: 'nextDay',
+          courier: 'Estafeta',
           source: 'GE',
         },
       ];
@@ -337,6 +342,7 @@ describe('GuiaEnviaService', () => {
         service: 'Estafeta Terreste',
         total: 126.9,
         typeService: null,
+        courier: null,
         source: 'GE',
       },
     ];

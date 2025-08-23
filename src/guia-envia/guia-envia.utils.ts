@@ -1,11 +1,11 @@
-import { GetQuoteDto } from '@/app.dto';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GEQuote } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
   QuoteCourier,
   QuoteTypeSevice,
-} from '@/global.interface';
+} from '@/quotes/quotes.interface';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;

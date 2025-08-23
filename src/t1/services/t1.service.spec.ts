@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import axios from 'axios';
+
 import { T1Service } from './t1.service';
 import config from '@/config';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
-import axios from 'axios';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 import * as utils from '../t1.utils';
 import {
   T1_MISSING_API_KEY_ERROR,
@@ -58,7 +59,7 @@ describe('T1Service', () => {
     result: [
       {
         id: 123,
-        clave: 'TEST-123',
+        clave: '99MIN',
         comercio: 'Test Store',
         seguro: false,
         cotizacion: {
@@ -97,6 +98,7 @@ describe('T1Service', () => {
       service: 'Express Service',
       total: 150.5,
       typeService: 'nextDay',
+      courier: 'NextDay',
       source: 'TONE',
     },
   ];
@@ -270,7 +272,7 @@ describe('T1Service', () => {
         result: [
           {
             id: 123,
-            clave: 'TEST-123',
+            clave: '99MIN',
             comercio: 'Test Store',
             seguro: false,
             cotizacion: {
@@ -302,7 +304,7 @@ describe('T1Service', () => {
           },
           {
             id: 124,
-            clave: 'TEST-124',
+            clave: '99MIN',
             comercio: 'Test Store',
             seguro: true,
             cotizacion: {
@@ -341,6 +343,7 @@ describe('T1Service', () => {
           service: 'Express Service',
           total: 150.5,
           typeService: 'nextDay',
+          courier: 'NextDay',
           source: 'TONE',
         },
         {
@@ -348,6 +351,7 @@ describe('T1Service', () => {
           service: 'Standard Service',
           total: 75.25,
           typeService: 'standard',
+          courier: 'NextDay',
           source: 'TONE',
         },
       ];
@@ -392,6 +396,7 @@ describe('T1Service', () => {
         service: 'Carrier Express',
         total: 199.99,
         typeService: null,
+        courier: null,
         source: 'TONE',
       },
     ];

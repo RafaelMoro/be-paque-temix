@@ -11,8 +11,8 @@ import {
 } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class T1Service {

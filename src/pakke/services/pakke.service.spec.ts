@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { PakkeService } from './pakke.service';
 import config from '@/config';
-import { GetQuoteDto } from '@/app.dto';
-import { GetQuoteData } from '@/global.interface';
+import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GetQuoteData } from '@/quotes/quotes.interface';
 import axios from 'axios';
 import * as utils from '../pakke.utils';
 import {
@@ -49,7 +49,7 @@ describe('PakkeService', () => {
 
   const mockPakkeQuote: PakkeQuote = {
     CourierCode: 'PKE',
-    CourierName: 'Pakke Express',
+    CourierName: 'Paquete Express',
     CourierServiceId: 'PKE-001',
     CourierServiceName: 'Next Day',
     DeliveryDays: '1',
@@ -103,6 +103,7 @@ describe('PakkeService', () => {
       service: 'Pakke Express Next Day',
       total: 120.0,
       typeService: 'nextDay',
+      courier: 'Paquetexpress',
       source: 'Pkk',
     },
   ];
@@ -252,7 +253,7 @@ describe('PakkeService', () => {
       const secondQuote: PakkeQuote = {
         ...mockPakkeQuote,
         CourierCode: 'STD',
-        CourierName: 'Standard Delivery',
+        CourierName: 'AMPM',
         CourierServiceId: 'STD-001',
         CourierServiceName: 'Ground',
         TotalPrice: 80.0,
@@ -271,6 +272,7 @@ describe('PakkeService', () => {
           service: 'Pakke Express Next Day',
           total: 120.0,
           typeService: 'nextDay',
+          courier: 'AMPM',
           source: 'Pkk',
         },
         {
@@ -278,6 +280,7 @@ describe('PakkeService', () => {
           service: 'Standard Delivery Ground',
           total: 80.0,
           typeService: 'standard',
+          courier: 'Fedex',
           source: 'Pkk',
         },
       ];
@@ -341,6 +344,7 @@ describe('PakkeService', () => {
         service: 'Pakke Express',
         total: 150.5,
         typeService: null,
+        courier: null,
         source: 'Pkk',
       },
     ];
