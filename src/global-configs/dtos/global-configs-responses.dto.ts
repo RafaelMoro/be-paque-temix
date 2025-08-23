@@ -36,7 +36,7 @@ class GetMarginProfitUnauthorizedError {
 }
 
 export class GetMarginProfitUnauthorizedErrorDto {
-  @ApiProperty()
+  @ApiProperty({ example: '1.0.0' })
   version: string;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
@@ -61,7 +61,7 @@ class GetMarginProfitForbiddenError {
 }
 
 export class GetMarginProfitForbiddenErrorDto {
-  @ApiProperty()
+  @ApiProperty({ example: '1.0.0' })
   version: string;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
@@ -72,4 +72,29 @@ export class GetMarginProfitForbiddenErrorDto {
 
   @ApiProperty({ type: () => GetMarginProfitForbiddenError })
   error: GetMarginProfitForbiddenError;
+}
+
+class GetMarginProfitNotFoundError {
+  @ApiProperty({ default: 'Profit margin not found.' })
+  message: string;
+
+  @ApiProperty({ default: 'Not Found' })
+  error: string;
+
+  @ApiProperty({ default: 404 })
+  statusCode: number;
+}
+
+export class GetMarginProfitNotFoundErrorDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: () => GetMarginProfitNotFoundError })
+  error: GetMarginProfitNotFoundError;
 }

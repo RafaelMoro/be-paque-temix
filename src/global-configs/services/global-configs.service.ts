@@ -135,7 +135,7 @@ export class GlobalConfigsService {
     try {
       const profitMargin = await this.readProfitMargin();
       if (!profitMargin) {
-        return new NotFoundException('Profit margin not found');
+        throw new NotFoundException('Profit margin not found');
       }
 
       const {
@@ -155,6 +155,9 @@ export class GlobalConfigsService {
       };
       return response;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error; // Re-throw NotFoundException as-is
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
