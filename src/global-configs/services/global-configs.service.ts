@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -12,7 +17,7 @@ import {
 } from '../dtos/global-configs.dto';
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
-import { ManageProfitMarginResponse } from '../global-configs.interface';
+import { ProfitMarginResponse } from '../global-configs.interface';
 
 @Injectable()
 export class GlobalConfigsService {
@@ -81,7 +86,7 @@ export class GlobalConfigsService {
         const {
           profitMargin: { value, type },
         } = newProfitMargin;
-        const response: ManageProfitMarginResponse = {
+        const response: ProfitMarginResponse = {
           version: npmVersion,
           message: null,
           error: null,
@@ -106,7 +111,7 @@ export class GlobalConfigsService {
         return new BadRequestException('Could not update profit margin');
       }
 
-      const response: ManageProfitMarginResponse = {
+      const response: ProfitMarginResponse = {
         version: npmVersion,
         message: null,
         error: null,
@@ -129,7 +134,26 @@ export class GlobalConfigsService {
   async getProfitMargin() {
     try {
       const profitMargin = await this.readProfitMargin();
-      return profitMargin;
+      if (!profitMargin) {
+        return new NotFoundException('Profit margin not found');
+      }
+
+      const {
+        profitMargin: { value, type },
+      } = profitMargin;
+      const npmVersion: string = this.configService.version!;
+      const response: ProfitMarginResponse = {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          profitMargin: {
+            value,
+            type,
+          },
+        },
+      };
+      return response;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

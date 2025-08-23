@@ -7,7 +7,7 @@ export interface ManageProfitMarginData {
   type: TypeProfitMargin;
 }
 
-export interface ManageProfitMarginResponse
+export interface ProfitMarginResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {
