@@ -1,3 +1,9 @@
+## v0.10.0 (2025-08-23)
+
+### Pull Requests
+[#12](https://github.com/RafaelMoro/be-paque-temix/pull/12) | Add courier into quote
+
+
 ## v0.9.0 (2025-08-22)
 
 ### Pull Requests
