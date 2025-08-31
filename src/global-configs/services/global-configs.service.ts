@@ -62,7 +62,10 @@ export class GlobalConfigsService implements OnModuleInit {
         'GlobalConfigsService: Error in ensureConfigExists:',
         error,
       );
-      throw error;
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
   }
 
