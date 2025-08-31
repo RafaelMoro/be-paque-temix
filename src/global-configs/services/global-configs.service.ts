@@ -24,17 +24,81 @@ import {
 
 @Injectable()
 export class GlobalConfigsService {
+  private globalConfig: GlobalConfigsDoc;
+
   constructor(
     @InjectModel(GlobalConfigs.name)
     private globalConfigModel: Model<GlobalConfigs>,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
+  async onModuleInit() {
+    await this.ensureConfigExists();
+  }
+
+  private async ensureConfigExists(): Promise<void> {
+    // Try to find existing global config
+    const found = await this.globalConfigModel
+      .findOne({ configId: 'global' })
+      .exec();
+
+    if (!found) {
+      // If not found, create a default one and store it
+      const defaultConfig = new this.globalConfigModel({
+        configId: 'global',
+        providers: [],
+      });
+      this.globalConfig = await defaultConfig.save();
+      return;
+    }
+
+    // Assign the found document
+    this.globalConfig = found;
+  }
+
   async createProfitMargin(payload: CreateGlobalConfigsDto) {
     try {
       const globalConfigModel = await this.globalConfigModel.create(payload);
       const modelSaved: GlobalConfigsDoc = await globalConfigModel.save();
       return modelSaved;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getConfig() {
+    try {
+      if (!this.globalConfig) {
+        await this.ensureConfigExists();
+      }
+      return this.globalConfig.toObject();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateConfig(
+    configUpdates: Partial<GlobalConfigs>,
+  ): Promise<GlobalConfigs> {
+    try {
+      // Never allow changing the configId to preserve singleton nature
+      delete configUpdates.configId;
+
+      this.globalConfig = await this.globalConfigModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: configUpdates },
+          { new: true, upsert: true },
+        )
+        .exec();
+
+      return this.globalConfig.toObject();
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
