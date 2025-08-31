@@ -24,7 +24,7 @@ import {
 
 @Injectable()
 export class GlobalConfigsService {
-  private globalConfig: GlobalConfigsDoc;
+  private globalConfig!: GlobalConfigsDoc;
 
   constructor(
     @InjectModel(GlobalConfigs.name)
@@ -38,13 +38,13 @@ export class GlobalConfigsService {
 
   private async ensureConfigExists(): Promise<void> {
     // Try to find existing global config
-    const found = await this.globalConfigModel
+    const found: GlobalConfigsDoc | null = await this.globalConfigModel
       .findOne({ configId: 'global' })
       .exec();
 
     if (!found) {
       // If not found, create a default one and store it
-      const defaultConfig = new this.globalConfigModel({
+      const defaultConfig: GlobalConfigsDoc = new this.globalConfigModel({
         configId: 'global',
         providers: [],
       });
@@ -56,25 +56,12 @@ export class GlobalConfigsService {
     this.globalConfig = found;
   }
 
-  async createProfitMargin(payload: CreateGlobalConfigsDto) {
-    try {
-      const globalConfigModel = await this.globalConfigModel.create(payload);
-      const modelSaved: GlobalConfigsDoc = await globalConfigModel.save();
-      return modelSaved;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
   async getConfig() {
     try {
       if (!this.globalConfig) {
         await this.ensureConfigExists();
       }
-      return this.globalConfig.toObject();
+      return this.globalConfig;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -89,49 +76,20 @@ export class GlobalConfigsService {
     try {
       // Never allow changing the configId to preserve singleton nature
       delete configUpdates.configId;
-
-      this.globalConfig = await this.globalConfigModel
+      const updated = await this.globalConfigModel
         .findOneAndUpdate(
           { configId: 'global' },
           { $set: configUpdates },
           { new: true, upsert: true },
         )
         .exec();
-
-      return this.globalConfig.toObject();
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
+      if (!updated) {
+        // Upsert:true should prevent this, but keep a runtime guard for type safety
+        throw new BadRequestException('Failed to update global config');
       }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
 
-  async readProfitMargin() {
-    try {
-      const profitMarginArray: GlobalConfigsDoc[] = await this.globalConfigModel
-        .find()
-        .exec();
-      if (profitMarginArray.length === 0) {
-        return null;
-      }
-      const [profitMargin] = profitMarginArray;
-      return profitMargin;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
-  async updateProfitMargin(changes: UpdateGlobalConfigsDto) {
-    try {
-      const { profitMarginId } = changes;
-      const updated: GlobalConfigsDoc | null = await this.globalConfigModel
-        .findByIdAndUpdate(profitMarginId, { $set: changes })
-        .exec();
-      return updated;
+      this.globalConfig = updated;
+      return this.globalConfig;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -149,87 +107,21 @@ export class GlobalConfigsService {
     }
   }
 
-  /**
-   * This service is to update or create the profit margin
-   */
-  async manageProfitMargin(payload: CreateGlobalConfigsDto) {
-    try {
-      const profitMargin = await this.readProfitMargin();
-      const npmVersion: string = this.configService.version!;
-      // If it does not exist, then create it
-      if (!profitMargin) {
-        const newProfitMargin = await this.createProfitMargin(payload);
-        const {
-          profitMargin: { value, type },
-        } = newProfitMargin;
-        this.validateTypeMargin(type);
-
-        const response: ProfitMarginResponse = {
-          version: npmVersion,
-          message: 'Profit margin created',
-          error: null,
-          data: {
-            profitMargin: {
-              value,
-              type,
-            },
-          },
-        };
-        return response;
-      }
-
-      const editPayload: UpdateGlobalConfigsDto = {
-        ...payload,
-        profitMarginId: profitMargin._id as string,
-      };
-      await this.updateProfitMargin(editPayload);
-      const value = payload.profitMargin.value;
-      const type = payload.profitMargin.type;
-      if (!value || !type) {
-        return new BadRequestException('Could not update profit margin');
-      }
-      this.validateTypeMargin(type);
-
-      const response: ProfitMarginResponse = {
-        version: npmVersion,
-        message: 'Profit margin updated',
-        error: null,
-        data: {
-          profitMargin: {
-            value,
-            type,
-          },
-        },
-      };
-      return response;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
   async getProfitMargin() {
     try {
-      const profitMargin = await this.readProfitMargin();
-      if (!profitMargin) {
-        throw new NotFoundException('Profit margin not found');
+      const config = await this.getConfig();
+      if (!config) {
+        throw new NotFoundException('Global config not found');
       }
 
-      const {
-        profitMargin: { value, type },
-      } = profitMargin;
+      const { providers } = config;
       const npmVersion: string = this.configService.version!;
       const response: ProfitMarginResponse = {
         version: npmVersion,
         message: null,
         error: null,
         data: {
-          profitMargin: {
-            value,
-            type,
-          },
+          providers,
         },
       };
       return response;
@@ -237,6 +129,49 @@ export class GlobalConfigsService {
       if (error instanceof NotFoundException) {
         throw error; // Re-throw NotFoundException as-is
       }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service is to update the profit margin
+   */
+  async manageProfitMargin(payload: CreateGlobalConfigsDto) {
+    try {
+      const config = await this.getConfig();
+      const npmVersion: string = this.configService.version!;
+
+      // TODO: change payloads and DTO
+      // const editPayload: UpdateGlobalConfigsDto = {
+      //   ...payload,
+      //   profitMarginId: profitMargin._id as string,
+      // };
+
+      // TODO: Verify and validate the type of margin before updating
+      // await this.updateProfitMargin(editPayload);
+      // const value = payload.profitMargin.value;
+      // const type = payload.profitMargin.type;
+      // if (!value || !type) {
+      //   return new BadRequestException('Could not update profit margin');
+      // }
+      // this.validateTypeMargin(type);
+
+      // const response: ProfitMarginResponse = {
+      //   version: npmVersion,
+      //   message: 'Profit margin updated',
+      //   error: null,
+      //   data: {
+      //     profitMargin: {
+      //       value,
+      //       type,
+      //     },
+      //   },
+      // };
+      // return response;
+    } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
