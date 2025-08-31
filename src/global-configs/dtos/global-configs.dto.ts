@@ -44,6 +44,7 @@ export class CourierGCDto {
   name: string;
 
   @IsNotEmpty()
+  @ValidateNested({ each: true })
   @Type(() => ProfitMarginDto)
   profitMargin: ProfitMarginDto;
 }
@@ -78,6 +79,7 @@ export class CreateGlobalConfigsDto {
   providers: ProviderGCDto[];
 
   @IsNotEmpty()
+  @ValidateNested({ each: true })
   @Type(() => ProfitMarginDto)
   readonly globalMarginProfit: ProfitMarginDto;
 }
