@@ -6,17 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ConfigType } from '@nestjs/config';
 
 import {
   GlobalConfigs,
   GlobalConfigsDoc,
 } from '../entities/global-configs.entity';
-import {
-  CreateGlobalConfigsDto,
-  UpdateGlobalConfigsDto,
-} from '../dtos/global-configs.dto';
+import { UpdateGlobalConfigsDto } from '../dtos/global-configs.dto';
 import config from '@/config';
-import { ConfigType } from '@nestjs/config';
 import {
   ProfitMarginResponse,
   TypeProfitMargin,
@@ -71,7 +68,7 @@ export class GlobalConfigsService {
   }
 
   async updateConfig(
-    configUpdates: Partial<GlobalConfigs>,
+    configUpdates: UpdateGlobalConfigsDto,
   ): Promise<GlobalConfigs> {
     try {
       // Never allow changing the configId to preserve singleton nature
@@ -139,38 +136,28 @@ export class GlobalConfigsService {
   /**
    * This service is to update the profit margin
    */
-  async manageProfitMargin(payload: CreateGlobalConfigsDto) {
+  async updateProvidersProfitMargin(payload: UpdateGlobalConfigsDto) {
     try {
-      const config = await this.getConfig();
+      // Validate the type of each courier's profit margin
+      payload.providers?.forEach((provider) => {
+        provider.couriers.forEach((courier) => {
+          this.validateTypeMargin(courier.profitMargin.type);
+        });
+      });
       const npmVersion: string = this.configService.version!;
 
-      // TODO: change payloads and DTO
-      // const editPayload: UpdateGlobalConfigsDto = {
-      //   ...payload,
-      //   profitMarginId: profitMargin._id as string,
-      // };
+      const config = await this.updateConfig(payload);
+      const { providers } = config;
 
-      // TODO: Verify and validate the type of margin before updating
-      // await this.updateProfitMargin(editPayload);
-      // const value = payload.profitMargin.value;
-      // const type = payload.profitMargin.type;
-      // if (!value || !type) {
-      //   return new BadRequestException('Could not update profit margin');
-      // }
-      // this.validateTypeMargin(type);
-
-      // const response: ProfitMarginResponse = {
-      //   version: npmVersion,
-      //   message: 'Profit margin updated',
-      //   error: null,
-      //   data: {
-      //     profitMargin: {
-      //       value,
-      //       type,
-      //     },
-      //   },
-      // };
-      // return response;
+      const response: ProfitMarginResponse = {
+        version: npmVersion,
+        message: 'Profit margin updated',
+        error: null,
+        data: {
+          providers,
+        },
+      };
+      return response;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

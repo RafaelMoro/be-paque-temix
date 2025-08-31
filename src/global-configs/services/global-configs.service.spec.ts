@@ -249,7 +249,7 @@ describe('GlobalConfigsService', () => {
         .mockResolvedValue(mockProfitMarginDoc);
       jest.spyOn(service, 'validateTypeMargin').mockImplementation(() => {});
 
-      const result = await service.manageProfitMargin(
+      const result = await service.updateProvidersProfitMargin(
         mockCreateGlobalConfigsDto,
       );
 
@@ -281,7 +281,7 @@ describe('GlobalConfigsService', () => {
         .mockResolvedValue(mockProfitMarginDoc);
       jest.spyOn(service, 'validateTypeMargin').mockImplementation(() => {});
 
-      const result = await service.manageProfitMargin(
+      const result = await service.updateProvidersProfitMargin(
         mockCreateGlobalConfigsDto,
       );
 
@@ -322,7 +322,7 @@ describe('GlobalConfigsService', () => {
         .spyOn(service, 'createProfitMargin')
         .mockResolvedValue(mockInvalidDoc);
 
-      await expect(service.manageProfitMargin(invalidDto)).rejects.toThrow(
+      await expect(service.updateProvidersProfitMargin(invalidDto)).rejects.toThrow(
         new BadRequestException(
           "Invalid type: invalid. Type must be either 'percentage' or 'absolute'",
         ),
@@ -344,7 +344,7 @@ describe('GlobalConfigsService', () => {
         .spyOn(service, 'updateProfitMargin')
         .mockResolvedValue(mockProfitMarginDoc);
 
-      await expect(service.manageProfitMargin(invalidDto)).rejects.toThrow(
+      await expect(service.updateProvidersProfitMargin(invalidDto)).rejects.toThrow(
         new BadRequestException(
           "Invalid type: invalid. Type must be either 'percentage' or 'absolute'",
         ),
@@ -366,7 +366,7 @@ describe('GlobalConfigsService', () => {
         .spyOn(service, 'updateProfitMargin')
         .mockResolvedValue(mockProfitMarginDoc);
 
-      const result = await service.manageProfitMargin(incompleteDto);
+      const result = await service.updateProvidersProfitMargin(incompleteDto);
 
       expect(result).toBeInstanceOf(BadRequestException);
       expect((result as BadRequestException).message).toBe(
@@ -379,7 +379,7 @@ describe('GlobalConfigsService', () => {
       jest.spyOn(service, 'readProfitMargin').mockRejectedValue(readError);
 
       await expect(
-        service.manageProfitMargin(mockCreateGlobalConfigsDto),
+        service.updateProvidersProfitMargin(mockCreateGlobalConfigsDto),
       ).rejects.toThrow(new BadRequestException('Read operation failed'));
     });
 
@@ -389,7 +389,7 @@ describe('GlobalConfigsService', () => {
         .mockRejectedValue('Unknown error');
 
       await expect(
-        service.manageProfitMargin(mockCreateGlobalConfigsDto),
+        service.updateProvidersProfitMargin(mockCreateGlobalConfigsDto),
       ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
     });
   });

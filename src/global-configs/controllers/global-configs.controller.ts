@@ -60,7 +60,8 @@ export class GlobalConfigsController {
   @UseGuards(RolesGuard)
   @Post('profit-margin')
   @ApiOperation({
-    summary: 'Manage the profit margin',
+    summary:
+      'Update the profit margin of any courier belonging to any provider',
   })
   @ApiBearerAuth()
   @ApiResponse({
@@ -80,6 +81,6 @@ export class GlobalConfigsController {
       'The user does not have admin role. Forbidden resource for those users.',
   })
   async manageProfitMargin(@Body() payload: CreateGlobalConfigsDto) {
-    return this.globalConfigsService.manageProfitMargin(payload);
+    return this.globalConfigsService.updateProvidersProfitMargin(payload);
   }
 }

@@ -148,7 +148,7 @@ describe('GlobalConfigsController', () => {
 
   describe('manageProfitMargin', () => {
     it('should create profit margin successfully', async () => {
-      globalConfigsService.manageProfitMargin.mockResolvedValue(
+      globalConfigsService.updateProvidersProfitMargin.mockResolvedValue(
         mockManageProfitMarginResponse,
       );
 
@@ -156,7 +156,7 @@ describe('GlobalConfigsController', () => {
         mockCreateGlobalConfigsDto,
       );
 
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         mockCreateGlobalConfigsDto,
       );
       expect(result).toEqual(mockManageProfitMarginResponse);
@@ -167,13 +167,13 @@ describe('GlobalConfigsController', () => {
         ...mockManageProfitMarginResponse,
         message: 'Profit margin updated',
       };
-      globalConfigsService.manageProfitMargin.mockResolvedValue(updateResponse);
+      globalConfigsService.updateProvidersProfitMargin.mockResolvedValue(updateResponse);
 
       const result = await controller.manageProfitMargin(
         mockCreateGlobalConfigsDto,
       );
 
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         mockCreateGlobalConfigsDto,
       );
       expect(result).toEqual(updateResponse);
@@ -195,13 +195,13 @@ describe('GlobalConfigsController', () => {
           },
         },
       };
-      globalConfigsService.manageProfitMargin.mockResolvedValue(
+      globalConfigsService.updateProvidersProfitMargin.mockResolvedValue(
         absoluteResponse,
       );
 
       const result = await controller.manageProfitMargin(absoluteDto);
 
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         absoluteDto,
       );
       expect(result).toEqual(absoluteResponse);
@@ -211,26 +211,26 @@ describe('GlobalConfigsController', () => {
       const badRequestError = new BadRequestException(
         'Invalid profit margin type',
       );
-      globalConfigsService.manageProfitMargin.mockRejectedValue(
+      globalConfigsService.updateProvidersProfitMargin.mockRejectedValue(
         badRequestError,
       );
 
       await expect(
         controller.manageProfitMargin(mockCreateGlobalConfigsDto),
       ).rejects.toThrow(badRequestError);
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         mockCreateGlobalConfigsDto,
       );
     });
 
     it('should propagate any other errors from service', async () => {
       const genericError = new Error('Database connection failed');
-      globalConfigsService.manageProfitMargin.mockRejectedValue(genericError);
+      globalConfigsService.updateProvidersProfitMargin.mockRejectedValue(genericError);
 
       await expect(
         controller.manageProfitMargin(mockCreateGlobalConfigsDto),
       ).rejects.toThrow(genericError);
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         mockCreateGlobalConfigsDto,
       );
     });
@@ -242,16 +242,16 @@ describe('GlobalConfigsController', () => {
           type: 'percentage',
         },
       };
-      globalConfigsService.manageProfitMargin.mockResolvedValue(
+      globalConfigsService.updateProvidersProfitMargin.mockResolvedValue(
         mockManageProfitMarginResponse,
       );
 
       await controller.manageProfitMargin(complexDto);
 
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledWith(
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledWith(
         complexDto,
       );
-      expect(globalConfigsService.manageProfitMargin).toHaveBeenCalledTimes(1);
+      expect(globalConfigsService.updateProvidersProfitMargin).toHaveBeenCalledTimes(1);
     });
   });
 
