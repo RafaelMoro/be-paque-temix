@@ -10,10 +10,29 @@ export class ProfitMargin {
   type: TypeProfitMargin;
 }
 
-@Schema()
-export class GlobalConfigs extends Document {
+export class Courier {
+  @Prop({ required: true })
+  name: string;
+
   @Prop({ required: true, type: ProfitMargin })
   profitMargin: ProfitMargin;
+}
+
+export class Provider {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true, type: [Courier] })
+  couriers: Courier[];
+}
+
+@Schema()
+export class GlobalConfigs extends Document {
+  @Prop({ default: 'global', unique: true })
+  configId: string;
+
+  @Prop({ required: true, type: [Provider] })
+  providers: Provider[];
 }
 
 export interface GlobalConfigsDoc extends GlobalConfigs {
