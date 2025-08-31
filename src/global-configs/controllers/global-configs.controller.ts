@@ -54,7 +54,7 @@ export class GlobalConfigsController {
   }
 
   /**
-   * Creates or updates a the profit margin.
+   * Updates a the profit margin.
    */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
@@ -66,7 +66,7 @@ export class GlobalConfigsController {
   @ApiResponse({
     status: 201,
     type: ManageMarginProfitResponseDto,
-    description: 'Profit margin created successfully.',
+    description: 'Profit margin updated successfully.',
   })
   @ApiResponse({
     status: 401,
