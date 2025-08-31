@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -20,7 +21,7 @@ import {
 } from '../global-configs.interface';
 
 @Injectable()
-export class GlobalConfigsService {
+export class GlobalConfigsService implements OnModuleInit {
   private globalConfig!: GlobalConfigsDoc;
 
   constructor(
@@ -34,23 +35,35 @@ export class GlobalConfigsService {
   }
 
   private async ensureConfigExists(): Promise<void> {
-    // Try to find existing global config
-    const found: GlobalConfigsDoc | null = await this.globalConfigModel
-      .findOne({ configId: 'global' })
-      .exec();
+    try {
+      // Try to find existing global config
+      const found: GlobalConfigsDoc | null = await this.globalConfigModel
+        .findOne({ configId: 'global' })
+        .exec();
 
-    if (!found) {
-      // If not found, create a default one and store it
-      const defaultConfig: GlobalConfigsDoc = new this.globalConfigModel({
-        configId: 'global',
-        providers: [],
-      });
-      this.globalConfig = await defaultConfig.save();
-      return;
+      if (!found) {
+        // If not found, create a default one and store it
+        const defaultConfig = new this.globalConfigModel({
+          configId: 'global',
+          providers: [],
+          globalMarginProfit: {
+            value: 0,
+            type: 'percentage',
+          },
+        });
+        this.globalConfig = await defaultConfig.save();
+        return;
+      }
+
+      // Assign the found document
+      this.globalConfig = found;
+    } catch (error) {
+      console.error(
+        'GlobalConfigsService: Error in ensureConfigExists:',
+        error,
+      );
+      throw error;
     }
-
-    // Assign the found document
-    this.globalConfig = found;
   }
 
   async getConfig() {
