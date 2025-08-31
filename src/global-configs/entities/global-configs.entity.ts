@@ -33,6 +33,9 @@ export class GlobalConfigs extends Document {
 
   @Prop({ required: true, type: [Provider] })
   providers: Provider[];
+
+  @Prop({ required: true, type: ProfitMargin })
+  globalMarginProfit: ProfitMargin;
 }
 
 export interface GlobalConfigsDoc extends GlobalConfigs {
