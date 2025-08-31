@@ -77,7 +77,7 @@ export const calculateQuotesValue = (
     return quotes;
   }
 
-  const profitMargin = globalConfigDoc.profitMargin;
+  const profitMargin = globalConfigDoc.globalMarginProfit;
   if (!profitMargin || typeof profitMargin.value !== 'number') {
     messages.push('Profit margin not applied: profitMargin missing or invalid');
     return quotes;

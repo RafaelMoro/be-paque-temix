@@ -67,12 +67,11 @@ export class QuotesService {
       ];
 
       // Calculate the margin profit
-      const marginProfitValue =
-        await this.globalConfigsService.readProfitMargin();
+      const config = await this.globalConfigsService.getConfig();
 
       const updatedQuotes = calculateQuotesValue(
         allQuotesInfo,
-        marginProfitValue,
+        config,
         messages,
       );
 
