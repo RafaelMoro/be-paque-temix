@@ -7,6 +7,10 @@ import {
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import {
+  calculateQuotesTotalWithDefaultProfitMargin,
+  calculateSingleQuoteTotalWithDefaultProfitMargin,
+} from '@/quotes/quotes.utils';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
@@ -41,34 +45,6 @@ export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
     courier: getGeCourier(quote.servicio),
     source: 'GE',
   }));
-
-export const calculateQuotesTotalWithDefaultProfitMargin = (
-  quotes: GetQuoteData[],
-  config: GlobalConfigsDoc,
-): GetQuoteData[] => {
-  const defaultProfitMargin = config?.globalMarginProfit;
-  const isPercentage = defaultProfitMargin.type === 'percentage';
-  return quotes.map((quote) => ({
-    ...quote,
-    total: isPercentage
-      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
-      : quote.total + defaultProfitMargin.value,
-  }));
-};
-
-export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
-  quote: GetQuoteData,
-  config: GlobalConfigsDoc,
-) => {
-  const defaultProfitMargin = config?.globalMarginProfit;
-  const isPercentage = defaultProfitMargin.type === 'percentage';
-  return {
-    ...quote,
-    total: isPercentage
-      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
-      : quote.total + defaultProfitMargin.value,
-  };
-};
 
 export const calculateTotalQuotesGE = (
   quotes: GetQuoteData[],

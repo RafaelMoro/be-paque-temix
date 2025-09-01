@@ -99,3 +99,31 @@ export const calculateQuotesValue = (
     } as GetQuoteData;
   });
 };
+
+export const calculateQuotesTotalWithDefaultProfitMargin = (
+  quotes: GetQuoteData[],
+  config: GlobalConfigsDoc,
+): GetQuoteData[] => {
+  const defaultProfitMargin = config?.globalMarginProfit;
+  const isPercentage = defaultProfitMargin.type === 'percentage';
+  return quotes.map((quote) => ({
+    ...quote,
+    total: isPercentage
+      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
+      : quote.total + defaultProfitMargin.value,
+  }));
+};
+
+export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
+  quote: GetQuoteData,
+  config: GlobalConfigsDoc,
+) => {
+  const defaultProfitMargin = config?.globalMarginProfit;
+  const isPercentage = defaultProfitMargin.type === 'percentage';
+  return {
+    ...quote,
+    total: isPercentage
+      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
+      : quote.total + defaultProfitMargin.value,
+  };
+};
