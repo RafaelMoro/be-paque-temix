@@ -46,10 +46,15 @@ export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
     source: 'GE',
   }));
 
-export const calculateTotalQuotesGE = (
-  quotes: GetQuoteData[],
-  config: GlobalConfigsDoc,
-) => {
+export const calculateTotalQuotesGE = ({
+  quotes,
+  config,
+  messages,
+}: {
+  quotes: GetQuoteData[];
+  config: GlobalConfigsDoc;
+  messages: string[];
+}) => {
   // Find if the provider with GE exists
   const providerGE = config.providers.find(
     (provider) => provider.name === 'GE',
@@ -57,11 +62,15 @@ export const calculateTotalQuotesGE = (
 
   // If it does not exist, then return the quotes with the default profit margin
   if (!providerGE) {
+    messages.push('GE provider not found in global config');
     const updatedQuotes = calculateQuotesTotalWithDefaultProfitMargin(
       quotes,
       config,
     );
-    return updatedQuotes;
+    return {
+      updatedQuotes,
+      messages,
+    };
   }
 
   const couriers = providerGE?.couriers;
@@ -71,6 +80,8 @@ export const calculateTotalQuotesGE = (
 
     // If it does not exist, return the quote with the default profit margin
     if (!courier) {
+      // NOTE: I'm not logging if the courier was not found as the courier is either type QuoteTypeSevice or null.
+      // the couriers that are new, will not be detected on this flow.
       const updatedQuote = calculateSingleQuoteTotalWithDefaultProfitMargin(
         quote,
         config,
@@ -86,7 +97,10 @@ export const calculateTotalQuotesGE = (
         : quote.total + courier?.profitMargin.value,
     };
   });
-  return updatedQuotes;
+  return {
+    updatedQuotes,
+    messages,
+  };
 };
 
 export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {

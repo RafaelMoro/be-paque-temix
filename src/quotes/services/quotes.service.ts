@@ -38,7 +38,7 @@ export class QuotesService {
       );
 
       const geQuotesData =
-        geQuotes.status === 'fulfilled' ? geQuotes.value : [];
+        geQuotes.status === 'fulfilled' ? geQuotes.value.quotes : [];
       const t1QuotesData =
         t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
       const pakkeQuotesData =
@@ -69,14 +69,18 @@ export class QuotesService {
         ...mnQuotesData,
       ];
 
-      const updatedQuotes = calculateQuotesValue(
-        allQuotesInfo,
-        config,
-        messages,
-      );
+      // const updatedQuotes = calculateQuotesValue(
+      //   allQuotesInfo,
+      //   config,
+      //   messages,
+      // );
+
+      if (geQuotes.status === 'fulfilled' && geQuotes.value.messages) {
+        messages.push(...geQuotes.value.messages);
+      }
 
       // Order the quotes by price
-      const currentQuotes = orderQuotesByPrice(updatedQuotes);
+      const currentQuotes = orderQuotesByPrice(allQuotesInfo);
 
       const npmVersion: string = this.configService.version!;
       return {
