@@ -69,7 +69,7 @@ export class GlobalConfigsController {
   })
   @ApiBearerAuth()
   @ApiResponse({
-    status: 201,
+    status: 200,
     type: UpdateProvidersProfitMarginResponseDto,
     description: 'Profit margin updated successfully.',
   })
@@ -99,7 +99,7 @@ export class GlobalConfigsController {
   })
   @ApiBearerAuth()
   @ApiResponse({
-    status: 201,
+    status: 200,
     type: UpdateGlobalProfitMarginResponseDto,
     description: 'Profit margin updated successfully.',
   })

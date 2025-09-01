@@ -124,7 +124,7 @@ export class UpdateProvidersProfitMarginResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
 
-  @ApiProperty({ example: 'Profit margin created' })
+  @ApiProperty({ example: "Provider's profit margin updated" })
   message: string;
 
   @ApiProperty({ type: UpdateProvidersProfitMarginWrapperDto })
@@ -143,7 +143,7 @@ export class UpdateGlobalProfitMarginResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
 
-  @ApiProperty({ example: 'Profit margin created' })
+  @ApiProperty({ example: 'Global profit margin updated' })
   message: string;
 
   @ApiProperty({ type: UpdateGlobalProfitMarginWrapperDto })

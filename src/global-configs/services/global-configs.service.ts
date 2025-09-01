@@ -182,7 +182,7 @@ export class GlobalConfigsService implements OnModuleInit {
 
       const response: GlobalProfitMarginResponse = {
         version: npmVersion,
-        message: 'Profit margin updated',
+        message: 'Global profit margin updated',
         error: null,
         data: {
           globalMarginProfit,
@@ -215,7 +215,7 @@ export class GlobalConfigsService implements OnModuleInit {
 
       const response: ProfitMarginResponse = {
         version: npmVersion,
-        message: 'Profit margin updated',
+        message: "Provider's profit margin updated",
         error: null,
         data: {
           providers,
