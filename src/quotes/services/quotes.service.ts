@@ -8,7 +8,7 @@ import { T1Service } from '@/t1/services/t1.service';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
-import { calculateQuotesValue, orderQuotesByPrice } from '../quotes.utils';
+import { orderQuotesByPrice } from '../quotes.utils';
 import { GlobalConfigsService } from '@/global-configs/services/global-configs.service';
 
 @Injectable()

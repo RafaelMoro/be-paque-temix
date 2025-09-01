@@ -101,12 +101,18 @@ export const calculateQuotesValue = (
   });
 };
 
-const calculateQuoteDefaultMargin = (
-  quote: GetQuoteData,
-  margin: ProfitMargin,
-) => {
+export const calculateQuoteMargin = ({
+  quote,
+  margin,
+  isDefault,
+}: {
+  quote: GetQuoteData;
+  margin: ProfitMargin;
+  isDefault: boolean;
+}) => {
   const isPercentage = margin.type === 'percentage';
   const qAdjMode = isPercentage ? ('P' as const) : ('A' as const);
+  const qAdjSrcRef = isDefault ? ('default' as const) : ('custom' as const);
   const qAdjFactor = isPercentage
     ? (quote.total * margin.value) / 100
     : margin.value;
@@ -117,30 +123,7 @@ const calculateQuoteDefaultMargin = (
     qBaseRef: quote.total,
     qAdjFactor,
     qAdjBasis: margin.value,
-    qAdjSrcRef: 'default' as const,
+    qAdjSrcRef,
     total: quote.total + qAdjFactor,
   };
-};
-
-export const calculateQuotesTotalWithDefaultProfitMargin = (
-  quotes: GetQuoteData[],
-  config: GlobalConfigsDoc,
-): GetQuoteData[] => {
-  const defaultProfitMargin = config?.globalMarginProfit;
-
-  return quotes.map((quote) =>
-    calculateQuoteDefaultMargin(quote, defaultProfitMargin),
-  );
-};
-
-export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
-  quote: GetQuoteData,
-  config: GlobalConfigsDoc,
-) => {
-  const defaultProfitMargin = config?.globalMarginProfit;
-  const calcultatedQuote = calculateQuoteDefaultMargin(
-    quote,
-    defaultProfitMargin,
-  );
-  return calcultatedQuote;
 };

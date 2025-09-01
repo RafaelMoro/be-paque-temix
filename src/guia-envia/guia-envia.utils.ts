@@ -7,10 +7,7 @@ import {
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
-import {
-  calculateQuotesTotalWithDefaultProfitMargin,
-  calculateSingleQuoteTotalWithDefaultProfitMargin,
-} from '@/quotes/quotes.utils';
+import { calculateQuoteMargin } from '@/quotes/quotes.utils';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
@@ -63,9 +60,12 @@ export const calculateTotalQuotesGE = ({
   // If it does not exist, then return the quotes with the default profit margin
   if (!providerGE) {
     messages.push('GE provider not found in global config');
-    const updatedQuotes = calculateQuotesTotalWithDefaultProfitMargin(
-      quotes,
-      config,
+    const updatedQuotes = quotes.map((quote) =>
+      calculateQuoteMargin({
+        quote,
+        margin: config.globalMarginProfit,
+        isDefault: true,
+      }),
     );
     return {
       updatedQuotes,
@@ -82,28 +82,18 @@ export const calculateTotalQuotesGE = ({
     if (!courier) {
       // NOTE: I'm not logging if the courier was not found as the courier is either type QuoteTypeSevice or null.
       // the couriers that are new, will not be detected on this flow.
-      const updatedQuote = calculateSingleQuoteTotalWithDefaultProfitMargin(
+      return calculateQuoteMargin({
         quote,
-        config,
-      );
-      return updatedQuote;
+        margin: config.globalMarginProfit,
+        isDefault: true,
+      });
     }
 
-    const isPercentage = courier?.profitMargin.type === 'percentage';
-    const qAdjMode = isPercentage ? ('P' as const) : ('A' as const);
-    const qAdjFactor = isPercentage
-      ? (quote.total * courier.profitMargin.value) / 100
-      : courier.profitMargin.value;
-
-    return {
-      ...quote,
-      qAdjMode,
-      qBaseRef: quote.total,
-      qAdjFactor,
-      qAdjBasis: courier.profitMargin.value,
-      qAdjSrcRef: 'custom' as const,
-      total: quote.total + qAdjFactor,
-    };
+    return calculateQuoteMargin({
+      quote,
+      margin: courier.profitMargin,
+      isDefault: false,
+    });
   });
   return {
     updatedQuotes,
