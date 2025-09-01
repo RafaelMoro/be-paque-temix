@@ -14,8 +14,8 @@ import {
   GlobalConfigsDoc,
 } from '../entities/global-configs.entity';
 import {
-  UpdateGlobalConfigsDto,
   UpdateGlobalMarginProfitDto,
+  UpdateProvidersMarginProfitDto,
 } from '../dtos/global-configs.dto';
 import config from '@/config';
 import {
@@ -87,22 +87,17 @@ export class GlobalConfigsService implements OnModuleInit {
     }
   }
 
-  async updateConfig(
-    configUpdates: UpdateGlobalConfigsDto,
-  ): Promise<GlobalConfigs> {
+  async updateProvidersConfig(payload: UpdateProvidersMarginProfitDto) {
     try {
-      // Never allow changing the configId to preserve singleton nature
-      delete configUpdates.configId;
       const updated = await this.globalConfigModel
         .findOneAndUpdate(
           { configId: 'global' },
-          { $set: configUpdates },
+          { $set: { providers: payload.providers } },
           { new: true },
         )
         .exec();
       if (!updated) {
-        // Upsert:true should prevent this, but keep a runtime guard for type safety
-        throw new BadRequestException('Failed to update global config');
+        throw new BadRequestException('Failed to update providers config');
       }
 
       this.globalConfig = updated;
@@ -205,7 +200,7 @@ export class GlobalConfigsService implements OnModuleInit {
   /**
    * This service is to update the profit margin
    */
-  async updateProvidersProfitMargin(payload: UpdateGlobalConfigsDto) {
+  async updateProvidersProfitMargin(payload: UpdateProvidersMarginProfitDto) {
     try {
       // Validate the type of each courier's profit margin
       payload.providers?.forEach((provider) => {
@@ -215,7 +210,7 @@ export class GlobalConfigsService implements OnModuleInit {
       });
       const npmVersion: string = this.configService.version!;
 
-      const config = await this.updateConfig(payload);
+      const config = await this.updateProvidersConfig(payload);
       const { providers } = config;
 
       const response: ProfitMarginResponse = {

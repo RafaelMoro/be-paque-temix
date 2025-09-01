@@ -94,3 +94,10 @@ export class UpdateGlobalMarginProfitDto {
   @Type(() => ProfitMarginDto)
   readonly globalMarginProfit: ProfitMarginDto;
 }
+
+export class UpdateProvidersMarginProfitDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProviderGCDto)
+  providers: ProviderGCDto[];
+}

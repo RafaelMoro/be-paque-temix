@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { GlobalConfigsService } from '../services/global-configs.service';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import {
-  CreateGlobalConfigsDto,
   UpdateGlobalMarginProfitDto,
+  UpdateProvidersMarginProfitDto,
 } from '../dtos/global-configs.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
@@ -57,11 +57,11 @@ export class GlobalConfigsController {
   }
 
   /**
-   * Updates a the profit margin.
+   * Updates the provider's profit margin.
    */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
-  @Post('profit-margin')
+  @Put('profit-margin-providers')
   @ApiOperation({
     summary:
       'Update the profit margin of any courier belonging to any provider',
@@ -83,13 +83,19 @@ export class GlobalConfigsController {
     description:
       'The user does not have admin role. Forbidden resource for those users.',
   })
-  async manageProfitMargin(@Body() payload: CreateGlobalConfigsDto) {
+  async manageProfitMargin(@Body() payload: UpdateProvidersMarginProfitDto) {
     return this.globalConfigsService.updateProvidersProfitMargin(payload);
   }
 
+  /**
+   * Updates the global profit margin.
+   */
   @Roles('admin', 'user')
   @UseGuards(RolesGuard)
   @Put('global-profit-margin')
+  @ApiOperation({
+    summary: 'Update the global profit margin',
+  })
   async updateGlobalProfitMargin(@Body() payload: UpdateGlobalMarginProfitDto) {
     return this.globalConfigsService.manageGlobalProfitMargin(payload);
   }
