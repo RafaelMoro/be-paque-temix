@@ -106,12 +106,20 @@ export const calculateQuotesTotalWithDefaultProfitMargin = (
 ): GetQuoteData[] => {
   const defaultProfitMargin = config?.globalMarginProfit;
   const isPercentage = defaultProfitMargin.type === 'percentage';
-  return quotes.map((quote) => ({
-    ...quote,
-    total: isPercentage
-      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
-      : quote.total + defaultProfitMargin.value,
-  }));
+  const qAdjMode = isPercentage ? ('P' as const) : ('A' as const);
+
+  return quotes.map((quote) => {
+    return {
+      ...quote,
+      qAdjMode,
+      qBaseRef: quote.total,
+      qAdjFactor: defaultProfitMargin.value,
+      qAdjSrcRef: 'default' as const,
+      total: isPercentage
+        ? quote.total + (quote.total * defaultProfitMargin.value) / 100
+        : quote.total + defaultProfitMargin.value,
+    };
+  });
 };
 
 export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
@@ -120,8 +128,14 @@ export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
 ) => {
   const defaultProfitMargin = config?.globalMarginProfit;
   const isPercentage = defaultProfitMargin.type === 'percentage';
+  const qAdjMode = isPercentage ? ('P' as const) : ('A' as const);
+
   return {
     ...quote,
+    qAdjMode,
+    qBaseRef: quote.total,
+    qAdjFactor: defaultProfitMargin.value,
+    qAdjSrcRef: 'default' as const,
     total: isPercentage
       ? quote.total + (quote.total * defaultProfitMargin.value) / 100
       : quote.total + defaultProfitMargin.value,
