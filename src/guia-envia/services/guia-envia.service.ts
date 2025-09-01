@@ -9,9 +9,14 @@ import {
   GE_MISSING_URI_ERROR,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
-import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
+import {
+  calculateTotalQuotesGE,
+  formatPayloadGE,
+  formatQuotesGE,
+} from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -19,7 +24,10 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto): Promise<GetQuoteData[]> {
+  async getQuote(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<GetQuoteData[]> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -44,7 +52,8 @@ export class GuiaEnviaService {
       // transform data and add a prop to identify that this service is coming from guia envia
       const data = response?.data;
       const formattedQuotes = formatQuotesGE(data);
-      return formattedQuotes;
+      const updatedQuotes = calculateTotalQuotesGE(formattedQuotes, config);
+      return updatedQuotes;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

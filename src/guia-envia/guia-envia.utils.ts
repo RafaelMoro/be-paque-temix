@@ -6,6 +6,7 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
@@ -40,6 +41,77 @@ export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
     courier: getGeCourier(quote.servicio),
     source: 'GE',
   }));
+
+export const calculateQuotesTotalWithDefaultProfitMargin = (
+  quotes: GetQuoteData[],
+  config: GlobalConfigsDoc,
+): GetQuoteData[] => {
+  const defaultProfitMargin = config?.globalMarginProfit;
+  const isPercentage = defaultProfitMargin.type === 'percentage';
+  return quotes.map((quote) => ({
+    ...quote,
+    total: isPercentage
+      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
+      : quote.total + defaultProfitMargin.value,
+  }));
+};
+
+export const calculateSingleQuoteTotalWithDefaultProfitMargin = (
+  quote: GetQuoteData,
+  config: GlobalConfigsDoc,
+) => {
+  const defaultProfitMargin = config?.globalMarginProfit;
+  const isPercentage = defaultProfitMargin.type === 'percentage';
+  return {
+    ...quote,
+    total: isPercentage
+      ? quote.total + (quote.total * defaultProfitMargin.value) / 100
+      : quote.total + defaultProfitMargin.value,
+  };
+};
+
+export const calculateTotalQuotesGE = (
+  quotes: GetQuoteData[],
+  config: GlobalConfigsDoc,
+) => {
+  // Find if the provider with GE exists
+  const providerGE = config.providers.find(
+    (provider) => provider.name === 'GE',
+  );
+
+  // If it does not exist, then return the quotes with the default profit margin
+  if (!providerGE) {
+    const updatedQuotes = calculateQuotesTotalWithDefaultProfitMargin(
+      quotes,
+      config,
+    );
+    return updatedQuotes;
+  }
+
+  const couriers = providerGE?.couriers;
+  const updatedQuotes = quotes.map((quote) => {
+    // Check if the courier matches with the one in the config
+    const courier = couriers?.find((c) => c.name === quote.courier);
+
+    // If it does not exist, return the quote with the default profit margin
+    if (!courier) {
+      const updatedQuote = calculateSingleQuoteTotalWithDefaultProfitMargin(
+        quote,
+        config,
+      );
+      return updatedQuote;
+    }
+
+    const isPercentage = courier?.profitMargin.type === 'percentage';
+    return {
+      ...quote,
+      total: isPercentage
+        ? quote.total + (quote.total * courier.profitMargin.value) / 100
+        : quote.total + courier?.profitMargin.value,
+    };
+  });
+  return updatedQuotes;
+};
 
 export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
   return {

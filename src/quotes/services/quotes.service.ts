@@ -24,10 +24,13 @@ export class QuotesService {
 
   async getQuote(payload: GetQuoteDto): Promise<GetQuoteDataResponse> {
     try {
+      // Calculate the margin profit
+      const config = await this.globalConfigsService.getConfig();
       const messages: string[] = [];
+
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
-          this.guiaEnviaService.getQuote(payload),
+          this.guiaEnviaService.getQuote(payload, config),
           this.t1Service.getQuote(payload),
           this.pakkeService.getQuotePakke(payload),
           this.manuableService.retrieveManuableQuotes(payload),
@@ -65,9 +68,6 @@ export class QuotesService {
         ...pakkeQuotesData,
         ...mnQuotesData,
       ];
-
-      // Calculate the margin profit
-      const config = await this.globalConfigsService.getConfig();
 
       const updatedQuotes = calculateQuotesValue(
         allQuotesInfo,
