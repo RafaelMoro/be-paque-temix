@@ -7,6 +7,7 @@ import {
   QUOTE_ENDPOINT_GE,
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
+  GE_MISSING_CONFIG_ERROR,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
 import {
@@ -36,6 +37,9 @@ export class GuiaEnviaService {
       }
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+      if (!config) {
+        throw new BadRequestException(GE_MISSING_CONFIG_ERROR);
       }
 
       const transformedPayload = formatPayloadGE(payload);
