@@ -19,6 +19,7 @@ import {
 } from '../dtos/global-configs.dto';
 import config from '@/config';
 import {
+  GlobalProfitMarginResponse,
   ProfitMarginResponse,
   TypeProfitMargin,
 } from '../global-configs.interface';
@@ -114,6 +115,29 @@ export class GlobalConfigsService implements OnModuleInit {
     }
   }
 
+  async updateGlobalMarginProfitConfig(payload: UpdateGlobalMarginProfitDto) {
+    try {
+      const updated = await this.globalConfigModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: { globalMarginProfit: payload.globalMarginProfit } },
+          { new: true },
+        )
+        .exec();
+      if (!updated) {
+        throw new BadRequestException('Failed to update global profit margin');
+      }
+
+      this.globalConfig = updated;
+      return this.globalConfig;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   validateTypeMargin(type: string): void {
     const validTypes: TypeProfitMargin[] = ['percentage', 'absolute'];
     if (!validTypes.includes(type as TypeProfitMargin)) {
@@ -152,25 +176,24 @@ export class GlobalConfigsService implements OnModuleInit {
     }
   }
 
-  async updateGlobalProfitMargin(payload: UpdateGlobalMarginProfitDto) {
+  async manageGlobalProfitMargin(payload: UpdateGlobalMarginProfitDto) {
     try {
       // Validate the type is correct
       this.validateTypeMargin(payload.globalMarginProfit.type);
 
-      // const npmVersion: string = this.configService.version!;
-      const updated = await this.globalConfigModel
-        .findOneAndUpdate(
-          { configId: 'global' },
-          { $set: { globalMarginProfit: payload.globalMarginProfit } },
-          { new: true },
-        )
-        .exec();
-      if (!updated) {
-        throw new BadRequestException('Failed to update global profit margin');
-      }
+      const npmVersion: string = this.configService.version!;
+      const config = await this.updateGlobalMarginProfitConfig(payload);
+      const { globalMarginProfit } = config;
 
-      this.globalConfig = updated;
-      return this.globalConfig;
+      const response: GlobalProfitMarginResponse = {
+        version: npmVersion,
+        message: 'Profit margin updated',
+        error: null,
+        data: {
+          globalMarginProfit,
+        },
+      };
+      return response;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

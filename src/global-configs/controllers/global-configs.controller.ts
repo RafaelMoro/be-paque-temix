@@ -91,6 +91,6 @@ export class GlobalConfigsController {
   @UseGuards(RolesGuard)
   @Put('global-profit-margin')
   async updateGlobalProfitMargin(@Body() payload: UpdateGlobalMarginProfitDto) {
-    return this.globalConfigsService.updateGlobalProfitMargin(payload);
+    return this.globalConfigsService.manageGlobalProfitMargin(payload);
   }
 }

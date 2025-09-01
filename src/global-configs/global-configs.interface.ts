@@ -24,3 +24,11 @@ export interface ProfitMarginResponse
     providers: ProviderGlobalConfig[];
   };
 }
+
+export interface GlobalProfitMarginResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    globalMarginProfit: ProfitMargin;
+  };
+}
