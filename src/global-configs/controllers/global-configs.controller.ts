@@ -1,8 +1,11 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { GlobalConfigsService } from '../services/global-configs.service';
 import { RolesGuard } from '@/auth/guards/roles/roles.guard';
 import { Roles } from '@/auth/decorators/roles/roles.decorator';
-import { CreateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import {
+  CreateGlobalConfigsDto,
+  UpdateGlobalMarginProfitDto,
+} from '../dtos/global-configs.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   GetMarginProfitUnauthorizedErrorDto,
@@ -82,5 +85,12 @@ export class GlobalConfigsController {
   })
   async manageProfitMargin(@Body() payload: CreateGlobalConfigsDto) {
     return this.globalConfigsService.updateProvidersProfitMargin(payload);
+  }
+
+  @Roles('admin', 'user')
+  @UseGuards(RolesGuard)
+  @Put('global-profit-margin')
+  async updateGlobalProfitMargin(@Body() payload: UpdateGlobalMarginProfitDto) {
+    return this.globalConfigsService.updateGlobalProfitMargin(payload);
   }
 }

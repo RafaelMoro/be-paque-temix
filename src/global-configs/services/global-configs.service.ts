@@ -13,7 +13,10 @@ import {
   GlobalConfigs,
   GlobalConfigsDoc,
 } from '../entities/global-configs.entity';
-import { UpdateGlobalConfigsDto } from '../dtos/global-configs.dto';
+import {
+  UpdateGlobalConfigsDto,
+  UpdateGlobalMarginProfitDto,
+} from '../dtos/global-configs.dto';
 import config from '@/config';
 import {
   ProfitMarginResponse,
@@ -93,7 +96,7 @@ export class GlobalConfigsService implements OnModuleInit {
         .findOneAndUpdate(
           { configId: 'global' },
           { $set: configUpdates },
-          { new: true, upsert: true },
+          { new: true },
         )
         .exec();
       if (!updated) {
@@ -142,6 +145,33 @@ export class GlobalConfigsService implements OnModuleInit {
       if (error instanceof NotFoundException) {
         throw error; // Re-throw NotFoundException as-is
       }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateGlobalProfitMargin(payload: UpdateGlobalMarginProfitDto) {
+    try {
+      // Validate the type is correct
+      this.validateTypeMargin(payload.globalMarginProfit.type);
+
+      // const npmVersion: string = this.configService.version!;
+      const updated = await this.globalConfigModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: { globalMarginProfit: payload.globalMarginProfit } },
+          { new: true },
+        )
+        .exec();
+      if (!updated) {
+        throw new BadRequestException('Failed to update global profit margin');
+      }
+
+      this.globalConfig = updated;
+      return this.globalConfig;
+    } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }

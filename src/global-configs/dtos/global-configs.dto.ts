@@ -87,3 +87,10 @@ export class CreateGlobalConfigsDto {
 export class UpdateGlobalConfigsDto extends PartialType(
   CreateGlobalConfigsDto,
 ) {}
+
+export class UpdateGlobalMarginProfitDto {
+  @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => ProfitMarginDto)
+  readonly globalMarginProfit: ProfitMarginDto;
+}
