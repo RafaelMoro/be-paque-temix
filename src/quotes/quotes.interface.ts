@@ -28,8 +28,10 @@ export interface GetQuoteData {
   // TODO: Change this new props to mandatory once we have finished this feature
   // Base price of the quote
   qBaseRef?: number;
-  // Profit margin value
+  // Sum of profit margin value and total
   qAdjFactor?: number;
+  // Profit margin value
+  qAdjBasis?: number;
   // Type of the profit margin that could be: P | A
   qAdjMode?: QuoteAdjustmentMode;
   // Source of the profit margin that could be: default | custom

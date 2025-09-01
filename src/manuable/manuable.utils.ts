@@ -38,7 +38,9 @@ export const formatManuableQuote = (
     service: quote.carrier,
     total: Number(quote.total_amount),
     qBaseRef: Number(quote.total_amount),
+    // TODO: Change this when we set the calculations profit margin it for Manuable
     qAdjFactor: 0,
+    qAdjBasis: 0,
     qAdjMode: 'P',
     qAdjSrcRef: 'default',
     typeService: getTypeServiceMn(quote.service),

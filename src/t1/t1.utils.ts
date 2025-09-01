@@ -51,6 +51,7 @@ export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
         .costo_total,
     qAdjFactor: 0,
+    qAdjBasis: 0,
     qAdjMode: 'P',
     qAdjSrcRef: 'default',
     typeService: getTypeServiceT1(

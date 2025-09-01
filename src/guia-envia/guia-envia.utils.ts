@@ -91,16 +91,18 @@ export const calculateTotalQuotesGE = ({
 
     const isPercentage = courier?.profitMargin.type === 'percentage';
     const qAdjMode = isPercentage ? ('P' as const) : ('A' as const);
+    const qAdjFactor = isPercentage
+      ? (quote.total * courier.profitMargin.value) / 100
+      : courier.profitMargin.value;
 
     return {
       ...quote,
       qAdjMode,
       qBaseRef: quote.total,
-      qAdjFactor: courier.profitMargin.value,
+      qAdjFactor,
+      qAdjBasis: courier.profitMargin.value,
       qAdjSrcRef: 'custom' as const,
-      total: isPercentage
-        ? quote.total + (quote.total * courier.profitMargin.value) / 100
-        : quote.total + courier?.profitMargin.value,
+      total: quote.total + qAdjFactor,
     };
   });
   return {
