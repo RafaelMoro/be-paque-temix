@@ -31,7 +31,7 @@ export class QuotesService {
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
           this.guiaEnviaService.getQuote(payload, config),
-          this.t1Service.getQuote(payload),
+          this.t1Service.getQuote(payload, config),
           this.pakkeService.getQuotePakke(payload),
           this.manuableService.retrieveManuableQuotes(payload),
         ],
@@ -40,7 +40,7 @@ export class QuotesService {
       const geQuotesData =
         geQuotes.status === 'fulfilled' ? geQuotes.value.quotes : [];
       const t1QuotesData =
-        t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+        t1Quotes.status === 'fulfilled' ? t1Quotes.value.quotes : [];
       const pakkeQuotesData =
         pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
       const mnQuotesData =

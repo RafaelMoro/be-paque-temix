@@ -9,10 +9,17 @@ import {
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
-import { T1GetQuoteResponse } from '../t1.interface';
-import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
+import {
+  T1GetQuoteFormattedResponse,
+  T1GetQuoteResponse,
+} from '../t1.interface';
+import {
+  calculateTotalQuotesT1,
+  formatPayloadT1,
+  formatT1QuoteData,
+} from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 @Injectable()
 export class T1Service {
@@ -20,8 +27,12 @@ export class T1Service {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto): Promise<GetQuoteData[]> {
+  async getQuote(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<T1GetQuoteFormattedResponse> {
     try {
+      const messages: string[] = [];
       const apiKey = this.configService.t1.apiKey!;
       const uri = this.configService.t1.uri!;
       const storeId = this.configService.t1.storeId!;
@@ -48,7 +59,15 @@ export class T1Service {
         });
       const data = response?.data;
       const formattedQuotes = formatT1QuoteData(data);
-      return formattedQuotes;
+      const { quotes, messages: updatedMessages } = calculateTotalQuotesT1({
+        quotes: formattedQuotes,
+        config,
+        messages,
+      });
+      return {
+        quotes,
+        messages: updatedMessages,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

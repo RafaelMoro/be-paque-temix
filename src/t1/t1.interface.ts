@@ -1,3 +1,5 @@
+import { GetQuoteData } from '@/quotes/quotes.interface';
+
 export type T1Courier = 'EXPRESS' | 'DHL' | 'FEDEX' | 'UPS' | '99MIN' | 'AMPM';
 
 export interface ShippingService {
@@ -43,4 +45,14 @@ export interface T1GetQuoteResponse {
   success: boolean;
   message: string;
   result: T1QuoteResult[];
+}
+
+export interface T1GetQuoteFormattedResponse {
+  quotes: GetQuoteData[];
+  messages: string[];
+}
+
+export interface CalculateTotalQuotesT1Response {
+  quotes: GetQuoteData[];
+  messages: string[];
 }
