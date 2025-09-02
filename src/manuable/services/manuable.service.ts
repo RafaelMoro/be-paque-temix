@@ -94,13 +94,13 @@ export class ManuableService {
             quotes: formattedQuotes,
             provider: 'Mn',
             config,
-            messages,
+            messages: [],
             providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
           });
-        const allMessages = [...messages, ...updatedMessages];
+        messages.push(...updatedMessages);
         return {
           quotes: quotesCalculated,
-          messages: allMessages,
+          messages,
         };
       }
 
@@ -109,13 +109,13 @@ export class ManuableService {
           quotes: res?.quotes,
           provider: 'Mn',
           config,
-          messages,
+          messages: [],
           providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
         });
-      const allMessages = [...messages, ...updatedMessages];
+      messages.push(...updatedMessages);
       return {
         quotes: quotesCalculated,
-        messages: allMessages,
+        messages,
       };
     } catch (error) {
       if (error instanceof Error) {
