@@ -1,6 +1,7 @@
 import { GeneralResponse } from '@/global.interface';
+import { PROFIT_MARGIN_TYPE } from './global-configs.constants';
 
-export type TypeProfitMargin = 'percentage' | 'absolute';
+export type TypeProfitMargin = (typeof PROFIT_MARGIN_TYPE)[number];
 
 export interface ProfitMargin {
   value: number;

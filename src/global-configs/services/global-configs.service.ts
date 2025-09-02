@@ -25,6 +25,7 @@ import {
 } from '../global-configs.interface';
 import { QuoteCourier, QuoteSource } from '@/quotes/quotes.interface';
 import { QUOTE_COURIER, QUOTE_SOURCE } from '@/quotes/quotes.constants';
+import { PROFIT_MARGIN_TYPE } from '../global-configs.constants';
 
 @Injectable()
 export class GlobalConfigsService implements OnModuleInit {
@@ -136,7 +137,7 @@ export class GlobalConfigsService implements OnModuleInit {
   }
 
   validateTypeMargin(type: string): void {
-    const validTypes: TypeProfitMargin[] = ['percentage', 'absolute'];
+    const validTypes: TypeProfitMargin[] = [...PROFIT_MARGIN_TYPE];
     if (!validTypes.includes(type as TypeProfitMargin)) {
       throw new BadRequestException(
         `Invalid type: ${type}. Type must be either 'percentage' or 'absolute'`,
