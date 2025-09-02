@@ -23,6 +23,8 @@ import {
   ProfitMarginResponse,
   TypeProfitMargin,
 } from '../global-configs.interface';
+import { QuoteSource } from '@/quotes/quotes.interface';
+import { QUOTE_SOURCE } from '@/quotes/quotes.constants';
 
 @Injectable()
 export class GlobalConfigsService implements OnModuleInit {
@@ -142,6 +144,15 @@ export class GlobalConfigsService implements OnModuleInit {
     }
   }
 
+  validateProvider(provider: string): void {
+    const validProviders: QuoteSource[] = [...QUOTE_SOURCE];
+    if (!validProviders.includes(provider as QuoteSource)) {
+      throw new BadRequestException(
+        `Invalid provider: ${provider}. Provider must be one of: ${validProviders.join(', ')}`,
+      );
+    }
+  }
+
   async getProfitMargin() {
     try {
       const config = await this.getConfig();
@@ -204,6 +215,7 @@ export class GlobalConfigsService implements OnModuleInit {
     try {
       // Validate the type of each courier's profit margin
       payload.providers?.forEach((provider) => {
+        this.validateProvider(provider.name);
         provider.couriers.forEach((courier) => {
           this.validateTypeMargin(courier.profitMargin.type);
         });

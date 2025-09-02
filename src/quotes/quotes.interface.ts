@@ -1,6 +1,7 @@
 import { GeneralResponse } from '@/global.interface';
+import { QUOTE_SOURCE } from './quotes.constants';
 
-export type QuoteSource = 'Pkk' | 'GE' | 'TONE' | 'Mn';
+export type QuoteSource = (typeof QUOTE_SOURCE)[number];
 
 export type QuoteTypeSevice = 'standard' | 'nextDay';
 
