@@ -17,7 +17,6 @@ export interface GetQuoteData {
   id: string | number;
   service: string;
   total: number;
-  // TODO: Change this new props to mandatory once we have finished this feature
   // Base price of the quote
   qBaseRef?: number;
   // Sum of profit margin value and total

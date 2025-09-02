@@ -67,7 +67,6 @@ export const formatPakkeQuotes = (
     service: `${item.CourierName} ${item.CourierServiceName}`,
     total: item.TotalPrice,
     qBaseRef: item.TotalPrice,
-    // TODO: Change this when we set the calculations profit margin it for Pakke
     qAdjFactor: 0,
     qAdjBasis: 0,
     qAdjMode: 'P',

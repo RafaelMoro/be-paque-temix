@@ -46,7 +46,6 @@ export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
     total:
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
         .costo_total,
-    // TODO: Change this when we set the calculations profit margin it for T1
     qBaseRef:
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
         .costo_total,
