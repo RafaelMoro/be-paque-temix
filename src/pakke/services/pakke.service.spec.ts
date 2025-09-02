@@ -3,9 +3,14 @@ import { BadRequestException } from '@nestjs/common';
 import { PakkeService } from './pakke.service';
 import config from '@/config';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import {
+  GetQuoteData,
+  ExtApiGetQuoteResponse,
+} from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import axios from 'axios';
 import * as utils from '../pakke.utils';
+import * as quotesUtils from '@/quotes/quotes.utils';
 import {
   PAKKE_MISSING_API_KEY_ERROR,
   PAKKE_MISSING_URI_ERROR,
@@ -108,6 +113,41 @@ describe('PakkeService', () => {
     },
   ];
 
+  const mockGlobalConfig: GlobalConfigsDoc = {
+    globalMarginProfit: {
+      value: 15,
+      type: 'percentage',
+    },
+    providers: [
+      {
+        name: 'Pkk',
+        couriers: [
+          {
+            name: 'Paquetexpress',
+            profitMargin: {
+              value: 10,
+              type: 'percentage',
+            },
+          },
+          {
+            name: 'AMPM',
+            profitMargin: {
+              value: 12,
+              type: 'percentage',
+            },
+          },
+          {
+            name: 'Fedex',
+            profitMargin: {
+              value: 14,
+              type: 'percentage',
+            },
+          },
+        ],
+      },
+    ],
+  } as GlobalConfigsDoc;
+
   const createServiceWithConfig = async (configOverride: typeof mockConfig) => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -124,6 +164,12 @@ describe('PakkeService', () => {
   beforeEach(async () => {
     service = await createServiceWithConfig(mockConfig);
     jest.clearAllMocks();
+
+    // Mock calculateTotalQuotes to return quotes and messages
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: mockFormattedQuotes,
+      messages: [],
+    });
   });
 
   describe('getQuotePakke', () => {
@@ -141,7 +187,7 @@ describe('PakkeService', () => {
         data: mockPakkeResponse,
       });
 
-      const result = await service.getQuotePakke(mockPayload);
+      const result = await service.getQuotePakke(mockPayload, mockGlobalConfig);
 
       expect(utils.convertPayloadToPakkeDto).toHaveBeenCalledWith(mockPayload);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -155,7 +201,17 @@ describe('PakkeService', () => {
         },
       });
       expect(utils.formatPakkeQuotes).toHaveBeenCalledWith(mockPakkeResponse);
-      expect(result).toEqual(mockFormattedQuotes);
+      expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
+        quotes: mockFormattedQuotes,
+        provider: 'Pkk',
+        config: mockGlobalConfig,
+        messages: [],
+        providerNotFoundMessage: expect.any(String),
+      });
+      expect(result).toEqual({
+        quotes: mockFormattedQuotes,
+        messages: [],
+      });
     });
 
     it('should throw BadRequestException when API key is missing', async () => {
@@ -167,7 +223,7 @@ describe('PakkeService', () => {
       });
 
       await expect(
-        serviceWithoutApiKey.getQuotePakke(mockPayload),
+        serviceWithoutApiKey.getQuotePakke(mockPayload, mockGlobalConfig),
       ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_API_KEY_ERROR));
     });
 
@@ -180,7 +236,7 @@ describe('PakkeService', () => {
       });
 
       await expect(
-        serviceWithoutUri.getQuotePakke(mockPayload),
+        serviceWithoutUri.getQuotePakke(mockPayload, mockGlobalConfig),
       ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_URI_ERROR));
     });
 
@@ -192,9 +248,9 @@ describe('PakkeService', () => {
       const errorMessage = 'Network timeout';
       mockedAxios.post.mockRejectedValue(new Error(errorMessage));
 
-      await expect(service.getQuotePakke(mockPayload)).rejects.toThrow(
-        new BadRequestException(errorMessage),
-      );
+      await expect(
+        service.getQuotePakke(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
     });
 
     it('should throw BadRequestException with generic message for unknown errors', async () => {
@@ -208,9 +264,9 @@ describe('PakkeService', () => {
         message: 'Server error',
       });
 
-      await expect(service.getQuotePakke(mockPayload)).rejects.toThrow(
-        new BadRequestException('An unknown error occurred'),
-      );
+      await expect(
+        service.getQuotePakke(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
     });
 
     it('should handle response with empty Pakke array', async () => {
@@ -218,6 +274,12 @@ describe('PakkeService', () => {
         .spyOn(utils, 'convertPayloadToPakkeDto')
         .mockReturnValue(mockTransformedPayload);
       jest.spyOn(utils, 'formatPakkeQuotes').mockReturnValue([]);
+
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
 
       const emptyResponse: PakkeGetQuoteResponse = {
         Pakke: [],
@@ -227,10 +289,13 @@ describe('PakkeService', () => {
         data: emptyResponse,
       });
 
-      const result = await service.getQuotePakke(mockPayload);
+      const result = await service.getQuotePakke(mockPayload, mockGlobalConfig);
 
       expect(utils.formatPakkeQuotes).toHaveBeenCalledWith(emptyResponse);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle response with undefined data', async () => {
@@ -239,14 +304,23 @@ describe('PakkeService', () => {
         .mockReturnValue(mockTransformedPayload);
       jest.spyOn(utils, 'formatPakkeQuotes').mockReturnValue([]);
 
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: undefined,
       });
 
-      const result = await service.getQuotePakke(mockPayload);
+      const result = await service.getQuotePakke(mockPayload, mockGlobalConfig);
 
       expect(utils.formatPakkeQuotes).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle multiple quotes in response', async () => {
@@ -292,17 +366,26 @@ describe('PakkeService', () => {
         .spyOn(utils, 'formatPakkeQuotes')
         .mockReturnValue(expectedMultipleQuotes);
 
+      // Mock calculateTotalQuotes to return the multiple quotes
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: expectedMultipleQuotes,
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: multipleQuotesResponse,
       });
 
-      const result = await service.getQuotePakke(mockPayload);
+      const result = await service.getQuotePakke(mockPayload, mockGlobalConfig);
 
       expect(utils.formatPakkeQuotes).toHaveBeenCalledWith(
         multipleQuotesResponse,
       );
-      expect(result).toEqual(expectedMultipleQuotes);
-      expect(result).toHaveLength(2);
+      expect(result).toEqual({
+        quotes: expectedMultipleQuotes,
+        messages: [],
+      });
+      expect(result.quotes).toHaveLength(2);
     });
 
     it('should propagate BadRequestException from utils', async () => {
@@ -310,9 +393,9 @@ describe('PakkeService', () => {
         throw new BadRequestException('Invalid postal code format');
       });
 
-      await expect(service.getQuotePakke(mockPayload)).rejects.toThrow(
-        new BadRequestException('Invalid postal code format'),
-      );
+      await expect(
+        service.getQuotePakke(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('Invalid postal code format'));
     });
 
     it('should validate configuration before making API call', async () => {
@@ -326,7 +409,7 @@ describe('PakkeService', () => {
       const convertSpy = jest.spyOn(utils, 'convertPayloadToPakkeDto');
 
       await expect(
-        serviceWithNullApiKey.getQuotePakke(mockPayload),
+        serviceWithNullApiKey.getQuotePakke(mockPayload, mockGlobalConfig),
       ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_API_KEY_ERROR));
 
       // Verify that the conversion happens before validation fails
@@ -338,16 +421,19 @@ describe('PakkeService', () => {
 
   // Keep the original test for backwards compatibility
   it('get quotes from Pakke (original test)', async () => {
-    const result: GetQuoteData[] = [
-      {
-        id: '1',
-        service: 'Pakke Express',
-        total: 150.5,
-        typeService: null,
-        courier: null,
-        source: 'Pkk',
-      },
-    ];
+    const result: ExtApiGetQuoteResponse = {
+      quotes: [
+        {
+          id: '1',
+          service: 'Pakke Express',
+          total: 150.5,
+          typeService: null,
+          courier: null,
+          source: 'Pkk',
+        },
+      ],
+      messages: [],
+    };
     const payload: GetQuoteDto = {
       originPostalCode: '00001',
       destinationPostalCode: '00004',
@@ -362,7 +448,7 @@ describe('PakkeService', () => {
       // eslint-disable-next-line @typescript-eslint/require-await
       .mockImplementation(async () => result);
 
-    const response = await service.getQuotePakke(payload);
+    const response = await service.getQuotePakke(payload, mockGlobalConfig);
     expect(response).toBe(result);
   });
 });
