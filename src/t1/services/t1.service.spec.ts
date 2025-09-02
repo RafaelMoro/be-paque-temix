@@ -5,12 +5,18 @@ import axios from 'axios';
 import { T1Service } from './t1.service';
 import config from '@/config';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import {
+  GetQuoteData,
+  ExtApiGetQuoteResponse,
+} from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import * as utils from '../t1.utils';
+import * as quotesUtils from '@/quotes/quotes.utils';
 import {
   T1_MISSING_API_KEY_ERROR,
   T1_MISSING_URI_ERROR,
   T1_MISSING_STORE_ID_ERROR,
+  T1_MISSING_PROVIDER_PROFIT_MARGIN,
 } from '../t1.constants';
 import { T1GetQuoteResponse } from '../t1.interface';
 import { GetQuoteT1Dto } from '../dtos/t1.dtos';
@@ -103,6 +109,32 @@ describe('T1Service', () => {
     },
   ];
 
+  const mockGlobalConfig: GlobalConfigsDoc = {
+    globalMarginProfit: {
+      value: 15,
+      type: 'percentage',
+    },
+    providers: [
+      {
+        name: 'TONE',
+        couriers: [
+          {
+            name: 'NextDay',
+            profitMargin: {
+              value: 10,
+              type: 'percentage',
+            },
+          },
+        ],
+      },
+    ],
+  } as GlobalConfigsDoc;
+
+  const mockExtApiResponse: ExtApiGetQuoteResponse = {
+    quotes: mockFormattedQuotes,
+    messages: [],
+  };
+
   const createServiceWithConfig = async (configOverride: typeof mockConfig) => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -119,6 +151,12 @@ describe('T1Service', () => {
   beforeEach(async () => {
     service = await createServiceWithConfig(mockConfig);
     jest.clearAllMocks();
+
+    // Mock calculateTotalQuotes to return quotes and messages
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: mockFormattedQuotes,
+      messages: [],
+    });
   });
 
   describe('getQuote', () => {
@@ -136,7 +174,7 @@ describe('T1Service', () => {
         data: mockT1Response,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatPayloadT1).toHaveBeenCalledWith({
         payload: mockPayload,
@@ -155,7 +193,17 @@ describe('T1Service', () => {
         },
       });
       expect(utils.formatT1QuoteData).toHaveBeenCalledWith(mockT1Response);
-      expect(result).toEqual(mockFormattedQuotes);
+      expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
+        quotes: mockFormattedQuotes,
+        provider: 'TONE',
+        config: mockGlobalConfig,
+        messages: [],
+        providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
+      });
+      expect(result).toEqual({
+        quotes: mockFormattedQuotes,
+        messages: [],
+      });
     });
 
     it('should throw BadRequestException when API key is missing', async () => {
@@ -167,9 +215,9 @@ describe('T1Service', () => {
         },
       });
 
-      await expect(serviceWithoutApiKey.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(T1_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithoutApiKey.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(T1_MISSING_API_KEY_ERROR));
     });
 
     it('should throw BadRequestException when URI is missing', async () => {
@@ -181,9 +229,9 @@ describe('T1Service', () => {
         },
       });
 
-      await expect(serviceWithoutUri.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(T1_MISSING_URI_ERROR),
-      );
+      await expect(
+        serviceWithoutUri.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(T1_MISSING_URI_ERROR));
     });
 
     it('should throw BadRequestException when store ID is missing', async () => {
@@ -195,9 +243,9 @@ describe('T1Service', () => {
         },
       });
 
-      await expect(serviceWithoutStoreId.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(T1_MISSING_STORE_ID_ERROR),
-      );
+      await expect(
+        serviceWithoutStoreId.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(T1_MISSING_STORE_ID_ERROR));
     });
 
     it('should throw BadRequestException when axios throws an error', async () => {
@@ -208,9 +256,9 @@ describe('T1Service', () => {
       const errorMessage = 'Network error';
       mockedAxios.post.mockRejectedValue(new Error(errorMessage));
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(errorMessage),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
     });
 
     it('should throw BadRequestException with generic message for unknown errors', async () => {
@@ -221,9 +269,9 @@ describe('T1Service', () => {
       // Reject with non-Error object
       mockedAxios.post.mockRejectedValue('Unknown error');
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException('An unknown error occurred'),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
     });
 
     it('should handle response with no data gracefully', async () => {
@@ -232,15 +280,24 @@ describe('T1Service', () => {
         .mockReturnValue(mockFormattedPayload);
       jest.spyOn(utils, 'formatT1QuoteData').mockReturnValue([]);
 
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
+
       // Mock axios response with undefined data
       mockedAxios.post.mockResolvedValue({
         data: undefined,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatT1QuoteData).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle empty result array in response', async () => {
@@ -248,6 +305,12 @@ describe('T1Service', () => {
         .spyOn(utils, 'formatPayloadT1')
         .mockReturnValue(mockFormattedPayload);
       jest.spyOn(utils, 'formatT1QuoteData').mockReturnValue([]);
+
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
 
       const emptyResponse: T1GetQuoteResponse = {
         success: true,
@@ -259,10 +322,13 @@ describe('T1Service', () => {
         data: emptyResponse,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatT1QuoteData).toHaveBeenCalledWith(emptyResponse);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle multiple quotes in response', async () => {
@@ -363,17 +429,26 @@ describe('T1Service', () => {
         .spyOn(utils, 'formatT1QuoteData')
         .mockReturnValue(expectedFormattedQuotes);
 
+      // Mock calculateTotalQuotes to return the formatted quotes
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: expectedFormattedQuotes,
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: multipleQuotesResponse,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatT1QuoteData).toHaveBeenCalledWith(
         multipleQuotesResponse,
       );
-      expect(result).toEqual(expectedFormattedQuotes);
-      expect(result).toHaveLength(2);
+      expect(result).toEqual({
+        quotes: expectedFormattedQuotes,
+        messages: [],
+      });
+      expect(result.quotes).toHaveLength(2);
     });
 
     it('should propagate BadRequestException from nested functions', async () => {
@@ -382,24 +457,27 @@ describe('T1Service', () => {
         throw new BadRequestException('Invalid payload format');
       });
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException('Invalid payload format'),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('Invalid payload format'));
     });
   });
 
-  // Test the original mock implementation test for backwards compatibility
+  // Keep the original test for backwards compatibility
   it('get quotes from T1 (original test)', async () => {
-    const result: GetQuoteData[] = [
-      {
-        id: '1',
-        service: 'Carrier Express',
-        total: 199.99,
-        typeService: null,
-        courier: null,
-        source: 'TONE',
-      },
-    ];
+    const result: ExtApiGetQuoteResponse = {
+      quotes: [
+        {
+          id: '1',
+          service: 'Carrier Express',
+          total: 199.99,
+          typeService: null,
+          courier: null,
+          source: 'TONE',
+        },
+      ],
+      messages: [],
+    };
     const payload: GetQuoteDto = {
       originPostalCode: '00001',
       destinationPostalCode: '00004',
@@ -414,7 +492,7 @@ describe('T1Service', () => {
       // eslint-disable-next-line @typescript-eslint/require-await
       .mockImplementation(async () => result);
 
-    const response = await service.getQuote(payload);
+    const response = await service.getQuote(payload, mockGlobalConfig);
     expect(response).toBe(result);
   });
 });

@@ -99,28 +99,55 @@ export class GetMarginProfitNotFoundErrorDto {
   error: GetMarginProfitNotFoundError;
 }
 
-class ManageMarginProfitDataDto {
-  @ApiProperty({ example: '13' })
-  value: number;
+class CourierConfigDto {
+  @ApiProperty({ example: 'Estafeta' })
+  name: string;
 
-  @ApiProperty({ example: 'percentage' })
-  type: string;
+  @ApiProperty({ type: GetMarginProfitDataDto })
+  profitMargin: GetMarginProfitDataDto;
 }
 
-export class ManageMarginProfitDataWrapperDto {
-  @ApiProperty({ type: ManageMarginProfitDataDto })
-  profitMargin: ManageMarginProfitDataDto;
+class ProvidersConfigDto {
+  @ApiProperty({ example: 'Pkk' })
+  name: string;
+
+  @ApiProperty({ type: [CourierConfigDto] })
+  couriers: CourierConfigDto[];
 }
 
-export class ManageMarginProfitResponseDto {
+export class UpdateProvidersProfitMarginWrapperDto {
+  @ApiProperty({ type: [ProvidersConfigDto] })
+  providers: ProvidersConfigDto[];
+}
+
+export class UpdateProvidersProfitMarginResponseDto {
   @ApiProperty({ example: '1.0.0' })
   version: string;
 
-  @ApiProperty({ example: 'Profit margin created' })
+  @ApiProperty({ example: "Provider's profit margin updated" })
   message: string;
 
-  @ApiProperty({ type: ManageMarginProfitDataWrapperDto })
-  data: ManageMarginProfitDataWrapperDto;
+  @ApiProperty({ type: UpdateProvidersProfitMarginWrapperDto })
+  data: UpdateProvidersProfitMarginWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}
+
+class UpdateGlobalProfitMarginWrapperDto {
+  @ApiProperty({ type: GetMarginProfitDataDto })
+  globalMarginProfit: GetMarginProfitDataDto;
+}
+
+export class UpdateGlobalProfitMarginResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ example: 'Global profit margin updated' })
+  message: string;
+
+  @ApiProperty({ type: UpdateGlobalProfitMarginWrapperDto })
+  data: UpdateGlobalProfitMarginWrapperDto;
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;

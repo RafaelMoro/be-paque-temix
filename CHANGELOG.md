@@ -1,3 +1,9 @@
+## v0.15.0 (2025-09-02)
+
+### Pull Requests
+[#18](https://github.com/RafaelMoro/be-paque-temix/pull/18) | Change profit courier provider
+
+
 ## v0.14.0 (2025-08-23)
 
 ### Pull Requests

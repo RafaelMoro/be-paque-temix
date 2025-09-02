@@ -7,11 +7,15 @@ import {
   QUOTE_ENDPOINT_GE,
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
+  GE_MISSING_CONFIG_ERROR,
+  GE_MISSING_PROVIDER_PROFIT_MARGIN,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
 import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -19,8 +23,12 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto): Promise<GetQuoteData[]> {
+  async getQuote(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<ExtApiGetQuoteResponse> {
     try {
+      const messages: string[] = [];
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
       if (!apiKey) {
@@ -28,6 +36,9 @@ export class GuiaEnviaService {
       }
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+      if (!config) {
+        throw new BadRequestException(GE_MISSING_CONFIG_ERROR);
       }
 
       const transformedPayload = formatPayloadGE(payload);
@@ -44,7 +55,17 @@ export class GuiaEnviaService {
       // transform data and add a prop to identify that this service is coming from guia envia
       const data = response?.data;
       const formattedQuotes = formatQuotesGE(data);
-      return formattedQuotes;
+      const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+        quotes: formattedQuotes,
+        provider: 'GE',
+        config,
+        messages,
+        providerNotFoundMessage: GE_MISSING_PROVIDER_PROFIT_MARGIN,
+      });
+      return {
+        quotes,
+        messages: updatedMessages,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
