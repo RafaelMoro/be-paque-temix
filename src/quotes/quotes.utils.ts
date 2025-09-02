@@ -68,43 +68,11 @@ export const addAbsoluteMarginProfit = (
  * Calculate quote totals applying the configured profit margin.
  * If `globalConfigDoc` is null or missing profitMargin, returns the quotes unchanged.
  *
- * @param quotes array of quotes to calculate
- * @param globalConfigDoc global config document that may contain profitMargin
+ * @param quote quotes to calculate
+ * @param margin the profitMargin config
+ * @param isDefault whether the margin is the default one
  * @returns new array of quotes with updated totals
  */
-export const calculateQuotesValue = (
-  quotes: GetQuoteData[],
-  globalConfigDoc: GlobalConfigsDoc | null,
-  messages: string[],
-): GetQuoteData[] => {
-  if (!globalConfigDoc) {
-    messages.push('Profit margin not applied: global configuration not found');
-    return quotes;
-  }
-
-  const profitMargin = globalConfigDoc.globalMarginProfit;
-  if (!profitMargin || typeof profitMargin.value !== 'number') {
-    messages.push('Profit margin not applied: profitMargin missing or invalid');
-    return quotes;
-  }
-
-  const { value: marginValue, type } = profitMargin;
-
-  // push a single message indicating margin was applied
-  messages.push('Profit margin applied');
-
-  return quotes.map((quote) => {
-    const newTotal =
-      type === 'percentage'
-        ? addPercentageMarginProfit(marginValue, quote.total)
-        : addAbsoluteMarginProfit(marginValue, quote.total);
-    return {
-      ...quote,
-      total: newTotal,
-    } as GetQuoteData;
-  });
-};
-
 export const calculateQuoteMargin = ({
   quote,
   margin,

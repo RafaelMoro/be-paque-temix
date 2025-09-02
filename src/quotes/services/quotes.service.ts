@@ -24,7 +24,7 @@ export class QuotesService {
 
   async getQuote(payload: GetQuoteDto): Promise<GetQuoteDataResponse> {
     try {
-      // Calculate the margin profit
+      // Get the margin profit for the providers
       const config = await this.globalConfigsService.getConfig();
       const messages: string[] = [];
 
@@ -33,7 +33,7 @@ export class QuotesService {
           this.guiaEnviaService.getQuote(payload, config),
           this.t1Service.getQuote(payload, config),
           this.pakkeService.getQuotePakke(payload, config),
-          this.manuableService.retrieveManuableQuotes(payload),
+          this.manuableService.retrieveManuableQuotes(payload, config),
         ],
       );
 
@@ -58,22 +58,6 @@ export class QuotesService {
       if (mnRes.status === 'rejected') {
         messages.push('Mn failed to get quotes');
       }
-      if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
-        messages.push(...mnRes.value.messages);
-      }
-
-      const allQuotesInfo = [
-        ...geQuotesData,
-        ...t1QuotesData,
-        ...pakkeQuotesData,
-        ...mnQuotesData,
-      ];
-
-      // const updatedQuotes = calculateQuotesValue(
-      //   allQuotesInfo,
-      //   config,
-      //   messages,
-      // );
 
       if (geQuotes.status === 'fulfilled' && geQuotes.value.messages) {
         messages.push(...geQuotes.value.messages);
@@ -84,6 +68,16 @@ export class QuotesService {
       if (pakkeQuotes.status === 'fulfilled' && pakkeQuotes.value.messages) {
         messages.push(...pakkeQuotes.value.messages);
       }
+      if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
+        messages.push(...mnRes.value.messages);
+      }
+
+      const allQuotesInfo = [
+        ...geQuotesData,
+        ...t1QuotesData,
+        ...pakkeQuotesData,
+        ...mnQuotesData,
+      ];
 
       // Order the quotes by price
       const currentQuotes = orderQuotesByPrice(allQuotesInfo);

@@ -11,6 +11,7 @@ import {
   MANUABLE_FAILED_CREATE_TOKEN,
   MANUABLE_FAILED_FETCH_QUOTES,
   MANUABLE_FAILED_TOKEN,
+  MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
   MANUABLE_TOKEN_ENDPOINT,
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
@@ -23,6 +24,8 @@ import {
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { formatManuableQuote, formatPayloadManuable } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 @Injectable()
 export class ManuableService {
@@ -75,6 +78,7 @@ export class ManuableService {
    */
   async retrieveManuableQuotes(
     payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
   ): Promise<GetManuableQuoteResponse> {
     try {
       const res = await this.getManuableQuote(payload);
@@ -85,13 +89,34 @@ export class ManuableService {
         const quotes = await this.reAttemptGetManuableQuote(payload);
         messages.push('Mn: Quotes fetched successfully');
         const formattedQuotes = formatManuableQuote(quotes);
+        const { quotes: quotesCalculated, messages: updatedMessages } =
+          calculateTotalQuotes({
+            quotes: formattedQuotes,
+            provider: 'Mn',
+            config,
+            messages,
+            providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
+          });
+        const allMessages = [...messages, ...updatedMessages];
         return {
-          messages,
-          quotes: formattedQuotes,
+          quotes: quotesCalculated,
+          messages: allMessages,
         };
       }
 
-      return res;
+      const { quotes: quotesCalculated, messages: updatedMessages } =
+        calculateTotalQuotes({
+          quotes: res?.quotes,
+          provider: 'Mn',
+          config,
+          messages,
+          providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
+        });
+      const allMessages = [...messages, ...updatedMessages];
+      return {
+        quotes: quotesCalculated,
+        messages: allMessages,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
