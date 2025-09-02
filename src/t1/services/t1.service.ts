@@ -10,14 +10,12 @@ import {
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
-import {
-  T1GetQuoteFormattedResponse,
-  T1GetQuoteResponse,
-} from '../t1.interface';
+import { T1GetQuoteResponse } from '../t1.interface';
 import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class T1Service {
@@ -28,7 +26,7 @@ export class T1Service {
   async getQuote(
     payload: GetQuoteDto,
     config: GlobalConfigsDoc,
-  ): Promise<T1GetQuoteFormattedResponse> {
+  ): Promise<ExtApiGetQuoteResponse> {
     try {
       const messages: string[] = [];
       const apiKey = this.configService.t1.apiKey!;

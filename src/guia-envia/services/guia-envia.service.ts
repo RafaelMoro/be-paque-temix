@@ -15,6 +15,7 @@ import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -22,7 +23,10 @@ export class GuiaEnviaService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuote(payload: GetQuoteDto, config: GlobalConfigsDoc) {
+  async getQuote(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<ExtApiGetQuoteResponse> {
     try {
       const messages: string[] = [];
       const apiKey = this.configService.guiaEnvia.apiKey!;

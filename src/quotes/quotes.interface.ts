@@ -54,3 +54,8 @@ export interface CalculateTotalQuotesResponse {
   quotes: GetQuoteData[];
   messages: string[];
 }
+
+export interface ExtApiGetQuoteResponse {
+  quotes: GetQuoteData[];
+  messages: string[];
+}
