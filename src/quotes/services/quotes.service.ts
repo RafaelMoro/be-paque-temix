@@ -32,7 +32,7 @@ export class QuotesService {
         [
           this.guiaEnviaService.getQuote(payload, config),
           this.t1Service.getQuote(payload, config),
-          this.pakkeService.getQuotePakke(payload),
+          this.pakkeService.getQuotePakke(payload, config),
           this.manuableService.retrieveManuableQuotes(payload),
         ],
       );
@@ -42,7 +42,7 @@ export class QuotesService {
       const t1QuotesData =
         t1Quotes.status === 'fulfilled' ? t1Quotes.value.quotes : [];
       const pakkeQuotesData =
-        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
+        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value.quotes : [];
       const mnQuotesData =
         mnRes.status === 'fulfilled' ? mnRes.value.quotes : [];
 
@@ -77,6 +77,12 @@ export class QuotesService {
 
       if (geQuotes.status === 'fulfilled' && geQuotes.value.messages) {
         messages.push(...geQuotes.value.messages);
+      }
+      if (t1Quotes.status === 'fulfilled' && t1Quotes.value.messages) {
+        messages.push(...t1Quotes.value.messages);
+      }
+      if (pakkeQuotes.status === 'fulfilled' && pakkeQuotes.value.messages) {
+        messages.push(...pakkeQuotes.value.messages);
       }
 
       // Order the quotes by price
