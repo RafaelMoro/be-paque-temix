@@ -1,5 +1,5 @@
 import { GeneralResponse } from '@/global.interface';
-import { QUOTE_SOURCE } from './quotes.constants';
+import { QUOTE_COURIER, QUOTE_SOURCE } from './quotes.constants';
 
 export type QuoteSource = (typeof QUOTE_SOURCE)[number];
 
@@ -11,16 +11,7 @@ export type QuoteAdjustmentMode = 'P' | 'A';
 // Source of the profit margin that could be: default (from the global margin profit) | custom (profit margin set with courier and provider)
 export type QuoteAdjustmentSourceReference = 'default' | 'custom';
 
-export type QuoteCourier =
-  | 'Estafeta'
-  | 'DHL'
-  | 'UPS'
-  | 'Fedex'
-  | 'Paquetexpress'
-  | 'AMPM'
-  // Corresponding to 99 or 99MIN
-  | 'NextDay'
-  | 'Tres guerras';
+export type QuoteCourier = (typeof QUOTE_COURIER)[number];
 
 export interface GetQuoteData {
   id: string | number;
