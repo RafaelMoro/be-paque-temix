@@ -8,6 +8,7 @@ import {
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
+  GE_MISSING_PROVIDER_PROFIT_MARGIN,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
 import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
@@ -55,7 +56,7 @@ export class GuiaEnviaService {
         provider: 'GE',
         config,
         messages,
-        providerNotFoundMessage: 'GE provider not found in global config',
+        providerNotFoundMessage: GE_MISSING_PROVIDER_PROFIT_MARGIN,
       });
       return {
         quotes,

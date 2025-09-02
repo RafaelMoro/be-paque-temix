@@ -6,6 +6,7 @@ import config from '@/config';
 import {
   QUOTE_T1_ENDPOINT,
   T1_MISSING_API_KEY_ERROR,
+  T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
@@ -61,7 +62,7 @@ export class T1Service {
         provider: 'TONE',
         config,
         messages,
-        providerNotFoundMessage: 'TONE provider not found in global config',
+        providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
       });
       return {
         quotes,
