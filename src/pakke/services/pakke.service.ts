@@ -5,13 +5,16 @@ import axios, { AxiosResponse } from 'axios';
 
 import {
   PAKKE_MISSING_API_KEY_ERROR,
+  PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
   PAKKE_MISSING_URI_ERROR,
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
 import { PakkeGetQuoteResponse } from '../pakke.interface';
 import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
+import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 @Injectable()
 export class PakkeService {
@@ -19,8 +22,12 @@ export class PakkeService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getQuotePakke(payload: GetQuoteDto): Promise<GetQuoteData[]> {
+  async getQuotePakke(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<ExtApiGetQuoteResponse> {
     try {
+      const messages: string[] = [];
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
 
@@ -40,8 +47,19 @@ export class PakkeService {
           },
         });
       const data = response?.data;
-      const quotes = formatPakkeQuotes(data);
-      return quotes;
+      const formattedQuotes = formatPakkeQuotes(data);
+      const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+        quotes: formattedQuotes,
+        provider: 'Pkk',
+        config,
+        messages,
+        providerNotFoundMessage: PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
+      });
+
+      return {
+        quotes,
+        messages: updatedMessages,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

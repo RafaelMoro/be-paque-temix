@@ -8,7 +8,7 @@ import { T1Service } from '@/t1/services/t1.service';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
-import { calculateQuotesValue, orderQuotesByPrice } from '../quotes.utils';
+import { orderQuotesByPrice } from '../quotes.utils';
 import { GlobalConfigsService } from '@/global-configs/services/global-configs.service';
 
 @Injectable()
@@ -24,22 +24,25 @@ export class QuotesService {
 
   async getQuote(payload: GetQuoteDto): Promise<GetQuoteDataResponse> {
     try {
+      // Get the margin profit for the providers
+      const config = await this.globalConfigsService.getConfig();
       const messages: string[] = [];
+
       const [geQuotes, t1Quotes, pakkeQuotes, mnRes] = await Promise.allSettled(
         [
-          this.guiaEnviaService.getQuote(payload),
-          this.t1Service.getQuote(payload),
-          this.pakkeService.getQuotePakke(payload),
-          this.manuableService.retrieveManuableQuotes(payload),
+          this.guiaEnviaService.getQuote(payload, config),
+          this.t1Service.getQuote(payload, config),
+          this.pakkeService.getQuotePakke(payload, config),
+          this.manuableService.retrieveManuableQuotes(payload, config),
         ],
       );
 
       const geQuotesData =
-        geQuotes.status === 'fulfilled' ? geQuotes.value : [];
+        geQuotes.status === 'fulfilled' ? geQuotes.value.quotes : [];
       const t1QuotesData =
-        t1Quotes.status === 'fulfilled' ? t1Quotes.value : [];
+        t1Quotes.status === 'fulfilled' ? t1Quotes.value.quotes : [];
       const pakkeQuotesData =
-        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value : [];
+        pakkeQuotes.status === 'fulfilled' ? pakkeQuotes.value.quotes : [];
       const mnQuotesData =
         mnRes.status === 'fulfilled' ? mnRes.value.quotes : [];
 
@@ -55,6 +58,16 @@ export class QuotesService {
       if (mnRes.status === 'rejected') {
         messages.push('Mn failed to get quotes');
       }
+
+      if (geQuotes.status === 'fulfilled' && geQuotes.value.messages) {
+        messages.push(...geQuotes.value.messages);
+      }
+      if (t1Quotes.status === 'fulfilled' && t1Quotes.value.messages) {
+        messages.push(...t1Quotes.value.messages);
+      }
+      if (pakkeQuotes.status === 'fulfilled' && pakkeQuotes.value.messages) {
+        messages.push(...pakkeQuotes.value.messages);
+      }
       if (mnRes.status === 'fulfilled' && mnRes.value?.messages) {
         messages.push(...mnRes.value.messages);
       }
@@ -66,18 +79,8 @@ export class QuotesService {
         ...mnQuotesData,
       ];
 
-      // Calculate the margin profit
-      const marginProfitValue =
-        await this.globalConfigsService.readProfitMargin();
-
-      const updatedQuotes = calculateQuotesValue(
-        allQuotesInfo,
-        marginProfitValue,
-        messages,
-      );
-
       // Order the quotes by price
-      const currentQuotes = orderQuotesByPrice(updatedQuotes);
+      const currentQuotes = orderQuotesByPrice(allQuotesInfo);
 
       const npmVersion: string = this.configService.version!;
       return {

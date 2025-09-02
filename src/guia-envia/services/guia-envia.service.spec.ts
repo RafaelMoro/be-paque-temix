@@ -1,14 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { GuiaEnviaService } from './guia-envia.service';
-import { GetQuoteData } from '@/quotes/quotes.interface';
+import {
+  GetQuoteData,
+  ExtApiGetQuoteResponse,
+} from '@/quotes/quotes.interface';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import config from '@/config';
 import axios from 'axios';
 import * as utils from '../guia-envia.utils';
+import * as quotesUtils from '@/quotes/quotes.utils';
 import {
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
+  GE_MISSING_CONFIG_ERROR,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
@@ -77,6 +83,39 @@ describe('GuiaEnviaService', () => {
     },
   ];
 
+  const mockGlobalConfig: GlobalConfigsDoc = {
+    globalMarginProfit: {
+      value: 15,
+      type: 'percentage',
+    },
+    providers: [
+      {
+        name: 'GE',
+        couriers: [
+          {
+            name: 'Estafeta',
+            profitMargin: {
+              value: 10,
+              type: 'percentage',
+            },
+          },
+          {
+            name: 'DHL',
+            profitMargin: {
+              value: 12,
+              type: 'percentage',
+            },
+          },
+        ],
+      },
+    ],
+  } as GlobalConfigsDoc;
+
+  const mockExtApiResponse: ExtApiGetQuoteResponse = {
+    quotes: mockFormattedQuotes,
+    messages: [],
+  };
+
   const createServiceWithConfig = async (configOverride: typeof mockConfig) => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -93,6 +132,12 @@ describe('GuiaEnviaService', () => {
   beforeEach(async () => {
     service = await createServiceWithConfig(mockConfig);
     jest.clearAllMocks();
+
+    // Mock calculateTotalQuotes to return quotes and messages
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: mockFormattedQuotes,
+      messages: [],
+    });
   });
 
   describe('getQuote', () => {
@@ -108,7 +153,7 @@ describe('GuiaEnviaService', () => {
         data: mockGEQuotes,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatPayloadGE).toHaveBeenCalledWith(mockPayload);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -122,7 +167,17 @@ describe('GuiaEnviaService', () => {
         },
       });
       expect(utils.formatQuotesGE).toHaveBeenCalledWith(mockGEQuotes);
-      expect(result).toEqual(mockFormattedQuotes);
+      expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
+        quotes: mockFormattedQuotes,
+        provider: 'GE',
+        config: mockGlobalConfig,
+        messages: [],
+        providerNotFoundMessage: expect.any(String),
+      });
+      expect(result).toEqual({
+        quotes: mockFormattedQuotes,
+        messages: [],
+      });
     });
 
     it('should throw BadRequestException when API key is missing', async () => {
@@ -133,9 +188,9 @@ describe('GuiaEnviaService', () => {
         },
       });
 
-      await expect(serviceWithoutApiKey.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(GE_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithoutApiKey.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
     });
 
     it('should throw BadRequestException when URI is missing', async () => {
@@ -146,8 +201,14 @@ describe('GuiaEnviaService', () => {
         },
       });
 
-      await expect(serviceWithoutUri.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(GE_MISSING_URI_ERROR),
+      await expect(
+        serviceWithoutUri.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+    });
+
+    it('should throw BadRequestException when config is missing', async () => {
+      await expect(service.getQuote(mockPayload, null as any)).rejects.toThrow(
+        new BadRequestException(GE_MISSING_CONFIG_ERROR),
       );
     });
 
@@ -159,9 +220,9 @@ describe('GuiaEnviaService', () => {
       const errorMessage = 'Service unavailable';
       mockedAxios.post.mockRejectedValue(new Error(errorMessage));
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(errorMessage),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
     });
 
     it('should throw BadRequestException with generic message for unknown errors', async () => {
@@ -175,9 +236,9 @@ describe('GuiaEnviaService', () => {
         message: 'Internal server error',
       });
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException('An unknown error occurred'),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
     });
 
     it('should handle response with empty quotes array', async () => {
@@ -186,16 +247,25 @@ describe('GuiaEnviaService', () => {
         .mockReturnValue(mockTransformedPayload);
       jest.spyOn(utils, 'formatQuotesGE').mockReturnValue([]);
 
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
+
       const emptyQuotes: GEQuote[] = [];
 
       mockedAxios.post.mockResolvedValue({
         data: emptyQuotes,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatQuotesGE).toHaveBeenCalledWith(emptyQuotes);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle response with undefined data', async () => {
@@ -204,14 +274,23 @@ describe('GuiaEnviaService', () => {
         .mockReturnValue(mockTransformedPayload);
       jest.spyOn(utils, 'formatQuotesGE').mockReturnValue([]);
 
+      // Mock calculateTotalQuotes to return empty array
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: [],
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: undefined,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatQuotesGE).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        quotes: [],
+        messages: [],
+      });
     });
 
     it('should handle single quote in response', async () => {
@@ -239,15 +318,24 @@ describe('GuiaEnviaService', () => {
         .mockReturnValue(mockTransformedPayload);
       jest.spyOn(utils, 'formatQuotesGE').mockReturnValue(expectedSingleQuote);
 
+      // Mock calculateTotalQuotes to return the single quote
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: expectedSingleQuote,
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: singleQuote,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatQuotesGE).toHaveBeenCalledWith(singleQuote);
-      expect(result).toEqual(expectedSingleQuote);
-      expect(result).toHaveLength(1);
+      expect(result).toEqual({
+        quotes: expectedSingleQuote,
+        messages: [],
+      });
+      expect(result.quotes).toHaveLength(1);
     });
 
     it('should propagate BadRequestException from utils', async () => {
@@ -255,9 +343,9 @@ describe('GuiaEnviaService', () => {
         throw new BadRequestException('Invalid payload structure');
       });
 
-      await expect(service.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException('Invalid payload structure'),
-      );
+      await expect(
+        service.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException('Invalid payload structure'));
     });
 
     it('should validate configuration before making API call', async () => {
@@ -270,9 +358,9 @@ describe('GuiaEnviaService', () => {
 
       const formatSpy = jest.spyOn(utils, 'formatPayloadGE');
 
-      await expect(serviceWithNullApiKey.getQuote(mockPayload)).rejects.toThrow(
-        new BadRequestException(GE_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithNullApiKey.getQuote(mockPayload, mockGlobalConfig),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
 
       // Verify that validation happens before payload transformation
       expect(formatSpy).not.toHaveBeenCalled();
@@ -320,32 +408,44 @@ describe('GuiaEnviaService', () => {
         .spyOn(utils, 'formatQuotesGE')
         .mockReturnValue(expectedFormattedQuotes);
 
+      // Mock calculateTotalQuotes to return the formatted quotes
+      jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+        quotes: expectedFormattedQuotes,
+        messages: [],
+      });
+
       mockedAxios.post.mockResolvedValue({
         data: quotesWithPaquetExpress,
       });
 
-      const result = await service.getQuote(mockPayload);
+      const result = await service.getQuote(mockPayload, mockGlobalConfig);
 
       expect(utils.formatQuotesGE).toHaveBeenCalledWith(
         quotesWithPaquetExpress,
       );
-      expect(result).toEqual(expectedFormattedQuotes);
-      expect(result).toHaveLength(2);
+      expect(result).toEqual({
+        quotes: expectedFormattedQuotes,
+        messages: [],
+      });
+      expect(result.quotes).toHaveLength(2);
     });
   });
 
   // Keep the original test for backwards compatibility
   it('get quotes from GE (original test)', async () => {
-    const result: GetQuoteData[] = [
-      {
-        id: '1',
-        service: 'Estafeta Terreste',
-        total: 126.9,
-        typeService: null,
-        courier: null,
-        source: 'GE',
-      },
-    ];
+    const result: ExtApiGetQuoteResponse = {
+      quotes: [
+        {
+          id: '1',
+          service: 'Estafeta Terreste',
+          total: 126.9,
+          typeService: null,
+          courier: null,
+          source: 'GE',
+        },
+      ],
+      messages: [],
+    };
     const payload: GetQuoteDto = {
       originPostalCode: '00001',
       destinationPostalCode: '00004',
@@ -359,7 +459,7 @@ describe('GuiaEnviaService', () => {
       .spyOn(service, 'getQuote')
       // eslint-disable-next-line @typescript-eslint/require-await
       .mockImplementation(async () => result);
-    const response = await service.getQuote(payload);
+    const response = await service.getQuote(payload, mockGlobalConfig);
     expect(response).toBe(result);
   });
 });
