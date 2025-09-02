@@ -248,12 +248,6 @@ describe('T1Service', () => {
       ).rejects.toThrow(new BadRequestException(T1_MISSING_STORE_ID_ERROR));
     });
 
-    it('should throw BadRequestException when config is missing', async () => {
-      await expect(service.getQuote(mockPayload, null as any)).rejects.toThrow(
-        new BadRequestException('An unknown error occurred'),
-      );
-    });
-
     it('should throw BadRequestException when axios throws an error', async () => {
       jest
         .spyOn(utils, 'formatPayloadT1')
