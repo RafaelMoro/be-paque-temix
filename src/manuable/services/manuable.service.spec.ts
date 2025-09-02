@@ -4,10 +4,12 @@ import config from '@/config';
 import axios from 'axios';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import * as utils from '../manuable.utils';
+import * as quotesUtils from '@/quotes/quotes.utils';
 import { ManuablePayload, ManuableQuote } from '../manuable.interface';
 import { GeneralInfoDbDoc } from '@/general-info-db/entities/general-info-db.entity';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
@@ -20,9 +22,43 @@ describe('ManuableService', () => {
   let service: ManuableService;
   let generalInfoDb: GeneralInfoDbService;
 
+  const mockGlobalConfig: GlobalConfigsDoc = {
+    globalMarginProfit: {
+      value: 15,
+      type: 'percentage',
+    },
+    providers: [
+      {
+        name: 'Mn',
+        couriers: [
+          {
+            name: 'DHL',
+            profitMargin: {
+              value: 10,
+              type: 'percentage',
+            },
+          },
+          {
+            name: 'FEDEX',
+            profitMargin: {
+              value: 12,
+              type: 'percentage',
+            },
+          },
+        ],
+      },
+    ],
+  } as GlobalConfigsDoc;
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
+
+    // Mock calculateTotalQuotes to return quotes and messages
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: [],
+      messages: [],
+    });
   });
 
   beforeEach(async () => {
@@ -345,12 +381,28 @@ describe('ManuableService', () => {
     const reAttemptSpy = jest.spyOn(service, 'reAttemptGetManuableQuote');
     const formatSpy = jest.spyOn(utils, 'formatManuableQuote');
 
-    const res = await service.retrieveManuableQuotes(dto);
+    // Mock calculateTotalQuotes for this specific test
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: [],
+      messages: [],
+    });
+
+    const res = await service.retrieveManuableQuotes(dto, mockGlobalConfig);
 
     expect(getQuoteSpy).toHaveBeenCalledWith(dto);
     expect(reAttemptSpy).not.toHaveBeenCalled();
     expect(formatSpy).not.toHaveBeenCalled();
-    expect(res).toBe(baseResult);
+    expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
+      quotes: baseResult.quotes,
+      provider: 'Mn',
+      config: mockGlobalConfig,
+      messages: [],
+      providerNotFoundMessage: expect.any(String),
+    });
+    expect(res).toEqual({
+      quotes: [],
+      messages: ['Mn: Token valid'],
+    });
   });
 
   it('retrieveManuableQuotes retries on unauthorized and formats quotes', async () => {
@@ -390,6 +442,7 @@ describe('ManuableService', () => {
         typeService: 'nextDay',
       },
     ];
+
     jest
       .spyOn(service, 'getManuableQuote')
       .mockResolvedValueOnce(unauthorizedResult);
@@ -400,8 +453,21 @@ describe('ManuableService', () => {
       .spyOn(utils, 'formatManuableQuote')
       .mockReturnValueOnce(formattedQuotes);
 
-    const res = await service.retrieveManuableQuotes(dto);
+    // Mock calculateTotalQuotes for this specific test
+    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
+      quotes: formattedQuotes,
+      messages: [],
+    });
 
+    const res = await service.retrieveManuableQuotes(dto, mockGlobalConfig);
+
+    expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
+      quotes: formattedQuotes,
+      provider: 'Mn',
+      config: mockGlobalConfig,
+      messages: [],
+      providerNotFoundMessage: expect.any(String),
+    });
     expect(res.quotes).toBe(formattedQuotes);
     expect(res.messages).toEqual([
       MANUABLE_ERROR_UNAUTHORIZED,
