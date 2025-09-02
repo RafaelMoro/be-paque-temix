@@ -49,3 +49,8 @@ export interface GetQuoteDataResponse
     quotes: GetQuoteData[];
   };
 }
+
+export interface CalculateTotalQuotesResponse {
+  quotes: GetQuoteData[];
+  messages: string[];
+}

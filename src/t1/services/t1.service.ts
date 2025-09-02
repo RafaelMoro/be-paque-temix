@@ -13,13 +13,10 @@ import {
   T1GetQuoteFormattedResponse,
   T1GetQuoteResponse,
 } from '../t1.interface';
-import {
-  calculateTotalQuotesT1,
-  formatPayloadT1,
-  formatT1QuoteData,
-} from '../t1.utils';
+import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 
 @Injectable()
 export class T1Service {
@@ -59,10 +56,12 @@ export class T1Service {
         });
       const data = response?.data;
       const formattedQuotes = formatT1QuoteData(data);
-      const { quotes, messages: updatedMessages } = calculateTotalQuotesT1({
+      const { quotes, messages: updatedMessages } = calculateTotalQuotes({
         quotes: formattedQuotes,
+        provider: 'TONE',
         config,
         messages,
+        providerNotFoundMessage: 'TONE provider not found in global config',
       });
       return {
         quotes,

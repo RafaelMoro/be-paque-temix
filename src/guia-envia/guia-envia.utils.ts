@@ -6,8 +6,6 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
-import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
-import { calculateQuoteMargin } from '@/quotes/quotes.utils';
 
 const NEXT_DAY_REGEX = /expres/i;
 const STANDARD_REGEX = /terrestre/i;
@@ -42,64 +40,6 @@ export const formatQuotesGE = (quotes: GEQuote[]): GetQuoteData[] =>
     courier: getGeCourier(quote.servicio),
     source: 'GE',
   }));
-
-export const calculateTotalQuotesGE = ({
-  quotes,
-  config,
-  messages,
-}: {
-  quotes: GetQuoteData[];
-  config: GlobalConfigsDoc;
-  messages: string[];
-}) => {
-  // Find if the provider with GE exists
-  const providerGE = config.providers.find(
-    (provider) => provider.name === 'GE',
-  );
-
-  // If it does not exist, then return the quotes with the default profit margin
-  if (!providerGE) {
-    messages.push('GE provider not found in global config');
-    const updatedQuotes = quotes.map((quote) =>
-      calculateQuoteMargin({
-        quote,
-        margin: config.globalMarginProfit,
-        isDefault: true,
-      }),
-    );
-    return {
-      updatedQuotes,
-      messages,
-    };
-  }
-
-  const couriers = providerGE?.couriers;
-  const updatedQuotes = quotes.map((quote) => {
-    // Check if the courier matches with the one in the config
-    const courier = couriers?.find((c) => c.name === quote.courier);
-
-    // If it does not exist, return the quote with the default profit margin
-    if (!courier) {
-      // NOTE: I'm not logging if the courier was not found as the courier is either type QuoteTypeSevice or null.
-      // the couriers that are new, will not be detected on this flow.
-      return calculateQuoteMargin({
-        quote,
-        margin: config.globalMarginProfit,
-        isDefault: true,
-      });
-    }
-
-    return calculateQuoteMargin({
-      quote,
-      margin: courier.profitMargin,
-      isDefault: false,
-    });
-  });
-  return {
-    updatedQuotes,
-    messages,
-  };
-};
 
 export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
   return {

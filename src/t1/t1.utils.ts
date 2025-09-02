@@ -1,8 +1,4 @@
-import {
-  CalculateTotalQuotesT1Response,
-  T1Courier,
-  T1GetQuoteResponse,
-} from './t1.interface';
+import { T1Courier, T1GetQuoteResponse } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import {
@@ -10,8 +6,6 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
-import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
-import { calculateQuoteMargin } from '@/quotes/quotes.utils';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;
@@ -43,64 +37,6 @@ export const getT1Courier = (clave: T1Courier): QuoteCourier | null => {
     default:
       return null;
   }
-};
-
-export const calculateTotalQuotesT1 = ({
-  quotes,
-  config,
-  messages,
-}: {
-  quotes: GetQuoteData[];
-  config: GlobalConfigsDoc;
-  messages: string[];
-}): CalculateTotalQuotesT1Response => {
-  // Find if the provider with GE exists
-  const providerT1 = config.providers.find(
-    (provider) => provider.name === 'TONE',
-  );
-
-  // If it does not exist, then return the quotes with the default profit margin
-  if (!providerT1) {
-    messages.push('T1 provider not found in global config');
-    const updatedQuotes = quotes.map((quote) =>
-      calculateQuoteMargin({
-        quote,
-        margin: config.globalMarginProfit,
-        isDefault: true,
-      }),
-    );
-    return {
-      quotes: updatedQuotes,
-      messages,
-    };
-  }
-
-  const couriers = providerT1?.couriers;
-  const updatedQuotes = quotes.map((quote) => {
-    // Check if the courier matches with the one in the config
-    const courier = couriers?.find((c) => c.name === quote.courier);
-
-    // If it does not exist, return the quote with the default profit margin
-    if (!courier) {
-      // NOTE: I'm not logging if the courier was not found as the courier is either type QuoteTypeSevice or null.
-      // the couriers that are new, will not be detected on this flow.
-      return calculateQuoteMargin({
-        quote,
-        margin: config.globalMarginProfit,
-        isDefault: true,
-      });
-    }
-
-    return calculateQuoteMargin({
-      quote,
-      margin: courier.profitMargin,
-      isDefault: false,
-    });
-  });
-  return {
-    quotes: updatedQuotes,
-    messages,
-  };
 };
 
 export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {

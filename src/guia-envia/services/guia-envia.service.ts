@@ -10,13 +10,10 @@ import {
   GE_MISSING_CONFIG_ERROR,
 } from '../guia-envia.constants';
 import { GEQuote } from '../guia-envia.interface';
-import {
-  calculateTotalQuotesGE,
-  formatPayloadGE,
-  formatQuotesGE,
-} from '../guia-envia.utils';
+import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 
 @Injectable()
 export class GuiaEnviaService {
@@ -53,10 +50,15 @@ export class GuiaEnviaService {
       // transform data and add a prop to identify that this service is coming from guia envia
       const data = response?.data;
       const formattedQuotes = formatQuotesGE(data);
-      const { updatedQuotes, messages: updatedMessages } =
-        calculateTotalQuotesGE({ quotes: formattedQuotes, config, messages });
+      const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+        quotes: formattedQuotes,
+        provider: 'GE',
+        config,
+        messages,
+        providerNotFoundMessage: 'GE provider not found in global config',
+      });
       return {
-        quotes: updatedQuotes,
+        quotes,
         messages: updatedMessages,
       };
     } catch (error) {

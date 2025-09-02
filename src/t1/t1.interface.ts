@@ -51,8 +51,3 @@ export interface T1GetQuoteFormattedResponse {
   quotes: GetQuoteData[];
   messages: string[];
 }
-
-export interface CalculateTotalQuotesT1Response {
-  quotes: GetQuoteData[];
-  messages: string[];
-}
