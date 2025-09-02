@@ -26,6 +26,7 @@ import { formatManuableQuote, formatPayloadManuable } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 
 @Injectable()
 export class ManuableService {
@@ -79,7 +80,7 @@ export class ManuableService {
   async retrieveManuableQuotes(
     payload: GetQuoteDto,
     config: GlobalConfigsDoc,
-  ): Promise<GetManuableQuoteResponse> {
+  ): Promise<ExtApiGetQuoteResponse> {
     try {
       const res = await this.getManuableQuote(payload);
       const messages: string[] = [...res.messages];
