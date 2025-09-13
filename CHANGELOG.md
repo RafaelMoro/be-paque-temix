@@ -1,3 +1,9 @@
+## v0.15.1 (2025-09-13)
+
+### Pull Requests
+[#20](https://github.com/RafaelMoro/be-paque-temix/pull/20) | Fix timeout of the lambda function for 15 s
+
+
 ## v0.15.0 (2025-09-02)
 
 ### Pull Requests
