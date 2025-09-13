@@ -6,7 +6,7 @@ provider:
   stage: production
   region: us-east-1
   logRetentionInDays: 1
-  timeout: 15
+  timeout: 45
   stackName: kraft-envios-api
   apiName: kraft-envios-api
 
