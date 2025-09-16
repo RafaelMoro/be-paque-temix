@@ -135,10 +135,18 @@ export interface ManuableQuote {
 
 export interface ManuableGuide {
   token: string;
-  created_at: string;
   tracking_number: string;
-  label_url: string;
+  // TODO: Update the type of courier for Mn
+  carrier: string;
+  // TODO: Update the type of tracking status
+  tracking_status: null;
   price: string;
+  // TODO: Update the type of waybill
+  waybill: null;
+  label_url: string;
+  cancellable: boolean;
+  created_at: string;
+  label_status: string;
 }
 
 export interface FetchManuableQuotesResponse {
