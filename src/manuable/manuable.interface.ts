@@ -1,3 +1,4 @@
+import { GeneralResponse } from '@/global.interface';
 import { GetQuoteData } from '@/quotes/quotes.interface';
 
 export type TypeServiceMn = 'standard' | 'express';
@@ -165,4 +166,13 @@ export interface GetManuableQuoteResponse {
 export interface CreateGuideManuableResponse {
   messages: string[];
   guide: ManuableGuide | null;
+}
+
+export interface CreateGuideMnDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: ManuableGuide | null;
+  };
 }

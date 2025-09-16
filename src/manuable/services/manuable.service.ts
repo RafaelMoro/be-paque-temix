@@ -19,6 +19,7 @@ import {
 } from '../manuable.constants';
 import {
   CreateGuideManuableResponse,
+  CreateGuideMnDataResponse,
   CreateGuideMnRequest,
   CreateManuableguideResponse,
   FetchManuableQuotesResponse,
@@ -121,27 +122,46 @@ export class ManuableService {
     };
   }
 
+  /**
+   * This service responds to guide creation from the controller via Mn
+   */
   async retrieveManuableGuide(
     payload: CreateGuideMnRequest,
-  ): Promise<CreateGuideManuableResponse> {
-    const { result: guide, messages } =
-      await this.executeWithRetryOnUnauthorized(
-        () =>
-          this.createGuideManuable(payload).then((res) => ({
-            messages: res.messages,
-            result: res.guide,
-          })),
-        async (token) => {
-          const guide = await this.createGuide(payload, token);
-          return guide;
+  ): Promise<CreateGuideMnDataResponse> {
+    try {
+      console.log('hi service');
+      const { result: guide, messages } =
+        await this.executeWithRetryOnUnauthorized(
+          () =>
+            this.createGuideManuable(payload).then((res) => ({
+              messages: res.messages,
+              result: res.guide,
+            })),
+          async (token) => {
+            const guide = await this.createGuide(payload, token);
+            return guide;
+          },
+          'guide creation',
+        );
+      console.log('guide', guide);
+      console.log('messages', messages);
+      const npmVersion: string = this.configService.version!;
+      return {
+        version: npmVersion,
+        message: null,
+        messages,
+        error: null,
+        data: {
+          guide,
         },
-        'guide creation',
-      );
-
-    return {
-      guide,
-      messages,
-    };
+      };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
   }
 
   /**
