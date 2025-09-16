@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import {
+  CREATE_GUIDE_MANUABLE_ENDPOINT,
   MANUABLE_ERROR_MISSING_EMAIL,
   MANUABLE_ERROR_MISSING_PWD,
   MANUABLE_ERROR_MISSING_URI,
@@ -16,13 +17,19 @@ import {
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
 import {
+  CreateGuideMnRequest,
+  CreateManuableguideResponse,
   FetchManuableQuotesResponse,
   GetManuableQuoteResponse,
   GetManuableSessionResponse,
   ManuablePayload,
 } from '../manuable.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { formatManuableQuote, formatPayloadManuable } from '../manuable.utils';
+import {
+  formatManuableQuote,
+  formatPayloadManuable,
+  formatPayloadRequestMn,
+} from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -283,6 +290,31 @@ export class ManuableService {
         });
       const quotes = response?.data?.data;
       return quotes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuide(payload: CreateGuideMnRequest) {
+    try {
+      const { uri } = this.configService.manuable;
+      if (!uri) {
+        throw new BadRequestException(MANUABLE_ERROR_MISSING_URI);
+      }
+      const updatedPayload = formatPayloadRequestMn(payload);
+
+      const url = `${uri}${CREATE_GUIDE_MANUABLE_ENDPOINT}`;
+      const response: AxiosResponse<CreateManuableguideResponse, unknown> =
+        await axios.post(url, updatedPayload, {
+          headers: {
+            Authorization: `Bearer ${payload.token}`,
+          },
+        });
+      const guide = response?.data?.data;
+      return guide;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
