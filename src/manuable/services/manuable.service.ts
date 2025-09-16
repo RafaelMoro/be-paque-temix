@@ -138,6 +138,37 @@ export class ManuableService {
     }
   }
 
+  async retrieveManuableGuide(
+    payload: CreateGuideMnRequest,
+  ): Promise<CreateGuideManuableResponse> {
+    try {
+      const res = await this.createGuideManuable(payload);
+      const messages: string[] = [...res.messages];
+
+      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
+        messages.push('Mn: Attempting to re-fetch quotes with a new token');
+        const token = await this.updateOldToken();
+        const guide = await this.createGuide(payload, token);
+
+        messages.push('Mn: Guide created successfully');
+        return {
+          guide,
+          messages,
+        };
+      }
+
+      return {
+        guide: res?.guide,
+        messages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   /**
    * This service is to get quotes from Manuable API by:
    * 1. Getting token
