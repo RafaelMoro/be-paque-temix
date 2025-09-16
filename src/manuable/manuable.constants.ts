@@ -11,3 +11,4 @@ export const MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN =
 
 export const MANUABLE_TOKEN_ENDPOINT = '/api/session';
 export const QUOTE_MANUABLE_ENDPOINT = '/api/rates';
+export const CREATE_GUIDE_MANUABLE_ENDPOINT = '/api/labels';
