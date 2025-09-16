@@ -94,7 +94,10 @@ export class ManuableService {
 
       if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
         messages.push('Mn: Attempting to re-fetch quotes with a new token');
-        const quotes = await this.reAttemptGetManuableQuote(payload);
+        const token = await this.updateOldToken();
+        const manuablePayload = this.formatManuablePayload(payload);
+        const quotes = await this.fetchManuableQuotes(manuablePayload, token);
+
         messages.push('Mn: Quotes fetched successfully');
         const formattedQuotes = formatManuableQuote(quotes);
         const { quotes: quotesCalculated, messages: updatedMessages } =
@@ -241,10 +244,9 @@ export class ManuableService {
   }
 
   /**
-   * This service is meant when the token of Mn has expired and we need to get a new one,
-   * Update the token saved and fetch the quotes
+   * This service is to generate a new token and replace the expired old token.
    */
-  async reAttemptGetManuableQuote(payload: GetQuoteDto) {
+  async updateOldToken() {
     try {
       // 1. Create new token
       const token = await this.getManuableSession();
@@ -260,9 +262,7 @@ export class ManuableService {
       await this.generalInfoDbService.updateMbTk({
         changes: { mnTkId: oldMnTk._id as string, mnTk: token },
       });
-      const manuablePayload = this.formatManuablePayload(payload);
-      const quotes = await this.fetchManuableQuotes(manuablePayload, token);
-      return quotes;
+      return token;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
