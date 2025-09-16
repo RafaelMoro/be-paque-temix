@@ -170,6 +170,65 @@ export class ManuableService {
   }
 
   /**
+   * Generic helper to execute Manuable API operations with automatic token management.
+   * Handles token creation, validation, and 401 retry logic.
+   */
+  private async executeWithManuableToken<T>(
+    operation: (token: string) => Promise<T>,
+    operationName: string,
+  ): Promise<{ result: T; messages: string[] }> {
+    const messages: string[] = [];
+
+    try {
+      // 1. Get existing token
+      const apiKey = await this.generalInfoDbService.getMnTk();
+
+      if (!apiKey) {
+        messages.push(`Mn: Creating token for ${operationName}`);
+        const newToken = await this.createToken();
+        const result = await operation(newToken.mnTk);
+        messages.push(`Mn: ${operationName} completed successfully`);
+        return { result, messages };
+      }
+
+      messages.push('Mn: Token valid');
+
+      try {
+        // 2. Try with existing token
+        const result = await operation(apiKey.mnTk);
+        messages.push(`Mn: ${operationName} completed successfully`);
+        return { result, messages };
+      } catch (error) {
+        // Handle 401 unauthorized - retry with new token
+        if (
+          error instanceof Error &&
+          error.message === 'Request failed with status code 401'
+        ) {
+          messages.push(
+            `Mn: Token expired, creating new token for ${operationName}`,
+          );
+          const newToken = await this.updateOldToken();
+          const result = await operation(newToken);
+          messages.push(
+            `Mn: ${operationName} completed successfully with new token`,
+          );
+          return { result, messages };
+        }
+        throw error;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        messages.push(`Mn: ${error.message}`);
+        throw error;
+      }
+      messages.push(`Mn: An unknown error occurred during ${operationName}`);
+      throw new BadRequestException(
+        `An unknown error occurred during ${operationName}`,
+      );
+    }
+  }
+
+  /**
    * This service is to get quotes from Manuable API by:
    * 1. Getting token
    * 2-a: If the token does not exist, create it and fetch quotes
@@ -180,45 +239,13 @@ export class ManuableService {
     payload: GetQuoteDto,
   ): Promise<GetManuableQuoteResponse> {
     try {
-      const messages: string[] = [];
-      // Get token of Manuable first with general info db service
       const formattedPayload = this.formatManuablePayload(payload);
 
-      // 1. Get token
-      const apiKey = await this.generalInfoDbService.getMnTk();
-
-      if (!apiKey) {
-        messages.push('Mn: Creating token');
-        const newToken = await this.createToken();
-
-        // 4. Fetch quotes
-        const quotes = await this.fetchManuableQuotes(
-          formattedPayload,
-          newToken.mnTk,
-        );
-        if (!quotes) {
-          messages.push(`Mn: ${MANUABLE_FAILED_FETCH_QUOTES}`);
-          return {
-            messages,
-            quotes: [],
-          };
-        }
-        messages.push('Mn: Quotes fetched successfully');
-        const formattedQuotes = formatManuableQuote(quotes);
-        return {
-          messages,
-          quotes: formattedQuotes,
-        };
-      }
-      messages.push('Mn: Token valid');
-
-      // 2. Fetch quotes with existing token
-      const quotes = await this.fetchManuableQuotes(
-        formattedPayload,
-        apiKey.mnTk,
+      const { result: quotes, messages } = await this.executeWithManuableToken(
+        (token) => this.fetchManuableQuotes(formattedPayload, token),
+        'quote fetching',
       );
-      messages.push('Mn: Quotes fetched successfully');
-      const formattedQuotes = formatManuableQuote(quotes);
+
       if (!quotes) {
         messages.push(`Mn: ${MANUABLE_FAILED_FETCH_QUOTES}`);
         return {
@@ -226,6 +253,8 @@ export class ManuableService {
           quotes: [],
         };
       }
+
+      const formattedQuotes = formatManuableQuote(quotes);
       return {
         messages,
         quotes: formattedQuotes,
@@ -268,35 +297,11 @@ export class ManuableService {
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideManuableResponse> {
     try {
-      const messages: string[] = [];
+      const { result: guide, messages } = await this.executeWithManuableToken(
+        (token) => this.createGuide(payload, token),
+        'guide creation',
+      );
 
-      // 1. Get token
-      const apiKey = await this.generalInfoDbService.getMnTk();
-
-      if (!apiKey) {
-        messages.push('Mn: Creating token');
-        const newToken = await this.createToken();
-
-        // 4. Create guide
-        const guide = await this.createGuide(payload, newToken.mnTk);
-        if (!guide) {
-          messages.push(`Mn: ${MANUABLE_FAILED_CREATE_GUIDE}`);
-          return {
-            messages,
-            guide: null,
-          };
-        }
-        messages.push('Mn: Guide created successfully');
-        return {
-          messages,
-          guide,
-        };
-      }
-      messages.push('Mn: Token valid');
-
-      // 2. Create guide with existing token
-      const guide = await this.createGuide(payload, apiKey.mnTk);
-      messages.push('Mn: Guide created successfully');
       if (!guide) {
         messages.push(`Mn: ${MANUABLE_FAILED_CREATE_GUIDE}`);
         return {
@@ -304,6 +309,7 @@ export class ManuableService {
           guide: null,
         };
       }
+
       return {
         messages,
         guide,
@@ -311,7 +317,7 @@ export class ManuableService {
     } catch (error) {
       const messages: string[] = [];
       if (error instanceof Error) {
-        // The service fetchManuableQuotes returned 401 Unauthorized
+        // The service createGuide returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
           messages.push(MANUABLE_ERROR_UNAUTHORIZED);
           return {
