@@ -39,7 +39,6 @@ export interface ManuablePayload {
  * Payload needed to create the actual payload to create a guide in Manuable
  */
 export interface CreateGuideMnRequest {
-  token: string;
   quoteId: string;
   parcel: {
     satProductId: string;
@@ -153,4 +152,9 @@ export interface CreateManuableguideResponse {
 export interface GetManuableQuoteResponse {
   messages: string[];
   quotes: GetQuoteData[];
+}
+
+export interface CreateGuideManuableResponse {
+  messages: string[];
+  guide: ManuableGuide | null;
 }

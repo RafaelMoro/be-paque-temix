@@ -315,7 +315,7 @@ describe('ManuableService', () => {
       .spyOn(service, 'fetchManuableQuotes')
       .mockResolvedValueOnce(quotes);
 
-    const res = await service.reAttemptGetManuableQuote(dto);
+    const res = await service.updateOldToken(dto);
     expect(getSessionSpy).toHaveBeenCalledTimes(1);
     expect((generalInfoDb.getMnTk as jest.Mock).mock.calls.length).toBe(1);
     const updateCalls = (generalInfoDb.updateMbTk as jest.Mock).mock
@@ -336,7 +336,7 @@ describe('ManuableService', () => {
     jest.spyOn(service, 'getManuableSession').mockResolvedValueOnce('');
 
     await expect(
-      service.reAttemptGetManuableQuote({
+      service.updateOldToken({
         originPostalCode: '0',
         destinationPostalCode: '0',
         height: 1,
@@ -354,7 +354,7 @@ describe('ManuableService', () => {
     (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce(null);
 
     await expect(
-      service.reAttemptGetManuableQuote({
+      service.updateOldToken({
         originPostalCode: '0',
         destinationPostalCode: '0',
         height: 1,

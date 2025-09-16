@@ -9,6 +9,7 @@ import {
   MANUABLE_ERROR_MISSING_PWD,
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_ERROR_UNAUTHORIZED,
+  MANUABLE_FAILED_CREATE_GUIDE,
   MANUABLE_FAILED_CREATE_TOKEN,
   MANUABLE_FAILED_FETCH_QUOTES,
   MANUABLE_FAILED_TOKEN,
@@ -17,6 +18,7 @@ import {
   QUOTE_MANUABLE_ENDPOINT,
 } from '../manuable.constants';
 import {
+  CreateGuideManuableResponse,
   CreateGuideMnRequest,
   CreateManuableguideResponse,
   FetchManuableQuotesResponse,
@@ -225,6 +227,84 @@ export class ManuableService {
   }
 
   /**
+   * This service is to get quotes from Manuable API by:
+   * 1. Getting token
+   * 2-a: If the token does not exist, create it and create guide
+   * 2-b: Create guide and return them.
+   * The result can return an unauthorized error or the quotes
+   */
+  async createGuideManuable(
+    payload: CreateGuideMnRequest,
+  ): Promise<CreateGuideManuableResponse> {
+    try {
+      const messages: string[] = [];
+
+      // 1. Get token
+      const apiKey = await this.generalInfoDbService.getMnTk();
+
+      if (!apiKey) {
+        messages.push('Mn: Creating token');
+        const newToken = await this.createToken();
+
+        // 4. Create guide
+        const guide = await this.createGuide(payload, newToken.mnTk);
+        if (!guide) {
+          messages.push(`Mn: ${MANUABLE_FAILED_CREATE_GUIDE}`);
+          return {
+            messages,
+            guide: null,
+          };
+        }
+        messages.push('Mn: Guide created successfully');
+        return {
+          messages,
+          guide,
+        };
+      }
+      messages.push('Mn: Token valid');
+
+      // 2. Create guide with existing token
+      const guide = await this.createGuide(payload, apiKey.mnTk);
+      messages.push('Mn: Guide created successfully');
+      if (!guide) {
+        messages.push(`Mn: ${MANUABLE_FAILED_CREATE_GUIDE}`);
+        return {
+          messages,
+          guide: null,
+        };
+      }
+      return {
+        messages,
+        guide,
+      };
+    } catch (error) {
+      const messages: string[] = [];
+      if (error instanceof Error) {
+        // The service fetchManuableQuotes returned 401 Unauthorized
+        if (error?.message === 'Request failed with status code 401') {
+          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
+          return {
+            messages,
+            guide: null,
+          };
+        }
+
+        messages.push(`Mn: ${error.message}`);
+        return {
+          messages,
+          guide: null,
+        };
+      }
+
+      messages.push('Mn: An unknown error occurred');
+      return {
+        messages,
+        guide: null,
+      };
+    }
+  }
+
+  /**
    * This service is meant when the token does not exist in the database
    */
   async createToken() {
@@ -298,7 +378,7 @@ export class ManuableService {
     }
   }
 
-  async createGuide(payload: CreateGuideMnRequest) {
+  async createGuide(payload: CreateGuideMnRequest, token: string) {
     try {
       const { uri } = this.configService.manuable;
       if (!uri) {
@@ -310,7 +390,7 @@ export class ManuableService {
       const response: AxiosResponse<CreateManuableguideResponse, unknown> =
         await axios.post(url, updatedPayload, {
           headers: {
-            Authorization: `Bearer ${payload.token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
       const guide = response?.data?.data;
