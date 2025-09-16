@@ -90,83 +90,58 @@ export class ManuableService {
     payload: GetQuoteDto,
     config: GlobalConfigsDoc,
   ): Promise<ExtApiGetQuoteResponse> {
-    try {
-      const res = await this.getManuableQuote(payload);
-      const messages: string[] = [...res.messages];
+    const { result: quotes, messages } =
+      await this.executeWithRetryOnUnauthorized(
+        () =>
+          this.getManuableQuote(payload).then((res) => ({
+            messages: res.messages,
+            result: res.quotes,
+          })),
+        async (token) => {
+          const manuablePayload = this.formatManuablePayload(payload);
+          const quotes = await this.fetchManuableQuotes(manuablePayload, token);
+          const formattedQuotes = formatManuableQuote(quotes);
+          return formattedQuotes;
+        },
+        'quote retrieval',
+      );
 
-      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
-        messages.push('Mn: Attempting to re-fetch quotes with a new token');
-        const token = await this.updateOldToken();
-        const manuablePayload = this.formatManuablePayload(payload);
-        const quotes = await this.fetchManuableQuotes(manuablePayload, token);
-
-        messages.push('Mn: Quotes fetched successfully');
-        const formattedQuotes = formatManuableQuote(quotes);
-        const { quotes: quotesCalculated, messages: updatedMessages } =
-          calculateTotalQuotes({
-            quotes: formattedQuotes,
-            provider: 'Mn',
-            config,
-            messages: [],
-            providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
-          });
-        messages.push(...updatedMessages);
-        return {
-          quotes: quotesCalculated,
-          messages,
-        };
-      }
-
-      const { quotes: quotesCalculated, messages: updatedMessages } =
-        calculateTotalQuotes({
-          quotes: res?.quotes,
-          provider: 'Mn',
-          config,
-          messages: [],
-          providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
-        });
-      messages.push(...updatedMessages);
-      return {
-        quotes: quotesCalculated,
-        messages,
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
+    const { quotes: quotesCalculated, messages: updatedMessages } =
+      calculateTotalQuotes({
+        quotes,
+        provider: 'Mn',
+        config,
+        messages: [],
+        providerNotFoundMessage: MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
+      });
+    messages.push(...updatedMessages);
+    return {
+      quotes: quotesCalculated,
+      messages,
+    };
   }
 
   async retrieveManuableGuide(
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideManuableResponse> {
-    try {
-      const res = await this.createGuideManuable(payload);
-      const messages: string[] = [...res.messages];
+    const { result: guide, messages } =
+      await this.executeWithRetryOnUnauthorized(
+        () =>
+          this.createGuideManuable(payload).then((res) => ({
+            messages: res.messages,
+            result: res.guide,
+          })),
+        async (token) => {
+          const guide = await this.createGuide(payload, token);
+          return guide;
+        },
+        'guide creation',
+      );
 
-      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
-        messages.push('Mn: Attempting to re-fetch quotes with a new token');
-        const token = await this.updateOldToken();
-        const guide = await this.createGuide(payload, token);
-
-        messages.push('Mn: Guide created successfully');
-        return {
-          guide,
-          messages,
-        };
-      }
-
-      return {
-        guide: res?.guide,
-        messages,
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
+    return {
+      guide,
+      messages,
+    };
   }
 
   /**
@@ -225,6 +200,46 @@ export class ManuableService {
       throw new BadRequestException(
         `An unknown error occurred during ${operationName}`,
       );
+    }
+  }
+
+  /**
+   * Generic helper to execute operations that return unauthorized messages and need retry logic.
+   * Handles the pattern where an operation might return MANUABLE_ERROR_UNAUTHORIZED in messages,
+   * requiring a retry with a new token and a fallback operation.
+   */
+  private async executeWithRetryOnUnauthorized<T, R>(
+    initialOperation: () => Promise<{ messages: string[]; result: T }>,
+    retryOperation: (token: string) => Promise<R>,
+    operationName: string,
+  ): Promise<{ messages: string[]; result: T | R }> {
+    try {
+      const res = await initialOperation();
+      const messages: string[] = [...res.messages];
+
+      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
+        messages.push(
+          `Mn: Attempting to retry ${operationName} with a new token`,
+        );
+        const token = await this.updateOldToken();
+        const result = await retryOperation(token);
+
+        messages.push(`Mn: ${operationName} completed successfully`);
+        return {
+          result,
+          messages,
+        };
+      }
+
+      return {
+        result: res.result,
+        messages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
   }
 
