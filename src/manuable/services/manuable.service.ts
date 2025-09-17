@@ -11,6 +11,7 @@ import {
   MANUABLE_ERROR_UNAUTHORIZED,
   MANUABLE_FAILED_CREATE_GUIDE,
   MANUABLE_FAILED_CREATE_TOKEN,
+  MANUABLE_FAILED_FETCH_GUIDES,
   MANUABLE_FAILED_FETCH_QUOTES,
   MANUABLE_FAILED_TOKEN,
   MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
@@ -22,7 +23,10 @@ import {
   CreateGuideMnDataResponse,
   CreateGuideMnRequest,
   CreateManuableguideResponse,
+  FetchGuidesManuableResponse,
   FetchManuableQuotesResponse,
+  GetHistoryGuidesPayload,
+  GetManuableGuideResponse,
   GetManuableQuoteResponse,
   GetManuableSessionResponse,
   ManuablePayload,
@@ -323,6 +327,61 @@ export class ManuableService {
   /**
    * This service is to get quotes from Manuable API by:
    * 1. Getting token
+   * 2-a: If the token does not exist, create it and fetch quotes
+   * 2-b: Fetch quotes and return them.
+   * The result can return an unauthorized error or the quotes
+   */
+  async getManuableHistoryGuides(
+    payload: GetHistoryGuidesPayload,
+  ): Promise<FetchGuidesManuableResponse> {
+    try {
+      const { result: guides, messages } = await this.executeWithManuableToken(
+        (token) => this.fetchManuableHistoryGuides(payload, token),
+        'guides fetching',
+      );
+
+      if (!guides) {
+        messages.push(`Mn: ${MANUABLE_FAILED_FETCH_GUIDES}`);
+        return {
+          messages,
+          guides: [],
+        };
+      }
+
+      return {
+        messages,
+        guides,
+      };
+    } catch (error) {
+      const messages: string[] = [];
+      if (error instanceof Error) {
+        // The service fetchManuableQuotes returned 401 Unauthorized
+        if (error?.message === 'Request failed with status code 401') {
+          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
+          return {
+            messages,
+            guides: [],
+          };
+        }
+
+        messages.push(`Mn: ${error.message}`);
+        return {
+          messages,
+          guides: [],
+        };
+      }
+
+      messages.push('Mn: An unknown error occurred');
+      return {
+        messages,
+        guides: [],
+      };
+    }
+  }
+
+  /**
+   * This service is to get quotes from Manuable API by:
+   * 1. Getting token
    * 2-a: If the token does not exist, create it and create guide
    * 2-b: Create guide and return them.
    * The result can return an unauthorized error or the quotes
@@ -441,6 +500,40 @@ export class ManuableService {
         });
       const quotes = response?.data?.data;
       return quotes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service is to fetch quotes from Manuable API.
+   */
+  async fetchManuableHistoryGuides(
+    payload: GetHistoryGuidesPayload,
+    token: string,
+  ) {
+    try {
+      const { uri } = this.configService.manuable;
+      if (!uri) {
+        throw new BadRequestException(MANUABLE_ERROR_MISSING_URI);
+      }
+      const trackingNumber = payload.tracking_number;
+
+      const url = `${uri}${CREATE_GUIDE_MANUABLE_ENDPOINT}`;
+      const updatedUrl = trackingNumber
+        ? `${url}?tracking_number=${trackingNumber}`
+        : url;
+      const response: AxiosResponse<GetManuableGuideResponse, unknown> =
+        await axios.get(updatedUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      const guides = response?.data?.data;
+      return guides;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
