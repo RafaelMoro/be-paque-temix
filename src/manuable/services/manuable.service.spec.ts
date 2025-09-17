@@ -259,47 +259,7 @@ describe('ManuableService', () => {
     );
   });
 
-  it('reAttemptGetManuableQuote updates token and fetches quotes', async () => {
-    const dto: GetQuoteDto = {
-      originPostalCode: '01010',
-      destinationPostalCode: '02020',
-      height: 5,
-      length: 6,
-      width: 7,
-      weight: 1.2,
-    };
-    const manuablePayload: ManuablePayload = {
-      address_from: { country_code: 'MX', zip_code: '01010' },
-      address_to: { country_code: 'MX', zip_code: '02020' },
-      parcel: {
-        currency: 'MXN',
-        distance_unit: 'CM',
-        mass_unit: 'KG',
-        height: 5,
-        length: 6,
-        width: 7,
-        weight: 1.2,
-        product_id: 'PID',
-        product_value: 50,
-        quantity_products: 1,
-        content: 'Test',
-      },
-    };
-    const quotes: ManuableQuote[] = [
-      {
-        service: 'standard',
-        currency: 'MXN',
-        uuid: 'u2',
-        additional_fees: [],
-        zone: 2,
-        total_amount: '120',
-        carrier: 'DHL',
-        cancellable: true,
-        shipping_type: 'air',
-        lead_time: '1d',
-      },
-    ];
-
+  it('updateOldToken updates token and returns new token', async () => {
     const getSessionSpy = jest
       .spyOn(service, 'getManuableSession')
       .mockResolvedValueOnce('new-token');
@@ -308,14 +268,9 @@ describe('ManuableService', () => {
       mnTk: 'old-token',
     });
     (generalInfoDb.updateMbTk as jest.Mock).mockResolvedValueOnce(null);
-    const formatPayloadSpy = jest
-      .spyOn(service, 'formatManuablePayload')
-      .mockReturnValueOnce(manuablePayload);
-    const fetchQuotesSpy = jest
-      .spyOn(service, 'fetchManuableQuotes')
-      .mockResolvedValueOnce(quotes);
 
-    const res = await service.updateOldToken(dto);
+    const res = await service.updateOldToken();
+
     expect(getSessionSpy).toHaveBeenCalledTimes(1);
     expect((generalInfoDb.getMnTk as jest.Mock).mock.calls.length).toBe(1);
     const updateCalls = (generalInfoDb.updateMbTk as jest.Mock).mock
@@ -327,42 +282,26 @@ describe('ManuableService', () => {
     expect(firstUpdateArg).toEqual({
       changes: { mnTkId: 'oldId', mnTk: 'new-token' },
     });
-    expect(formatPayloadSpy).toHaveBeenCalledWith(dto);
-    expect(fetchQuotesSpy).toHaveBeenCalledWith(manuablePayload, 'new-token');
-    expect(res).toBe(quotes);
+    expect(res).toBe('new-token');
   });
 
-  it('reAttemptGetManuableQuote throws when new token cannot be created', async () => {
+  it('updateOldToken throws when new token cannot be created', async () => {
     jest.spyOn(service, 'getManuableSession').mockResolvedValueOnce('');
 
-    await expect(
-      service.updateOldToken({
-        originPostalCode: '0',
-        destinationPostalCode: '0',
-        height: 1,
-        length: 1,
-        width: 1,
-        weight: 1,
-      }),
-    ).rejects.toThrow(MANUABLE_FAILED_CREATE_TOKEN);
+    await expect(service.updateOldToken()).rejects.toThrow(
+      MANUABLE_FAILED_CREATE_TOKEN,
+    );
   });
 
-  it('reAttemptGetManuableQuote throws when old token missing', async () => {
+  it('updateOldToken throws when old token missing', async () => {
     jest
       .spyOn(service, 'getManuableSession')
       .mockResolvedValueOnce('new-token');
     (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce(null);
 
-    await expect(
-      service.updateOldToken({
-        originPostalCode: '0',
-        destinationPostalCode: '0',
-        height: 1,
-        length: 1,
-        width: 1,
-        weight: 1,
-      }),
-    ).rejects.toThrow(MANUABLE_FAILED_TOKEN);
+    await expect(service.updateOldToken()).rejects.toThrow(
+      MANUABLE_FAILED_TOKEN,
+    );
   });
 
   it('retrieveManuableQuotes returns direct result when no unauthorized message', async () => {
@@ -378,8 +317,6 @@ describe('ManuableService', () => {
     const getQuoteSpy = jest
       .spyOn(service, 'getManuableQuote')
       .mockResolvedValueOnce(baseResult);
-    const reAttemptSpy = jest.spyOn(service, 'reAttemptGetManuableQuote');
-    const formatSpy = jest.spyOn(utils, 'formatManuableQuote');
 
     // Mock calculateTotalQuotes for this specific test
     jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
@@ -390,14 +327,12 @@ describe('ManuableService', () => {
     const res = await service.retrieveManuableQuotes(dto, mockGlobalConfig);
 
     expect(getQuoteSpy).toHaveBeenCalledWith(dto);
-    expect(reAttemptSpy).not.toHaveBeenCalled();
-    expect(formatSpy).not.toHaveBeenCalled();
     expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
       quotes: baseResult.quotes,
       provider: 'Mn',
       config: mockGlobalConfig,
       messages: [],
-      providerNotFoundMessage: expect.any(String),
+      providerNotFoundMessage: expect.any(String) as string,
     });
     expect(res).toEqual({
       quotes: [],
@@ -443,12 +378,19 @@ describe('ManuableService', () => {
       },
     ];
 
+    // Mock the initial operation that returns unauthorized
     jest
       .spyOn(service, 'getManuableQuote')
       .mockResolvedValueOnce(unauthorizedResult);
+
+    // Mock updateOldToken to return a new token
+    jest.spyOn(service, 'updateOldToken').mockResolvedValueOnce('new-token');
+
+    // Mock the retry operation components
     jest
-      .spyOn(service, 'reAttemptGetManuableQuote')
-      .mockResolvedValueOnce(rawQuotes);
+      .spyOn(service, 'formatManuablePayload')
+      .mockReturnValueOnce({} as ManuablePayload);
+    jest.spyOn(service, 'fetchManuableQuotes').mockResolvedValueOnce(rawQuotes);
     jest
       .spyOn(utils, 'formatManuableQuote')
       .mockReturnValueOnce(formattedQuotes);
@@ -466,13 +408,13 @@ describe('ManuableService', () => {
       provider: 'Mn',
       config: mockGlobalConfig,
       messages: [],
-      providerNotFoundMessage: expect.any(String),
+      providerNotFoundMessage: expect.any(String) as string,
     });
     expect(res.quotes).toBe(formattedQuotes);
     expect(res.messages).toEqual([
       MANUABLE_ERROR_UNAUTHORIZED,
-      'Mn: Attempting to re-fetch quotes with a new token',
-      'Mn: Quotes fetched successfully',
+      'Mn: Attempting to retry quote retrieval with a new token',
+      'Mn: quote retrieval completed successfully',
     ]);
   });
 });
