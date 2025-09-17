@@ -129,7 +129,6 @@ export class ManuableService {
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideMnDataResponse> {
     try {
-      console.log('hi service');
       const { result: guide, messages } =
         await this.executeWithRetryOnUnauthorized(
           () =>

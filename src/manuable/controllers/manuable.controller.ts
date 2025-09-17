@@ -21,7 +21,6 @@ export class ManuableController {
     description: 'Guide created successfully.',
   })
   async createGuide(@Body() payload: CreateGuideMnRequestDto) {
-    console.log('hi controller');
     return this.manuableService.retrieveManuableGuide(payload);
   }
 }
