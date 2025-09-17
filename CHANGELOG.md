@@ -1,3 +1,9 @@
+## v0.16.0 (2025-09-17)
+
+### Pull Requests
+[#23](https://github.com/RafaelMoro/be-paque-temix/pull/23) | Add endpoint to create guide in Mn
+
+
 ## v0.15.1 (2025-09-13)
 
 ### Pull Requests
