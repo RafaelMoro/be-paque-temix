@@ -4,6 +4,8 @@ import {
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
 import {
+  CreateGuideMnPayload,
+  CreateGuideMnRequest,
   ManuablePayload,
   ManuableQuote,
   MnCarrier,
@@ -82,5 +84,41 @@ export const formatPayloadManuable = (
       quantity_products: 1, // Default value, can be changed as needed
       content: 'Kraft', // This should be set based on your application logic
     },
+  };
+};
+
+export const formatPayloadRequestMn = (
+  payload: CreateGuideMnRequest,
+): CreateGuideMnPayload => {
+  const { origin, destination, quoteId } = payload;
+
+  const mapAddress = (a: CreateGuideMnRequest['origin']) => ({
+    name: a.name,
+    street1: a.street1,
+    neighborhood: a.neighborhood,
+    external_number: a.external_number,
+    city: a.city,
+    company: a.company,
+    state: a.state,
+    phone: a.phone,
+    email: a.email,
+    country: a.country,
+    country_code: a.country || 'MX',
+    reference: a.reference || '',
+  });
+
+  return {
+    address_from: mapAddress(origin),
+    address_to: mapAddress(destination),
+    parcel: {
+      currency: 'MXN',
+      // Id from the catalog of SAT
+      product_id: payload.parcel.satProductId,
+      product_value: payload.parcel.value || 1,
+      quantity_products: payload.parcel.quantity || 1,
+      content: payload.parcel.content || 'Kraft',
+    },
+    label_format: 'PDF',
+    rate_token: quoteId,
   };
 };
