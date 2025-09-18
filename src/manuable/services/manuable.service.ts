@@ -25,6 +25,7 @@ import {
   CreateManuableguideResponse,
   FetchGuidesManuableResponse,
   FetchManuableQuotesResponse,
+  GetGuidesMnDataResponse,
   GetHistoryGuidesPayload,
   GetManuableGuideResponse,
   GetManuableQuoteResponse,
@@ -154,6 +155,50 @@ export class ManuableService {
         error: null,
         data: {
           guide,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service responds to get history guide from the controller via Mn
+   */
+  async getHistoryGuidesWithAutoRetry(
+    payload: GetHistoryGuidesPayload,
+  ): Promise<GetGuidesMnDataResponse> {
+    try {
+      const { result: guides, messages } =
+        await this.executeWithRetryOnUnauthorized(
+          () =>
+            this.getManuableHistoryGuidesWithUnauthorized(payload).then(
+              (res) => ({
+                messages: res.messages,
+                result: res.guides,
+              }),
+            ),
+          async (token) => {
+            const guides = await this.fetchManuableHistoryGuides(
+              payload,
+              token,
+            );
+            return guides;
+          },
+          'get guides',
+        );
+      const npmVersion: string = this.configService.version!;
+      return {
+        version: npmVersion,
+        message: null,
+        messages,
+        error: null,
+        data: {
+          guides,
         },
       };
     } catch (error) {
@@ -329,7 +374,7 @@ export class ManuableService {
    * 2-b: Fetch quotes and return them.
    * The result can return an unauthorized error or the quotes
    */
-  async getManuableHistoryGuides(
+  async getManuableHistoryGuidesWithUnauthorized(
     payload: GetHistoryGuidesPayload,
   ): Promise<FetchGuidesManuableResponse> {
     try {

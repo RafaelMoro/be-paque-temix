@@ -189,3 +189,12 @@ export interface CreateGuideMnDataResponse
     guide: ManuableGuide | null;
   };
 }
+
+export interface GetGuidesMnDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guides: ManuableGuide[];
+  };
+}
