@@ -58,3 +58,34 @@ export class CreateGuideResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
 }
+
+export class GetHistoryGuideDataWrapperDto {
+  @ApiProperty({ type: [CreateGuideDataDto] })
+  guides: CreateGuideDataDto[];
+}
+
+export class GetHistoryGuidesResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({
+    type: [String],
+    example: [
+      'Mn: Token valid',
+      'Mn: Token expired, creating new token for guides fetching',
+      'guides fetching completed successfully with new token',
+    ],
+  })
+  messages: string[];
+
+  @ApiProperty({
+    type: GetHistoryGuideDataWrapperDto,
+  })
+  data: GetHistoryGuideDataWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}

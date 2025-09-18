@@ -4,7 +4,10 @@ import { ManuableService } from '../services/manuable.service';
 import { GetHistoryGuidesPayload } from '../manuable.interface';
 import { CreateGuideMnRequestDto } from '../manuable.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CreateGuideResponseDto } from '../dtos/manuable-responses.dto';
+import {
+  CreateGuideResponseDto,
+  GetHistoryGuidesResponseDto,
+} from '../dtos/manuable-responses.dto';
 
 @UseGuards(JwtGuard)
 @Controller('mn')
@@ -26,6 +29,15 @@ export class ManuableController {
   }
 
   @Get('guides')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get history guides for Mn.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: GetHistoryGuidesResponseDto,
+    description: 'Guides retrieved successfully.',
+  })
   async getGuides(@Query('trackingNumber') trackingNumber?: string) {
     const payload: GetHistoryGuidesPayload = {
       tracking_number: trackingNumber,
