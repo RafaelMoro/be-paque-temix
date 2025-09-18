@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreateVideogameDto } from './example.dto';
+import { CreateGuideMnRequestDto } from './manuable/manuable.dto';
 
 @Controller()
 export class AppController {
@@ -12,7 +12,7 @@ export class AppController {
   }
 
   @Post()
-  async createExample(@Body() payload: CreateVideogameDto) {
-    return this.appService.createExample(payload);
+  async createGuide(@Body() payload: CreateGuideMnRequestDto) {
+    return this.appService.tempCreateGuide(payload);
   }
 }

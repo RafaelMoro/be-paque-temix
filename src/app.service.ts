@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { Example, ExampleDoc } from './example.entity';
-import { CreateVideogameDto } from './example.dto';
+import { ManuableService } from './manuable/services/manuable.service';
+import { CreateGuideMnRequestDto } from './manuable/manuable.dto';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectModel(Example.name) private exampleModel: Model<Example>,
+    private manuableServices: ManuableService,
   ) {}
 
   async findExamples(): Promise<ExampleDoc[]> {
@@ -26,11 +28,9 @@ export class AppService {
     }
   }
 
-  async createExample(data: CreateVideogameDto): Promise<ExampleDoc> {
+  async tempCreateGuide(data: CreateGuideMnRequestDto) {
     try {
-      const model = new this.exampleModel(data);
-      const modelSaved: ExampleDoc = await model.save();
-      return modelSaved;
+      return this.manuableServices.createGuideWithAutoRetry(data);
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
