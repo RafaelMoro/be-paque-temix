@@ -75,6 +75,10 @@ export interface CreateGuideMnRequest {
   };
 }
 
+export interface GetHistoryGuidesPayload {
+  tracking_number?: string;
+}
+
 /**
  * Payload needed to create a guide in Manuable
  */
@@ -158,6 +162,10 @@ export interface CreateManuableguideResponse {
   data: ManuableGuide;
 }
 
+export interface GetManuableGuideResponse {
+  data: ManuableGuide[];
+}
+
 export interface GetManuableQuoteResponse {
   messages: string[];
   quotes: GetQuoteData[];
@@ -168,11 +176,25 @@ export interface CreateGuideManuableResponse {
   guide: ManuableGuide | null;
 }
 
+export interface FetchGuidesManuableResponse {
+  messages: string[];
+  guides: ManuableGuide[];
+}
+
 export interface CreateGuideMnDataResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   messages: string[];
   data: {
     guide: ManuableGuide | null;
+  };
+}
+
+export interface GetGuidesMnDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guides: ManuableGuide[];
   };
 }

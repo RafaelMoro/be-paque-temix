@@ -11,6 +11,7 @@ import {
   MANUABLE_ERROR_UNAUTHORIZED,
   MANUABLE_FAILED_CREATE_GUIDE,
   MANUABLE_FAILED_CREATE_TOKEN,
+  MANUABLE_FAILED_FETCH_GUIDES,
   MANUABLE_FAILED_FETCH_QUOTES,
   MANUABLE_FAILED_TOKEN,
   MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
@@ -22,7 +23,11 @@ import {
   CreateGuideMnDataResponse,
   CreateGuideMnRequest,
   CreateManuableguideResponse,
+  FetchGuidesManuableResponse,
   FetchManuableQuotesResponse,
+  GetGuidesMnDataResponse,
+  GetHistoryGuidesPayload,
+  GetManuableGuideResponse,
   GetManuableQuoteResponse,
   GetManuableSessionResponse,
   ManuablePayload,
@@ -125,14 +130,14 @@ export class ManuableService {
   /**
    * This service responds to guide creation from the controller via Mn
    */
-  async retrieveManuableGuide(
+  async createGuideWithAutoRetry(
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideMnDataResponse> {
     try {
       const { result: guide, messages } =
         await this.executeWithRetryOnUnauthorized(
           () =>
-            this.createGuideManuable(payload).then((res) => ({
+            this.createGuideWithUnauthorized(payload).then((res) => ({
               messages: res.messages,
               result: res.guide,
             })),
@@ -142,8 +147,6 @@ export class ManuableService {
           },
           'guide creation',
         );
-      console.log('guide', guide);
-      console.log('messages', messages);
       const npmVersion: string = this.configService.version!;
       return {
         version: npmVersion,
@@ -152,6 +155,50 @@ export class ManuableService {
         error: null,
         data: {
           guide,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service responds to get history guide from the controller via Mn
+   */
+  async getHistoryGuidesWithAutoRetry(
+    payload: GetHistoryGuidesPayload,
+  ): Promise<GetGuidesMnDataResponse> {
+    try {
+      const { result: guides, messages } =
+        await this.executeWithRetryOnUnauthorized(
+          () =>
+            this.getManuableHistoryGuidesWithUnauthorized(payload).then(
+              (res) => ({
+                messages: res.messages,
+                result: res.guides,
+              }),
+            ),
+          async (token) => {
+            const guides = await this.fetchManuableHistoryGuides(
+              payload,
+              token,
+            );
+            return guides;
+          },
+          'get guides',
+        );
+      const npmVersion: string = this.configService.version!;
+      return {
+        version: npmVersion,
+        message: null,
+        messages,
+        error: null,
+        data: {
+          guides,
         },
       };
     } catch (error) {
@@ -323,11 +370,66 @@ export class ManuableService {
   /**
    * This service is to get quotes from Manuable API by:
    * 1. Getting token
+   * 2-a: If the token does not exist, create it and fetch quotes
+   * 2-b: Fetch quotes and return them.
+   * The result can return an unauthorized error or the quotes
+   */
+  async getManuableHistoryGuidesWithUnauthorized(
+    payload: GetHistoryGuidesPayload,
+  ): Promise<FetchGuidesManuableResponse> {
+    try {
+      const { result: guides, messages } = await this.executeWithManuableToken(
+        (token) => this.fetchManuableHistoryGuides(payload, token),
+        'guides fetching',
+      );
+
+      if (!guides) {
+        messages.push(`Mn: ${MANUABLE_FAILED_FETCH_GUIDES}`);
+        return {
+          messages,
+          guides: [],
+        };
+      }
+
+      return {
+        messages,
+        guides,
+      };
+    } catch (error) {
+      const messages: string[] = [];
+      if (error instanceof Error) {
+        // The service fetchManuableQuotes returned 401 Unauthorized
+        if (error?.message === 'Request failed with status code 401') {
+          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
+          return {
+            messages,
+            guides: [],
+          };
+        }
+
+        messages.push(`Mn: ${error.message}`);
+        return {
+          messages,
+          guides: [],
+        };
+      }
+
+      messages.push('Mn: An unknown error occurred');
+      return {
+        messages,
+        guides: [],
+      };
+    }
+  }
+
+  /**
+   * This service is to get quotes from Manuable API by:
+   * 1. Getting token
    * 2-a: If the token does not exist, create it and create guide
    * 2-b: Create guide and return them.
    * The result can return an unauthorized error or the quotes
    */
-  async createGuideManuable(
+  async createGuideWithUnauthorized(
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideManuableResponse> {
     try {
@@ -441,6 +543,40 @@ export class ManuableService {
         });
       const quotes = response?.data?.data;
       return quotes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  /**
+   * This service is to fetch quotes from Manuable API.
+   */
+  async fetchManuableHistoryGuides(
+    payload: GetHistoryGuidesPayload,
+    token: string,
+  ) {
+    try {
+      const { uri } = this.configService.manuable;
+      if (!uri) {
+        throw new BadRequestException(MANUABLE_ERROR_MISSING_URI);
+      }
+      const trackingNumber = payload.tracking_number;
+
+      const url = `${uri}${CREATE_GUIDE_MANUABLE_ENDPOINT}`;
+      const updatedUrl = trackingNumber
+        ? `${url}?tracking_number=${trackingNumber}`
+        : url;
+      const response: AxiosResponse<GetManuableGuideResponse, unknown> =
+        await axios.get(updatedUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      const guides = response?.data?.data;
+      return guides;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

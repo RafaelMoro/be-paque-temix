@@ -7,6 +7,7 @@ export const MANUABLE_FAILED_TOKEN = 'Failed to get Mn token';
 export const MANUABLE_FAILED_CREATE_TOKEN = 'Failed to create Mn token';
 export const MANUABLE_FAILED_FETCH_QUOTES = 'Failed to fetch Mn quotes';
 export const MANUABLE_FAILED_CREATE_GUIDE = 'Failed to create Mn guide';
+export const MANUABLE_FAILED_FETCH_GUIDES = 'Failed to fetch Mn guides';
 export const MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN =
   'Mn provider not found in global config';
 

@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ManuableController } from './manuable.controller';
 import { ManuableService } from '../services/manuable.service';
 import { CreateGuideMnRequestDto } from '../manuable.dto';
-import { CreateGuideMnDataResponse } from '../manuable.interface';
+import {
+  CreateGuideMnDataResponse,
+  GetGuidesMnDataResponse,
+  GetHistoryGuidesPayload,
+} from '../manuable.interface';
 import { Reflector } from '@nestjs/core';
 import config from '@/config';
 
@@ -10,7 +14,8 @@ describe('ManuableController', () => {
   let controller: ManuableController;
 
   const mockManuableService = {
-    retrieveManuableGuide: jest.fn(),
+    createGuideWithAutoRetry: jest.fn(),
+    getHistoryGuidesWithAutoRetry: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -50,7 +55,7 @@ describe('ManuableController', () => {
   });
 
   describe('createGuide', () => {
-    it('should call manuableService.retrieveManuableGuide with correct payload', async () => {
+    it('should call manuableService.createGuideWithAutoRetry with correct payload', async () => {
       const mockPayload: CreateGuideMnRequestDto = {
         quoteId: 'test-quote-id',
         parcel: {
@@ -108,16 +113,18 @@ describe('ManuableController', () => {
         },
       };
 
-      mockManuableService.retrieveManuableGuide.mockResolvedValue(mockResponse);
+      mockManuableService.createGuideWithAutoRetry.mockResolvedValue(
+        mockResponse,
+      );
 
       const result = await controller.createGuide(mockPayload);
 
-      expect(mockManuableService.retrieveManuableGuide).toHaveBeenCalledWith(
+      expect(mockManuableService.createGuideWithAutoRetry).toHaveBeenCalledWith(
         mockPayload,
       );
-      expect(mockManuableService.retrieveManuableGuide).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        mockManuableService.createGuideWithAutoRetry,
+      ).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockResponse);
     });
 
@@ -159,12 +166,12 @@ describe('ManuableController', () => {
       };
 
       const error = new Error('Service error');
-      mockManuableService.retrieveManuableGuide.mockRejectedValue(error);
+      mockManuableService.createGuideWithAutoRetry.mockRejectedValue(error);
 
       await expect(controller.createGuide(mockPayload)).rejects.toThrow(
         'Service error',
       );
-      expect(mockManuableService.retrieveManuableGuide).toHaveBeenCalledWith(
+      expect(mockManuableService.createGuideWithAutoRetry).toHaveBeenCalledWith(
         mockPayload,
       );
     });
@@ -227,12 +234,104 @@ describe('ManuableController', () => {
         },
       };
 
-      mockManuableService.retrieveManuableGuide.mockResolvedValue(mockResponse);
+      mockManuableService.createGuideWithAutoRetry.mockResolvedValue(
+        mockResponse,
+      );
 
       const result = await controller.createGuide(mockPayload);
 
       expect(result).toEqual(mockResponse);
       expect(result).toBe(mockResponse); // Should be the exact same object reference
+    });
+  });
+
+  describe('getGuides', () => {
+    it('should call manuableService.getHistoryGuidesWithAutoRetry with tracking_number', async () => {
+      const trackingNumber = 'TRK123456789';
+      const mockResponse: GetGuidesMnDataResponse = {
+        version: '1.0.0',
+        message: null,
+        messages: ['Mn: Guides retrieved successfully'],
+        error: null,
+        data: {
+          guides: [
+            {
+              token: 'guide-token-123',
+              created_at: '2023-01-01T00:00:00Z',
+              tracking_number: 'TRK123456789',
+              label_url: 'https://example.com/label.pdf',
+              price: '150.00',
+              carrier: 'DHL',
+              tracking_status: null,
+              waybill: null,
+              cancellable: true,
+              label_status: 'ready',
+            },
+          ],
+        },
+      };
+
+      mockManuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.getGuides(trackingNumber);
+
+      const expectedPayload: GetHistoryGuidesPayload = {
+        tracking_number: trackingNumber,
+      };
+      expect(
+        mockManuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledWith(expectedPayload);
+      expect(
+        mockManuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledTimes(1);
+      expect(result).toBe(mockResponse);
+    });
+
+    it('should call manuableService.getHistoryGuidesWithAutoRetry without tracking_number', async () => {
+      const mockResponse: GetGuidesMnDataResponse = {
+        version: '1.0.0',
+        message: null,
+        messages: ['Mn: Guides retrieved successfully'],
+        error: null,
+        data: {
+          guides: [],
+        },
+      };
+
+      mockManuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.getGuides();
+
+      const expectedPayload: GetHistoryGuidesPayload = {
+        tracking_number: undefined,
+      };
+      expect(
+        mockManuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledWith(expectedPayload);
+      expect(result).toBe(mockResponse);
+    });
+
+    it('should handle service errors', async () => {
+      const trackingNumber = 'TRK123456789';
+      const error = new Error('Service error');
+      mockManuableService.getHistoryGuidesWithAutoRetry.mockRejectedValue(
+        error,
+      );
+
+      await expect(controller.getGuides(trackingNumber)).rejects.toThrow(
+        'Service error',
+      );
+
+      const expectedPayload: GetHistoryGuidesPayload = {
+        tracking_number: trackingNumber,
+      };
+      expect(
+        mockManuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledWith(expectedPayload);
     });
   });
 });
