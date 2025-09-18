@@ -1,3 +1,9 @@
+## v0.17.0 (2025-09-18)
+
+### Pull Requests
+[#24](https://github.com/RafaelMoro/be-paque-temix/pull/24) | Add get history guides for Mn
+
+
 ## v0.16.0 (2025-09-17)
 
 ### Pull Requests
