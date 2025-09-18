@@ -5,7 +5,12 @@ import axios from 'axios';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import * as utils from '../manuable.utils';
 import * as quotesUtils from '@/quotes/quotes.utils';
-import { ManuablePayload, ManuableQuote } from '../manuable.interface';
+import {
+  ManuablePayload,
+  ManuableQuote,
+  GetHistoryGuidesPayload,
+  ManuableGuide,
+} from '../manuable.interface';
 import { GeneralInfoDbDoc } from '@/general-info-db/entities/general-info-db.entity';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GetQuoteData } from '@/quotes/quotes.interface';
@@ -16,6 +21,8 @@ import {
   MANUABLE_FAILED_TOKEN,
   MANUABLE_ERROR_UNAUTHORIZED,
   QUOTE_MANUABLE_ENDPOINT,
+  CREATE_GUIDE_MANUABLE_ENDPOINT,
+  MANUABLE_FAILED_FETCH_GUIDES,
 } from '../manuable.constants';
 
 describe('ManuableService', () => {
@@ -416,5 +423,238 @@ describe('ManuableService', () => {
       'Mn: Attempting to retry quote retrieval with a new token',
       'Mn: quote retrieval completed successfully',
     ]);
+  });
+
+  describe('fetchManuableHistoryGuides', () => {
+    it('fetches guides with tracking_number query param when provided', async () => {
+      const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
+      const token = 'test-token';
+      const guides: ManuableGuide[] = [
+        {
+          token: 'guide-token',
+          tracking_number: 'TRK123',
+          carrier: 'DHL',
+          tracking_status: null,
+          price: '100.00',
+          waybill: null,
+          label_url: 'http://example.com/label',
+          cancellable: true,
+          created_at: '2023-01-01',
+          label_status: 'active',
+        },
+      ];
+
+      const getSpy = jest
+        .spyOn(axios, 'get')
+        .mockResolvedValueOnce({ data: { data: guides } } as any);
+
+      const result = await service.fetchManuableHistoryGuides(payload, token);
+
+      expect(result).toBe(guides);
+      expect(getSpy).toHaveBeenCalledWith(
+        `https://mn.example.com${CREATE_GUIDE_MANUABLE_ENDPOINT}?tracking_number=TRK123`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+    });
+
+    it('fetches guides without query param when tracking_number not provided', async () => {
+      const payload: GetHistoryGuidesPayload = {};
+      const token = 'test-token';
+      const guides: ManuableGuide[] = [];
+
+      const getSpy = jest
+        .spyOn(axios, 'get')
+        .mockResolvedValueOnce({ data: { data: guides } } as any);
+
+      const result = await service.fetchManuableHistoryGuides(payload, token);
+
+      expect(result).toBe(guides);
+      expect(getSpy).toHaveBeenCalledWith(
+        `https://mn.example.com${CREATE_GUIDE_MANUABLE_ENDPOINT}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+    });
+
+    it('throws when URI is missing in config', async () => {
+      // Build a separate module instance with missing URI
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          ManuableService,
+          {
+            provide: config.KEY,
+            useValue: {
+              manuable: {
+                email: 'user@example.com',
+                pwd: 's3cr3t',
+                uri: '',
+              },
+            },
+          },
+          { provide: GeneralInfoDbService, useValue: {} },
+        ],
+      }).compile();
+      const svc = module.get<ManuableService>(ManuableService);
+
+      const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
+
+      await expect(
+        svc.fetchManuableHistoryGuides(payload, 'tok'),
+      ).rejects.toThrow(MANUABLE_ERROR_MISSING_URI);
+    });
+  });
+
+  describe('getManuableHistoryGuidesWithUnauthorized', () => {
+    it('returns guides when executeWithManuableToken succeeds', async () => {
+      const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
+      const guides: ManuableGuide[] = [
+        {
+          token: 'guide-token',
+          tracking_number: 'TRK123',
+          carrier: 'DHL',
+          tracking_status: null,
+          price: '100.00',
+          waybill: null,
+          label_url: 'http://example.com/label',
+          cancellable: true,
+          created_at: '2023-01-01',
+          label_status: 'active',
+        },
+      ];
+
+      const executeSpy = jest
+        .spyOn(service as any, 'executeWithManuableToken')
+        .mockResolvedValueOnce({
+          result: guides,
+          messages: ['Mn: Token valid'],
+        });
+
+      const result =
+        await service.getManuableHistoryGuidesWithUnauthorized(payload);
+
+      expect(executeSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        'guides fetching',
+      );
+      expect(result).toEqual({
+        messages: ['Mn: Token valid'],
+        guides,
+      });
+    });
+
+    it('returns error response when guides is null', async () => {
+      const payload: GetHistoryGuidesPayload = {};
+
+      jest
+        .spyOn(service as any, 'executeWithManuableToken')
+        .mockResolvedValueOnce({
+          result: null,
+          messages: ['Mn: Token valid'],
+        });
+
+      const result =
+        await service.getManuableHistoryGuidesWithUnauthorized(payload);
+
+      expect(result).toEqual({
+        messages: ['Mn: Token valid', `Mn: ${MANUABLE_FAILED_FETCH_GUIDES}`],
+        guides: [],
+      });
+    });
+
+    it('returns unauthorized error when 401 error occurs', async () => {
+      const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
+
+      jest
+        .spyOn(service as any, 'executeWithManuableToken')
+        .mockRejectedValueOnce(
+          new Error('Request failed with status code 401'),
+        );
+
+      const result =
+        await service.getManuableHistoryGuidesWithUnauthorized(payload);
+
+      expect(result).toEqual({
+        messages: [MANUABLE_ERROR_UNAUTHORIZED],
+        guides: [],
+      });
+    });
+
+    it('returns error message when other error occurs', async () => {
+      const payload: GetHistoryGuidesPayload = {};
+
+      jest
+        .spyOn(service as any, 'executeWithManuableToken')
+        .mockRejectedValueOnce(new Error('Network error'));
+
+      const result =
+        await service.getManuableHistoryGuidesWithUnauthorized(payload);
+
+      expect(result).toEqual({
+        messages: ['Mn: Network error'],
+        guides: [],
+      });
+    });
+  });
+
+  describe('getHistoryGuidesWithAutoRetry', () => {
+    it('returns guides response when executeWithRetryOnUnauthorized succeeds', async () => {
+      const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
+      const guides: ManuableGuide[] = [
+        {
+          token: 'guide-token',
+          tracking_number: 'TRK123',
+          carrier: 'DHL',
+          tracking_status: null,
+          price: '100.00',
+          waybill: null,
+          label_url: 'http://example.com/label',
+          cancellable: true,
+          created_at: '2023-01-01',
+          label_status: 'active',
+        },
+      ];
+
+      const executeSpy = jest
+        .spyOn(service as any, 'executeWithRetryOnUnauthorized')
+        .mockResolvedValueOnce({
+          result: guides,
+          messages: [
+            'Mn: Token valid',
+            'Mn: get guides completed successfully',
+          ],
+        });
+
+      const result = await service.getHistoryGuidesWithAutoRetry(payload);
+
+      expect(executeSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Function),
+        'get guides',
+      );
+      expect(result).toEqual({
+        version: undefined, // configService.version is undefined in test
+        message: null,
+        messages: ['Mn: Token valid', 'Mn: get guides completed successfully'],
+        error: null,
+        data: {
+          guides,
+        },
+      });
+    });
+
+    it('throws BadRequestException when executeWithRetryOnUnauthorized fails', async () => {
+      const payload: GetHistoryGuidesPayload = {};
+
+      jest
+        .spyOn(service as any, 'executeWithRetryOnUnauthorized')
+        .mockRejectedValueOnce(new Error('Service error'));
+
+      await expect(
+        service.getHistoryGuidesWithAutoRetry(payload),
+      ).rejects.toThrow('Service error');
+    });
   });
 });
