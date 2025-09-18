@@ -129,14 +129,14 @@ export class ManuableService {
   /**
    * This service responds to guide creation from the controller via Mn
    */
-  async retrieveManuableGuide(
+  async createGuideWithAutoRetry(
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideMnDataResponse> {
     try {
       const { result: guide, messages } =
         await this.executeWithRetryOnUnauthorized(
           () =>
-            this.createGuideManuable(payload).then((res) => ({
+            this.createGuideWithUnauthorized(payload).then((res) => ({
               messages: res.messages,
               result: res.guide,
             })),
@@ -146,8 +146,6 @@ export class ManuableService {
           },
           'guide creation',
         );
-      console.log('guide', guide);
-      console.log('messages', messages);
       const npmVersion: string = this.configService.version!;
       return {
         version: npmVersion,
@@ -386,7 +384,7 @@ export class ManuableService {
    * 2-b: Create guide and return them.
    * The result can return an unauthorized error or the quotes
    */
-  async createGuideManuable(
+  async createGuideWithUnauthorized(
     payload: CreateGuideMnRequest,
   ): Promise<CreateGuideManuableResponse> {
     try {

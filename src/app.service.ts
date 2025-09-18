@@ -30,7 +30,7 @@ export class AppService {
 
   async tempCreateGuide(data: CreateGuideMnRequestDto) {
     try {
-      return this.manuableServices.retrieveManuableGuide(data);
+      return this.manuableServices.createGuideWithAutoRetry(data);
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
