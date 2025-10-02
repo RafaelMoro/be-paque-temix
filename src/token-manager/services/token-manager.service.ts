@@ -13,20 +13,23 @@ interface HttpError extends Error {
   };
 }
 
-function isUnauthorizedError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-
-  const httpError = error as HttpError;
-
-  return (
-    error.message === 'Request failed with status code 401' ||
-    httpError.statusCode === 401 ||
-    httpError.response?.status === 401
-  );
-}
-
 @Injectable()
 export class TokenManagerService {
+  /**
+   * Type guard to check if an error is an unauthorized (401) error
+   */
+  private isUnauthorizedError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+
+    const httpError = error as HttpError;
+
+    return (
+      error.message === 'Request failed with status code 401' ||
+      httpError.statusCode === 401 ||
+      httpError.response?.status === 401
+    );
+  }
+
   /**
    * Generic helper to execute API operations with automatic token management.
    * Handles token creation, validation, and 401 retry logic.
@@ -63,7 +66,7 @@ export class TokenManagerService {
         return { result, messages };
       } catch (error) {
         // Handle 401 unauthorized - retry with new token
-        if (isUnauthorizedError(error)) {
+        if (this.isUnauthorizedError(error)) {
           messages.push(
             `${prefix}Token expired, creating new token for ${operationName}`,
           );
