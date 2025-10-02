@@ -13,7 +13,6 @@ import {
   MANUABLE_FAILED_CREATE_TOKEN,
   MANUABLE_FAILED_FETCH_GUIDES,
   MANUABLE_FAILED_FETCH_QUOTES,
-  MANUABLE_FAILED_TOKEN,
   MANUABLE_MISSING_PROVIDER_PROFIT_MARGIN,
   MANUABLE_TOKEN_ENDPOINT,
   QUOTE_MANUABLE_ENDPOINT,
@@ -42,6 +41,7 @@ import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
+import { PROD_ENV } from '@/app.constant';
 
 @Injectable()
 export class ManuableService {
@@ -222,7 +222,9 @@ export class ManuableService {
 
     try {
       // 1. Get existing token
-      const apiKey = await this.generalInfoDbService.getMnTk();
+      const env = this.configService.environment;
+      const isProd = env === PROD_ENV;
+      const apiKey = await this.generalInfoDbService.getMnTk({ isProd });
 
       if (!apiKey) {
         messages.push(`Mn: Creating token for ${operationName}`);
@@ -236,7 +238,7 @@ export class ManuableService {
 
       try {
         // 2. Try with existing token
-        const result = await operation(apiKey.mnTk);
+        const result = await operation(apiKey);
         messages.push(`Mn: ${operationName} completed successfully`);
         return { result, messages };
       } catch (error) {
@@ -482,12 +484,21 @@ export class ManuableService {
    */
   async createToken() {
     try {
+      const env = this.configService.environment;
+      const isProd = env === PROD_ENV;
       const token = await this.getManuableSession();
       if (!token) {
         throw new BadRequestException(MANUABLE_FAILED_CREATE_TOKEN);
       }
-      const newToken = await this.generalInfoDbService.createMnTk(token);
-      return newToken;
+      const updatedConfig = await this.generalInfoDbService.updateMnToken({
+        token,
+        isProd,
+      });
+      return {
+        mnTk: isProd
+          ? updatedConfig.mnConfig.tkProd
+          : updatedConfig.mnConfig.tkDev,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -501,20 +512,21 @@ export class ManuableService {
    */
   async updateOldToken() {
     try {
+      const env = this.configService.environment;
+      const isProd = env === PROD_ENV;
+
       // 1. Create new token
       const token = await this.getManuableSession();
       if (!token) {
         throw new BadRequestException(MANUABLE_FAILED_CREATE_TOKEN);
       }
 
-      // 2. Get old token
-      const oldMnTk = await this.generalInfoDbService.getMnTk();
-      if (!oldMnTk) {
-        throw new BadRequestException(MANUABLE_FAILED_TOKEN);
-      }
-      await this.generalInfoDbService.updateMbTk({
-        changes: { mnTkId: oldMnTk._id as string, mnTk: token },
+      // 2. Update token using the new method
+      await this.generalInfoDbService.updateMnToken({
+        token,
+        isProd,
       });
+
       return token;
     } catch (error) {
       if (error instanceof Error) {

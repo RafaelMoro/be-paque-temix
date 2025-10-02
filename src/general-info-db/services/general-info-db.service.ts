@@ -62,19 +62,6 @@ export class GeneralInfoDbService implements OnModuleInit {
     }
   }
 
-  async createMnTk(tk: string) {
-    try {
-      const newMbTk = new this.generalInfoDbModel({ mnTk: tk });
-      const modelSaved: GeneralInfoDbDoc = await newMbTk.save();
-      return modelSaved;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
   async getConfig() {
     try {
       if (!this.generalConfig) {
