@@ -1,3 +1,9 @@
+## v0.18.0 (2025-10-02)
+
+### Pull Requests
+[#26](https://github.com/RafaelMoro/be-paque-temix/pull/26) | Change general info dbs to have dev and prod mn token
+
+
 ## v0.17.0 (2025-09-18)
 
 ### Pull Requests
