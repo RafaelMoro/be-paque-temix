@@ -110,31 +110,31 @@ export const formatPayloadCreateGuideT1 = ({
   storeId: string;
 }): T1ExternalCreateGuideRequest => {
   return {
-    contenido: payload.parcel.content.substring(0, 25), // Max 25 characters
+    contenido: payload.parcel.content, // Max 25 characters
 
     // Origin fields
-    nombre_origen: payload.origin.name.substring(0, 25), // Max 25 characters
-    apellidos_origen: payload.origin.lastName.substring(0, 25), // Max 25 characters
-    email_origen: payload.origin.email.substring(0, 35), // Max 35 characters
-    calle_origen: payload.origin.street1.substring(0, 35), // Max 35 characters
-    numero_origen: payload.origin.external_number.substring(0, 15), // Max 15 characters
-    colonia_origen: payload.origin.neighborhood.substring(0, 35), // Max 35 characters
-    telefono_origen: payload.origin.phone.substring(0, 10), // Max 10 characters
-    estado_origen: payload.origin.state.substring(0, 35), // Max 35 characters
-    municipio_origen: payload.origin.town.substring(0, 35), // Max 35 characters
-    referencias_origen: payload.origin.reference.substring(0, 35), // Max 35 characters
+    nombre_origen: payload.origin.name, // Max 25 characters
+    apellidos_origen: payload.origin.lastName, // Max 25 characters
+    email_origen: payload.origin.email, // Max 35 characters
+    calle_origen: payload.origin.street1, // Max 35 characters
+    numero_origen: payload.origin.external_number, // Max 15 characters
+    colonia_origen: payload.origin.neighborhood, // Max 35 characters
+    telefono_origen: payload.origin.phone, // Max 10 characters
+    estado_origen: payload.origin.state, // Max 35 characters
+    municipio_origen: payload.origin.town, // Max 35 characters
+    referencias_origen: payload.origin.reference, // Max 35 characters
 
     // Destination fields
-    nombre_destino: payload.destination.name.substring(0, 25), // Max 25 characters
-    apellidos_destino: payload.destination.lastName.substring(0, 25), // Max 25 characters
-    email_destino: payload.destination.email.substring(0, 35), // Max 35 characters
-    calle_destino: payload.destination.street1.substring(0, 35), // Max 35 characters
-    numero_destino: payload.destination.external_number.substring(0, 15), // Max 15 characters
-    colonia_destino: payload.destination.neighborhood.substring(0, 35), // Max 35 characters
-    telefono_destino: payload.destination.phone.substring(0, 10), // Max 10 characters
-    estado_destino: payload.destination.state.substring(0, 35), // Max 35 characters
-    municipio_destino: payload.destination.town.substring(0, 35), // Max 35 characters
-    referencias_destino: payload.destination.reference.substring(0, 35), // Max 35 characters
+    nombre_destino: payload.destination.name, // Max 25 characters
+    apellidos_destino: payload.destination.lastName, // Max 25 characters
+    email_destino: payload.destination.email, // Max 35 characters
+    calle_destino: payload.destination.street1, // Max 35 characters
+    numero_destino: payload.destination.external_number, // Max 15 characters
+    colonia_destino: payload.destination.neighborhood, // Max 35 characters
+    telefono_destino: payload.destination.phone, // Max 10 characters
+    estado_destino: payload.destination.state, // Max 35 characters
+    municipio_destino: payload.destination.town, // Max 35 characters
+    referencias_destino: payload.destination.reference, // Max 35 characters
 
     // Rest fields
     generar_recoleccion: false, // Default value - can be made configurable
