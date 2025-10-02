@@ -44,3 +44,37 @@ export interface T1GetQuoteResponse {
   message: string;
   result: T1QuoteResult[];
 }
+
+export interface CreateGuideT1Request {
+  contenido: string; // Max 25 characters
+  // Origin
+  nombre_origen: string; // Max 25 characters
+  apellidos_origen: string; // Max 25 characters
+  email_origen: string; // Max 35 characters
+  calle_origen: string; // Max 35 characters
+  numero_origen: string; // Max 15 characters
+  colonia_origen: string; // Max 35 characters
+  telefono_origen: string; // Max 10 characters
+  estado_origen: string; // Max 35 characters
+  municipio_origen: string; // Max 35 characters
+  referencias_origen: string; // Max 35 characters
+
+  // Destination
+  nombre_destino: string; // Max 25 characters
+  apellidos_destino: string; // Max 25 characters
+  email_destino: string; // Max 35 characters
+  calle_destino: string; // Max 35 characters
+  numero_destino: string; // Max 15 characters
+  colonia_destino: string; // Max 35 characters
+  telefono_destino: string; // Max 10 characters
+  estado_destino: string; // Max 35 characters
+  municipio_destino: string; // Max 35 characters
+  referencias_destino: string; // Max 35 characters
+
+  // Rest
+  generar_recoleccion: boolean;
+  tiene_notificacion: boolean;
+  origen_guia: string;
+  comercio_id: string;
+  token_quote: string;
+}
