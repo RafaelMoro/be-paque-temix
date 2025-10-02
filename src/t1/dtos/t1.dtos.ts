@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -76,12 +77,14 @@ class ToneParcelDto {
     example: 'Electronics',
     description: 'Content description',
   })
+  @MaxLength(25)
   readonly content: string;
 }
 
 class ToneAddressDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(25)
   @ApiProperty({
     example: 'John',
     description: 'First and middle name',
@@ -90,6 +93,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(25)
   @ApiProperty({
     example: 'Doe',
     description: 'Last name',
@@ -98,6 +102,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'Calle Principal 123',
     description: 'Street address',
@@ -106,6 +111,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'Centro',
     description: 'Neighborhood',
@@ -114,6 +120,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(15)
   @ApiProperty({
     example: '123',
     description: 'External number',
@@ -122,6 +129,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'Zacatlan',
     description: 'Town name (Municipio)',
@@ -130,6 +138,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'CDMX',
     description: 'State or province',
@@ -138,6 +147,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(10)
   @ApiProperty({
     example: '+52 55 1234 5678',
     description: 'Phone number',
@@ -146,6 +156,7 @@ class ToneAddressDto {
 
   @IsEmail()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'john.doe@example.com',
     description: 'Email address',
@@ -154,6 +165,7 @@ class ToneAddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(35)
   @ApiProperty({
     example: 'Near the park',
     description: 'Reference for location',
