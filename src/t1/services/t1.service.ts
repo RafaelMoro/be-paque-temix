@@ -4,14 +4,23 @@ import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import {
+  CREATE_GUIDE_T1_ENDPOINT,
   QUOTE_T1_ENDPOINT,
   T1_MISSING_API_KEY_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
-import { T1GetQuoteResponse } from '../t1.interface';
-import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
+import {
+  T1CreateGuideRequest,
+  T1ExternalCreateGuideResponse,
+  T1GetQuoteResponse,
+} from '../t1.interface';
+import {
+  formatPayloadCreateGuideT1,
+  formatPayloadT1,
+  formatT1QuoteData,
+} from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -66,6 +75,48 @@ export class T1Service {
         quotes,
         messages: updatedMessages,
       };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuide(payload: T1CreateGuideRequest) {
+    try {
+      // const messages: string[] = [];
+      const apiKey = this.configService.t1.apiKey!;
+      const uri = this.configService.t1.uri!;
+      const storeId = this.configService.t1.storeId!;
+
+      const payloadFormatted = formatPayloadCreateGuideT1({
+        payload,
+        storeId,
+        notifyMe: payload.notifyMe,
+        quoteToken: payload.quoteToken,
+      });
+
+      if (!apiKey) {
+        throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(T1_MISSING_URI_ERROR);
+      }
+      if (!storeId) {
+        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+      }
+
+      const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
+      const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
+        await axios.post(url, payloadFormatted, {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            shop_id: storeId,
+          },
+        });
+      const data = response?.data;
+      return data;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

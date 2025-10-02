@@ -104,12 +104,12 @@ export const formatPayloadCreateGuideT1 = ({
   payload,
   quoteToken,
   storeId,
-  notifyMe,
+  notifyMe = false,
 }: {
   payload: T1CreateGuideRequest;
   quoteToken: string;
   storeId: string;
-  notifyMe: boolean;
+  notifyMe?: boolean;
 }): T1ExternalCreateGuideRequest => {
   return {
     contenido: payload.parcel.content, // Max 25 characters

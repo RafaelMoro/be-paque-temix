@@ -204,4 +204,12 @@ export class CreateGuideToneRequestDto {
     description: 'Whether to send notifications or not',
   })
   readonly notifyMe: boolean; // Whether to send notifications or not
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: '123-456',
+    description: 'Quote token for the request',
+  })
+  readonly quoteToken: string;
 }

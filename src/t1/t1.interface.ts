@@ -107,5 +107,26 @@ export interface T1CreateGuideRequest {
     email: string;
     reference: string;
   };
-  notifyMe: boolean; // Whether to send notifications or not
+  notifyMe?: boolean; // Whether to send notifications or not
+  quoteToken: string;
+}
+
+export interface T1ExternalCreateGuideResponse {
+  success: boolean;
+  message: string;
+  // Indicates the environment where the request was executed.
+  location: string;
+  detail: {
+    // Guide number
+    paquetes: number;
+    // Internal Id
+    num_orden: string;
+    paqueteria: string;
+    fecha_creacion: string;
+    costo: number;
+    destino: string;
+    guia: string;
+    file: string;
+    link_guia: string;
+  };
 }
