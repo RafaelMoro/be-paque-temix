@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeleteResult, Model } from 'mongoose';
 
@@ -9,11 +9,55 @@ import {
 import { UpdateGeneralInfoDbDto } from '../dtos/general-info-db.dto';
 
 @Injectable()
-export class GeneralInfoDbService {
+export class GeneralInfoDbService implements OnModuleInit {
+  private generalConfig!: GeneralInfoDbDoc;
+
   constructor(
     @InjectModel(GeneralInfoDb.name)
     private generalInfoDbModel: Model<GeneralInfoDb>,
   ) {}
+
+  async onModuleInit() {
+    await this.ensureConfigExists();
+  }
+
+  private async ensureConfigExists(): Promise<void> {
+    try {
+      // Try to find existing general info config
+      const found: GeneralInfoDbDoc | null = await this.generalInfoDbModel
+        .findOne({ configId: 'global' })
+        .exec();
+
+      if (!found) {
+        // If not found, create a default one and store it
+        const defaultConfig = new this.generalInfoDbModel({
+          configId: 'global',
+          mnConfig: {
+            tkProd: '',
+            tkDev: '',
+          },
+          toneConfig: {
+            tkProd: '',
+            tkDev: '',
+          },
+        });
+        this.generalConfig = await defaultConfig.save();
+        return;
+      }
+
+      // Assign the found document
+      this.generalConfig = found;
+    } catch (error) {
+      console.error(
+        'GeneralInfoDbService: Error in ensureConfigExists:',
+        error,
+      );
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
 
   async createMnTk(tk: string) {
     try {
