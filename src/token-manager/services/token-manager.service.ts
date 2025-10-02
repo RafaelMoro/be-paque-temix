@@ -6,6 +6,25 @@ export interface TokenOperations {
   getStoredToken: (isProd: boolean) => Promise<string | null>;
 }
 
+interface HttpError extends Error {
+  statusCode?: number;
+  response?: {
+    status?: number;
+  };
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const httpError = error as HttpError;
+
+  return (
+    error.message === 'Request failed with status code 401' ||
+    httpError.statusCode === 401 ||
+    httpError.response?.status === 401
+  );
+}
+
 @Injectable()
 export class TokenManagerService {
   /**
@@ -44,10 +63,7 @@ export class TokenManagerService {
         return { result, messages };
       } catch (error) {
         // Handle 401 unauthorized - retry with new token
-        if (
-          error instanceof Error &&
-          error.message === 'Request failed with status code 401'
-        ) {
+        if (isUnauthorizedError(error)) {
           messages.push(
             `${prefix}Token expired, creating new token for ${operationName}`,
           );
