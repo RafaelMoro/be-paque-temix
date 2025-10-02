@@ -6,10 +6,7 @@ import {
   GeneralInfoDb,
   GeneralInfoDbDoc,
 } from '../entities/general-info-db.entity';
-import {
-  UpdateGeneralInfoDbDto,
-  UpdateMnTokenDto,
-} from '../dtos/general-info-db.dto';
+import { UpdateMnTokenDto } from '../dtos/general-info-db.dto';
 
 @Injectable()
 export class GeneralInfoDbService implements OnModuleInit {
@@ -112,21 +109,6 @@ export class GeneralInfoDbService implements OnModuleInit {
 
       this.generalConfig = updated;
       return this.generalConfig;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
-  }
-
-  async updateMbTk({ changes }: { changes: UpdateGeneralInfoDbDto }) {
-    try {
-      const { mnTkId } = changes;
-      const updated = await this.generalInfoDbModel
-        .findByIdAndUpdate(mnTkId, { $set: changes })
-        .exec();
-      return updated;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
