@@ -133,4 +133,31 @@ export class GeneralInfoDbService implements OnModuleInit {
       throw new BadRequestException('An unknown error occurred');
     }
   }
+
+  async updateToneToken(payload: UpdateMnTokenDto) {
+    try {
+      const { token, isProd } = payload;
+      const updateField = isProd ? 'toneConfig.tkProd' : 'toneConfig.tkDev';
+
+      const updated = await this.generalInfoDbModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: { [updateField]: token } },
+          { new: true },
+        )
+        .exec();
+
+      if (!updated) {
+        throw new BadRequestException('Failed to update Tone token config');
+      }
+
+      this.generalConfig = updated;
+      return this.generalConfig;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
 }
