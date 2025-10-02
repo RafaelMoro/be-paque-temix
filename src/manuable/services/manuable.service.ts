@@ -42,12 +42,17 @@ import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { PROD_ENV } from '@/app.constant';
+import {
+  TokenManagerService,
+  TokenOperations,
+} from '@/token-manager/services/token-manager.service';
 
 @Injectable()
 export class ManuableService {
   constructor(
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private generalInfoDbService: GeneralInfoDbService,
+    private tokenManagerService: TokenManagerService,
   ) {}
 
   /**
@@ -211,104 +216,67 @@ export class ManuableService {
   }
 
   /**
+   * Returns token operations for Manuable API integration with TokenManagerService
+   */
+  private getManuableTokenOperations(): TokenOperations {
+    return {
+      createNewToken: async () => {
+        const token = await this.getManuableSession();
+        if (!token) {
+          throw new BadRequestException(MANUABLE_FAILED_CREATE_TOKEN);
+        }
+        return token;
+      },
+      updateStoredToken: async (token: string, isProd: boolean) => {
+        await this.generalInfoDbService.updateMnToken({ token, isProd });
+      },
+      getStoredToken: async (isProd: boolean) => {
+        return await this.generalInfoDbService.getMnTk({ isProd });
+      },
+    };
+  }
+
+  /**
    * Generic helper to execute Manuable API operations with automatic token management.
-   * Handles token creation, validation, and 401 retry logic.
+   * Uses TokenManagerService for consistent token handling across providers.
    */
   private async executeWithManuableToken<T>(
     operation: (token: string) => Promise<T>,
     operationName: string,
   ): Promise<{ result: T; messages: string[] }> {
-    const messages: string[] = [];
+    const env = this.configService.environment;
+    const isProd = env === PROD_ENV;
 
-    try {
-      // 1. Get existing token
-      const env = this.configService.environment;
-      const isProd = env === PROD_ENV;
-      const apiKey = await this.generalInfoDbService.getMnTk({ isProd });
-
-      if (!apiKey) {
-        messages.push(`Mn: Creating token for ${operationName}`);
-        const newToken = await this.createToken();
-        const result = await operation(newToken.mnTk);
-        messages.push(`Mn: ${operationName} completed successfully`);
-        return { result, messages };
-      }
-
-      messages.push('Mn: Token valid');
-
-      try {
-        // 2. Try with existing token
-        const result = await operation(apiKey);
-        messages.push(`Mn: ${operationName} completed successfully`);
-        return { result, messages };
-      } catch (error) {
-        // Handle 401 unauthorized - retry with new token
-        if (
-          error instanceof Error &&
-          error.message === 'Request failed with status code 401'
-        ) {
-          messages.push(
-            `Mn: Token expired, creating new token for ${operationName}`,
-          );
-          const newToken = await this.updateOldToken();
-          const result = await operation(newToken);
-          messages.push(
-            `Mn: ${operationName} completed successfully with new token`,
-          );
-          return { result, messages };
-        }
-        throw error;
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        messages.push(`Mn: ${error.message}`);
-        throw error;
-      }
-      messages.push(`Mn: An unknown error occurred during ${operationName}`);
-      throw new BadRequestException(
-        `An unknown error occurred during ${operationName}`,
-      );
-    }
+    return this.tokenManagerService.executeWithTokenManagement(
+      operation,
+      operationName,
+      isProd,
+      this.getManuableTokenOperations(),
+      'Mn',
+    );
   }
 
   /**
    * Generic helper to execute operations that return unauthorized messages and need retry logic.
-   * Handles the pattern where an operation might return MANUABLE_ERROR_UNAUTHORIZED in messages,
-   * requiring a retry with a new token and a fallback operation.
+   * Uses TokenManagerService for consistent retry behavior across providers.
    */
   private async executeWithRetryOnUnauthorized<T, R>(
     initialOperation: () => Promise<{ messages: string[]; result: T }>,
     retryOperation: (token: string) => Promise<R>,
     operationName: string,
   ): Promise<{ messages: string[]; result: T | R }> {
-    try {
-      const res = await initialOperation();
-      const messages: string[] = [...res.messages];
+    const env = this.configService.environment;
+    const isProd = env === PROD_ENV;
 
-      if (res?.messages.includes(MANUABLE_ERROR_UNAUTHORIZED)) {
-        messages.push(
-          `Mn: Attempting to retry ${operationName} with a new token`,
-        );
-        const token = await this.updateOldToken();
-        const result = await retryOperation(token);
-
-        messages.push(`Mn: ${operationName} completed successfully`);
-        return {
-          result,
-          messages,
-        };
-      }
-
-      return {
-        result: res.result,
-        messages,
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
+    return this.tokenManagerService.executeWithRetryOnUnauthorized(
+      initialOperation,
+      retryOperation,
+      operationName,
+      MANUABLE_ERROR_UNAUTHORIZED,
+      this.getManuableTokenOperations(),
+      isProd,
+      'Mn',
+    );
   }
 
   /**
