@@ -107,4 +107,5 @@ export interface T1CreateGuideRequest {
     email: string;
     reference: string;
   };
+  notifyMe: boolean; // Whether to send notifications or not
 }

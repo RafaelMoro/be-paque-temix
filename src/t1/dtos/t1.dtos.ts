@@ -197,4 +197,11 @@ export class CreateGuideToneRequestDto {
     description: 'Destination address',
   })
   readonly destination: ToneAddressDto;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Whether to send notifications or not',
+  })
+  readonly notifyMe: boolean; // Whether to send notifications or not
 }

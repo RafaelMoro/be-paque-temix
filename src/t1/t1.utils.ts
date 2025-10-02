@@ -104,10 +104,12 @@ export const formatPayloadCreateGuideT1 = ({
   payload,
   quoteToken,
   storeId,
+  notifyMe,
 }: {
   payload: T1CreateGuideRequest;
   quoteToken: string;
   storeId: string;
+  notifyMe: boolean;
 }): T1ExternalCreateGuideRequest => {
   return {
     contenido: payload.parcel.content, // Max 25 characters
@@ -138,7 +140,7 @@ export const formatPayloadCreateGuideT1 = ({
 
     // Rest fields
     generar_recoleccion: false, // Default value - can be made configurable
-    tiene_notificacion: true, // Default value - can be made configurable
+    tiene_notificacion: notifyMe,
     origen_guia: 't1envios',
     comercio_id: storeId,
     token_quote: quoteToken,
