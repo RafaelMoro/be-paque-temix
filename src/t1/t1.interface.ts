@@ -45,7 +45,7 @@ export interface T1GetQuoteResponse {
   result: T1QuoteResult[];
 }
 
-export interface CreateGuideT1Request {
+export interface T1ExternalCreateGuideRequest {
   contenido: string; // Max 25 characters
   // Origin
   nombre_origen: string; // Max 25 characters
@@ -77,4 +77,34 @@ export interface CreateGuideT1Request {
   origen_guia: string;
   comercio_id: string;
   token_quote: string;
+}
+
+export interface T1CreateGuideRequest {
+  parcel: {
+    content: string;
+  };
+  origin: {
+    name: string;
+    lastName: string;
+    street1: string;
+    neighborhood: string;
+    external_number: string;
+    town: string; // (Municipio)
+    state: string;
+    phone: string;
+    email: string;
+    reference: string;
+  };
+  destination: {
+    name: string;
+    lastName: string;
+    street1: string;
+    neighborhood: string;
+    external_number: string;
+    town: string; // (Municipio)
+    state: string;
+    phone: string;
+    email: string;
+    reference: string;
+  };
 }
