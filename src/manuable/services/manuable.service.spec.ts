@@ -18,7 +18,6 @@ import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entit
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
-  MANUABLE_FAILED_TOKEN,
   MANUABLE_ERROR_UNAUTHORIZED,
   QUOTE_MANUABLE_ENDPOINT,
   CREATE_GUIDE_MANUABLE_ENDPOINT,
@@ -80,15 +79,15 @@ describe('ManuableService', () => {
               pwd: 's3cr3t',
               uri: 'https://mn.example.com',
             },
+            environment: 'development', // Default to development environment
           },
         },
         {
           provide: GeneralInfoDbService,
           useValue: {
             // minimal mocked API used across tests
-            createMnTk: jest.fn(),
             getMnTk: jest.fn(),
-            updateMbTk: jest.fn(),
+            updateMnToken: jest.fn(),
           },
         },
       ],
@@ -148,22 +147,29 @@ describe('ManuableService', () => {
 
   it('createToken returns newly created token record when session returns token', async () => {
     const token = 'mn-session-token';
-    const created: GeneralInfoDbDoc = {
-      _id: 'id1',
-      mnTk: token,
-    } as unknown as GeneralInfoDbDoc;
+    const mockConfigDoc = {
+      configId: 'global',
+      mnConfig: {
+        tkProd: '',
+        tkDev: token,
+      },
+    } as GeneralInfoDbDoc;
+
     const sessionSpy = jest
       .spyOn(service, 'getManuableSession')
       .mockResolvedValueOnce(token);
-    const createMnTkMock = jest
-      .spyOn(generalInfoDb, 'createMnTk')
-      .mockResolvedValueOnce(created);
+    const updateMnTokenMock = jest
+      .spyOn(generalInfoDb, 'updateMnToken')
+      .mockResolvedValueOnce(mockConfigDoc);
 
     const res = await service.createToken();
 
     expect(sessionSpy).toHaveBeenCalledTimes(1);
-    expect(createMnTkMock).toHaveBeenCalledWith(token);
-    expect(res).toBe(created);
+    expect(updateMnTokenMock).toHaveBeenCalledWith({
+      token,
+      isProd: false, // development environment
+    });
+    expect(res).toEqual({ mnTk: token });
   });
 
   it('createToken throws BadRequestException when session returns no token', async () => {
@@ -266,30 +272,29 @@ describe('ManuableService', () => {
     );
   });
 
-  it('updateOldToken updates token and returns new token', async () => {
-    const getSessionSpy = jest
+  it('updateOldToken calls token update with a new token', async () => {
+    const token = 'new-token';
+    const mockConfigDoc = {
+      configId: 'global',
+      mnConfig: {
+        tkProd: '',
+        tkDev: token,
+      },
+    } as GeneralInfoDbDoc;
+
+    const sessionSpy = jest
       .spyOn(service, 'getManuableSession')
-      .mockResolvedValueOnce('new-token');
-    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce({
-      _id: 'oldId',
-      mnTk: 'old-token',
-    });
-    (generalInfoDb.updateMbTk as jest.Mock).mockResolvedValueOnce(null);
+      .mockResolvedValueOnce(token);
+    jest
+      .spyOn(generalInfoDb, 'updateMnToken')
+      .mockResolvedValueOnce(mockConfigDoc);
 
-    const res = await service.updateOldToken();
+    await service.updateOldToken();
 
-    expect(getSessionSpy).toHaveBeenCalledTimes(1);
-    expect((generalInfoDb.getMnTk as jest.Mock).mock.calls.length).toBe(1);
-    const updateCalls = (generalInfoDb.updateMbTk as jest.Mock).mock
-      .calls as unknown[];
-    expect(updateCalls.length).toBeGreaterThan(0);
-    const [firstUpdateArg] = updateCalls[0] as [
-      { changes: { mnTkId: string; mnTk: string } },
-    ];
-    expect(firstUpdateArg).toEqual({
-      changes: { mnTkId: 'oldId', mnTk: 'new-token' },
-    });
-    expect(res).toBe('new-token');
+    expect(sessionSpy).toHaveBeenCalledTimes(1);
+    const updateCalls = (generalInfoDb.updateMnToken as jest.Mock).mock.calls;
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toEqual([{ token, isProd: false }]); // development environment
   });
 
   it('updateOldToken throws when new token cannot be created', async () => {
@@ -297,17 +302,6 @@ describe('ManuableService', () => {
 
     await expect(service.updateOldToken()).rejects.toThrow(
       MANUABLE_FAILED_CREATE_TOKEN,
-    );
-  });
-
-  it('updateOldToken throws when old token missing', async () => {
-    jest
-      .spyOn(service, 'getManuableSession')
-      .mockResolvedValueOnce('new-token');
-    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce(null);
-
-    await expect(service.updateOldToken()).rejects.toThrow(
-      MANUABLE_FAILED_TOKEN,
     );
   });
 
