@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsBoolean } from 'class-validator';
 
 export class GeneralInfoDbDto {
   @IsString()
@@ -11,4 +11,13 @@ export class UpdateGeneralInfoDbDto extends PartialType(GeneralInfoDbDto) {
   @IsString()
   @IsNotEmpty()
   readonly mnTkId: string;
+}
+
+export class UpdateMnTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  readonly token: string;
+
+  @IsBoolean()
+  readonly isProd: boolean;
 }

@@ -6,7 +6,10 @@ import {
   GeneralInfoDb,
   GeneralInfoDbDoc,
 } from '../entities/general-info-db.entity';
-import { UpdateGeneralInfoDbDto } from '../dtos/general-info-db.dto';
+import {
+  UpdateGeneralInfoDbDto,
+  UpdateMnTokenDto,
+} from '../dtos/general-info-db.dto';
 
 @Injectable()
 export class GeneralInfoDbService implements OnModuleInit {
@@ -95,6 +98,33 @@ export class GeneralInfoDbService implements OnModuleInit {
 
       // Return the appropriate token based on isProd parameter
       return isProd ? config.mnConfig.tkProd : config.mnConfig.tkDev;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateMnToken(payload: UpdateMnTokenDto) {
+    try {
+      const { token, isProd } = payload;
+      const updateField = isProd ? 'mnConfig.tkProd' : 'mnConfig.tkDev';
+
+      const updated = await this.generalInfoDbModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: { [updateField]: token } },
+          { new: true },
+        )
+        .exec();
+
+      if (!updated) {
+        throw new BadRequestException('Failed to update MN token config');
+      }
+
+      this.generalConfig = updated;
+      return this.generalConfig;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
