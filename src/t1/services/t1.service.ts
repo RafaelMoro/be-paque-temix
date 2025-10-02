@@ -16,11 +16,13 @@ import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
+import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 
 @Injectable()
 export class T1Service {
   constructor(
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
+    private generalInfoDbService: GeneralInfoDbService,
   ) {}
 
   async getQuote(
