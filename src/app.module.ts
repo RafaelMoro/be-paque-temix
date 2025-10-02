@@ -19,6 +19,7 @@ import { ManuableModule } from './manuable/manuable.module';
 import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 import { QuotesModule } from './quotes/quotes.module';
 import { GlobalConfigsModule } from './global-configs/global-configs.module';
+import { TokenManagerModule } from './token-manager/token-manager.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { GlobalConfigsModule } from './global-configs/global-configs.module';
     GeneralInfoDbModule,
     QuotesModule,
     GlobalConfigsModule,
+    TokenManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
