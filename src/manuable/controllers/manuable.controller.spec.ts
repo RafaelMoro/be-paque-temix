@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ManuableController } from './manuable.controller';
 import { ManuableService } from '../services/manuable.service';
-import { CreateGuideMnRequestDto } from '../manuable.dto';
+import { CreateGuideMnRequestDto } from '../dtos/manuable.dto';
 import {
   CreateGuideMnDataResponse,
   GetGuidesMnDataResponse,

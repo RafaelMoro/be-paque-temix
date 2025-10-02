@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 
 import { Example, ExampleDoc } from './example.entity';
 import { ManuableService } from './manuable/services/manuable.service';
-import { CreateGuideMnRequestDto } from './manuable/manuable.dto';
+import { CreateGuideMnRequestDto } from './manuable/dtos/manuable.dto';
 
 @Injectable()
 export class AppService {
@@ -28,6 +28,7 @@ export class AppService {
     }
   }
 
+  // TODO: Remove service
   async tempCreateGuide(data: CreateGuideMnRequestDto) {
     try {
       return this.manuableServices.createGuideWithAutoRetry(data);
