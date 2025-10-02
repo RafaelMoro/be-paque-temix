@@ -90,6 +90,23 @@ export class GeneralInfoDbService implements OnModuleInit {
     }
   }
 
+  async getToneTk({ isProd }: { isProd: boolean }) {
+    try {
+      const config = await this.getConfig();
+      if (!config) {
+        return null;
+      }
+
+      // Return the appropriate token based on isProd parameter
+      return isProd ? config.toneConfig.tkProd : config.toneConfig.tkDev;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   async updateMnToken(payload: UpdateMnTokenDto) {
     try {
       const { token, isProd } = payload;
