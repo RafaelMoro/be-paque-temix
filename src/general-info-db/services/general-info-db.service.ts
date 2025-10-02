@@ -72,14 +72,29 @@ export class GeneralInfoDbService implements OnModuleInit {
     }
   }
 
-  async getMnTk() {
+  async getConfig() {
     try {
-      const mnTk = await this.generalInfoDbModel.find().exec();
-      if (mnTk.length === 0) {
+      if (!this.generalConfig) {
+        await this.ensureConfigExists();
+      }
+      return this.generalConfig;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getMnTk({ isProd }: { isProd: boolean }) {
+    try {
+      const config = await this.getConfig();
+      if (!config) {
         return null;
       }
-      const [token] = mnTk;
-      return token;
+
+      // Return the appropriate token based on isProd parameter
+      return isProd ? config.mnConfig.tkProd : config.mnConfig.tkDev;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
