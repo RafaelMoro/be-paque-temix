@@ -10,7 +10,7 @@ import {
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
-import { T1GetQuoteResponse } from '../t1.interface';
+import { T1GetQuoteResponse, T1GetTokenResponse } from '../t1.interface';
 import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -24,6 +24,40 @@ export class T1Service {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private generalInfoDbService: GeneralInfoDbService,
   ) {}
+
+  async createNewTk() {
+    try {
+      const tkUri = this.configService.t1.tkUri!;
+      const clientId = this.configService.t1.tkClientId!;
+      const clientSecret = this.configService.t1.tkClientSecret!;
+      const username = this.configService.t1.tkUsername!;
+      const password = this.configService.t1.tkPassword!;
+      const payload = {
+        grant_type: 'password',
+        client_id: clientId,
+        client_secret: clientSecret,
+        username,
+        password,
+      };
+
+      const response: AxiosResponse<T1GetTokenResponse, unknown> =
+        await axios.post(tkUri, payload, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+      const accessToken = response?.data?.access_token;
+      console.log('accessToken', accessToken);
+      return {
+        token: accessToken,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
 
   async getQuote(
     payload: GetQuoteDto,
