@@ -81,12 +81,17 @@ export class T1Service {
   /**
    * Private method to fetch quotes from T1 API with the given token
    */
-  private async fetchQuotesWithToken(
-    payloadFormatted: any,
-    apiKey: string,
-    config: GlobalConfigsDoc,
-    messages: string[],
-  ): Promise<ExtApiGetQuoteResponse> {
+  private async fetchQuotesWithToken({
+    payloadFormatted,
+    apiKey,
+    config,
+    messages,
+  }: {
+    payloadFormatted: any;
+    apiKey: string;
+    config: GlobalConfigsDoc;
+    messages: string[];
+  }): Promise<ExtApiGetQuoteResponse> {
     const uri = this.configService.t1.uri!;
     const storeId = this.configService.t1.storeId!;
 
@@ -150,21 +155,21 @@ export class T1Service {
         messages.push('T1: New token created and retrieved successfully');
 
         // Use the new API key to fetch quotes
-        return await this.fetchQuotesWithToken(
+        return await this.fetchQuotesWithToken({
           payloadFormatted,
-          newApiKey,
+          apiKey: newApiKey,
           config,
           messages,
-        );
+        });
       }
 
       // If API key exists, use it directly to fetch quotes
-      return await this.fetchQuotesWithToken(
+      return await this.fetchQuotesWithToken({
         payloadFormatted,
         apiKey,
         config,
         messages,
-      );
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
