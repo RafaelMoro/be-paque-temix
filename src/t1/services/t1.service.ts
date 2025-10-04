@@ -5,6 +5,7 @@ import axios, { AxiosResponse } from 'axios';
 import config from '@/config';
 import {
   QUOTE_T1_ENDPOINT,
+  T1_MISSING_ACCESS_TOKEN,
   T1_MISSING_API_KEY_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
@@ -17,6 +18,7 @@ import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entit
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
+import { PROD_ENV } from '@/app.constant';
 
 @Injectable()
 export class T1Service {
@@ -27,6 +29,8 @@ export class T1Service {
 
   async createNewTk() {
     try {
+      const messages: string[] = [];
+
       const tkUri = this.configService.t1.tkUri!;
       const clientId = this.configService.t1.tkClientId!;
       const clientSecret = this.configService.t1.tkClientSecret!;
@@ -47,9 +51,25 @@ export class T1Service {
           },
         });
       const accessToken = response?.data?.access_token;
-      console.log('accessToken', accessToken);
+      console.log('data', response?.data);
+
+      // Store the token in the database
+      if (!accessToken) {
+        throw new BadRequestException(T1_MISSING_ACCESS_TOKEN);
+      }
+      messages.push('Token retrieved successfully');
+      const env = this.configService.environment;
+      const isProd = env === PROD_ENV;
+
+      await this.generalInfoDbService.updateToneToken({
+        token: accessToken,
+        isProd,
+      });
+      messages.push('Token stored successfully');
+
       return {
         token: accessToken,
+        messages,
       };
     } catch (error) {
       if (error instanceof Error) {
