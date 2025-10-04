@@ -6,7 +6,6 @@ import config from '@/config';
 import {
   QUOTE_T1_ENDPOINT,
   T1_MISSING_ACCESS_TOKEN,
-  T1_MISSING_API_KEY_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
@@ -23,12 +22,17 @@ import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { PROD_ENV } from '@/app.constant';
+import {
+  TokenManagerService,
+  TokenOperations,
+} from '@/token-manager/services/token-manager.service';
 
 @Injectable()
 export class T1Service {
   constructor(
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private generalInfoDbService: GeneralInfoDbService,
+    private tokenManagerService: TokenManagerService,
   ) {}
 
   /**
@@ -64,6 +68,69 @@ export class T1Service {
       username,
       password,
     };
+  }
+
+  /**
+   * Returns token operations for T1 API integration with TokenManagerService
+   */
+  private getT1TokenOperations(): TokenOperations {
+    return {
+      createNewToken: async () => {
+        this.validateT1Config(); // Validate config before creating token
+        const tkUri = this.configService.t1.tkUri!;
+        const clientId = this.configService.t1.tkClientId!;
+        const clientSecret = this.configService.t1.tkClientSecret!;
+        const username = this.configService.t1.tkUsername!;
+        const password = this.configService.t1.tkPassword!;
+
+        const payload = {
+          grant_type: 'password',
+          client_id: clientId,
+          client_secret: clientSecret,
+          username,
+          password,
+        };
+
+        const response: AxiosResponse<T1GetTokenResponse, unknown> =
+          await axios.post(tkUri, payload, {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          });
+
+        const accessToken = response?.data?.access_token;
+        if (!accessToken) {
+          throw new BadRequestException(T1_MISSING_ACCESS_TOKEN);
+        }
+        return accessToken;
+      },
+      updateStoredToken: async (token: string, isProd: boolean) => {
+        await this.generalInfoDbService.updateToneToken({ token, isProd });
+      },
+      getStoredToken: async (isProd: boolean) => {
+        return await this.generalInfoDbService.getToneTk({ isProd });
+      },
+    };
+  }
+
+  /**
+   * Generic helper to execute T1 API operations with automatic token management.
+   * Uses TokenManagerService for consistent token handling across providers.
+   */
+  private async executeWithT1Token<T>(
+    operation: (token: string) => Promise<T>,
+    operationName: string,
+  ): Promise<{ result: T; messages: string[] }> {
+    const env = this.configService.environment;
+    const isProd = env === PROD_ENV;
+
+    return this.tokenManagerService.executeWithTokenManagement(
+      operation,
+      operationName,
+      isProd,
+      this.getT1TokenOperations(),
+      'T1',
+    );
   }
 
   async createNewTk() {
@@ -116,19 +183,52 @@ export class T1Service {
   }
 
   /**
-   * Private method to fetch quotes from T1 API with the given token
+   * This service is to get quotes from T1 API with automatic token management and retry logic.
+   * Similar to retrieveManuableQuotes, it handles token creation and retry on authorization failures.
    */
-  private async fetchQuotesWithToken({
-    payloadFormatted,
-    apiKey,
-    config,
-    messages,
-  }: {
-    payloadFormatted: T1FormattedPayload;
-    apiKey: string;
-    config: GlobalConfigsDoc;
-    messages: string[];
-  }): Promise<ExtApiGetQuoteResponse> {
+  async retrieveT1Quotes(
+    payload: GetQuoteDto,
+    config: GlobalConfigsDoc,
+  ): Promise<ExtApiGetQuoteResponse> {
+    const storeId = this.configService.t1.storeId!;
+    const payloadFormatted = formatPayloadT1({ payload, storeId });
+
+    const { result: quotes, messages } = await this.executeWithT1Token(
+      (token) => this.fetchT1Quotes(payloadFormatted, token),
+      'quote fetching',
+    );
+
+    if (!quotes) {
+      messages.push('T1: Failed to fetch quotes');
+      return {
+        messages,
+        quotes: [],
+      };
+    }
+
+    const formattedQuotes = formatT1QuoteData(quotes);
+    const { quotes: quotesCalculated, messages: updatedMessages } =
+      calculateTotalQuotes({
+        quotes: formattedQuotes,
+        provider: 'TONE',
+        config,
+        messages,
+        providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
+      });
+
+    return {
+      quotes: quotesCalculated,
+      messages: updatedMessages,
+    };
+  }
+
+  /**
+   * Private method to fetch quotes from T1 API with a given token
+   */
+  private async fetchT1Quotes(
+    payloadFormatted: T1FormattedPayload,
+    token: string,
+  ): Promise<T1GetQuoteResponse> {
     const uri = this.configService.t1.uri!;
     const storeId = this.configService.t1.storeId!;
 
@@ -143,74 +243,18 @@ export class T1Service {
     const response: AxiosResponse<T1GetQuoteResponse, unknown> =
       await axios.post(url, payloadFormatted, {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${token}`,
           shop_id: storeId,
         },
       });
-    const data = response?.data;
-    const formattedQuotes = formatT1QuoteData(data);
-    const { quotes, messages: updatedMessages } = calculateTotalQuotes({
-      quotes: formattedQuotes,
-      provider: 'TONE',
-      config,
-      messages,
-      providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
-    });
-    return {
-      quotes,
-      messages: updatedMessages,
-    };
+
+    return response?.data;
   }
 
   async getQuote(
     payload: GetQuoteDto,
     config: GlobalConfigsDoc,
   ): Promise<ExtApiGetQuoteResponse> {
-    try {
-      const messages: string[] = [];
-
-      // Get API key from database instead of config
-      const env = this.configService.environment;
-      const isProd = env === PROD_ENV;
-      const apiKey = await this.generalInfoDbService.getToneTk({ isProd });
-
-      const storeId = this.configService.t1.storeId!;
-
-      const payloadFormatted = formatPayloadT1({ payload, storeId });
-
-      if (!apiKey) {
-        // If no API key exists, create a new token first
-        messages.push('T1: No API key found, creating new token');
-        const { messages: messagesGotten } = await this.createNewTk();
-        messages.push(...messagesGotten);
-
-        // Get the newly created API key
-        const newApiKey = await this.generalInfoDbService.getToneTk({ isProd });
-        if (!newApiKey) {
-          throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
-        }
-
-        // Use the new API key to fetch quotes
-        return await this.fetchQuotesWithToken({
-          payloadFormatted,
-          apiKey: newApiKey,
-          config,
-          messages,
-        });
-      }
-
-      // If API key exists, use it directly to fetch quotes
-      return await this.fetchQuotesWithToken({
-        payloadFormatted,
-        apiKey,
-        config,
-        messages,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
+    return this.retrieveT1Quotes(payload, config);
   }
 }
