@@ -55,7 +55,6 @@ export class T1Service {
           },
         });
       const accessToken = response?.data?.access_token;
-      console.log('data', response?.data);
 
       // Store the token in the database
       if (!accessToken) {
