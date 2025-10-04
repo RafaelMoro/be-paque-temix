@@ -68,7 +68,6 @@ export class T1Service {
       messages.push('Token stored successfully');
 
       return {
-        token: accessToken,
         messages,
       };
     } catch (error) {
