@@ -46,7 +46,6 @@ import { TokenManagerModule } from './token-manager/token-manager.module';
         GUIA_ENVIA_URI: Joi.string().uri().required(),
         T1_URI: Joi.string().uri().required(),
         T1_TK_URI: Joi.string().uri().required(),
-        T1_KEY: Joi.string().required(),
         T1_CLIENT_ID: Joi.string().required(),
         T1_CLIENT_SECRET: Joi.string().required(),
         T1_USERNAME: Joi.string().email().required(),

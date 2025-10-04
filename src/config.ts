@@ -24,7 +24,6 @@ export default registerAs('config', () => {
     T1_CLIENT_SECRET,
     T1_USERNAME,
     T1_PASSWORD,
-    T1_KEY,
     T1_STORE_ID,
     PAKKE_KEY,
     PAKKE_URI,
@@ -61,7 +60,6 @@ export default registerAs('config', () => {
       uri: GUIA_ENVIA_URI,
     },
     t1: {
-      apiKey: T1_KEY,
       uri: T1_URI,
       tkUri: T1_TK_URI,
       tkClientId: T1_CLIENT_ID,
