@@ -96,8 +96,44 @@ export class T1Service {
       const payloadFormatted = formatPayloadT1({ payload, storeId });
 
       if (!apiKey) {
-        throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
+        // If no API key exists, create a new token first
+        messages.push('T1: No API key found, creating new token');
+        await this.createNewTk();
+
+        // Get the newly created API key
+        const newApiKey = await this.generalInfoDbService.getToneTk({ isProd });
+        if (!newApiKey) {
+          throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
+        }
+
+        messages.push('T1: New token created and retrieved successfully');
+        // Use the new API key for the rest of the method
+        const finalApiKey = newApiKey;
+
+        const url = `${uri}${QUOTE_T1_ENDPOINT}`;
+        const response: AxiosResponse<T1GetQuoteResponse, unknown> =
+          await axios.post(url, payloadFormatted, {
+            headers: {
+              Authorization: `Bearer ${finalApiKey}`,
+              shop_id: storeId,
+            },
+          });
+        const data = response?.data;
+        const formattedQuotes = formatT1QuoteData(data);
+        const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+          quotes: formattedQuotes,
+          provider: 'TONE',
+          config,
+          messages,
+          providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
+        });
+        return {
+          quotes,
+          messages: updatedMessages,
+        };
       }
+
+      // If API key exists, use it directly
       if (!uri) {
         throw new BadRequestException(T1_MISSING_URI_ERROR);
       }
