@@ -31,15 +31,49 @@ export class T1Service {
     private generalInfoDbService: GeneralInfoDbService,
   ) {}
 
+  /**
+   * Private method to validate T1 configuration variables
+   */
+  private validateT1Config() {
+    const tkUri = this.configService.t1.tkUri;
+    const clientId = this.configService.t1.tkClientId;
+    const clientSecret = this.configService.t1.tkClientSecret;
+    const username = this.configService.t1.tkUsername;
+    const password = this.configService.t1.tkPassword;
+
+    if (!tkUri) {
+      throw new BadRequestException('T1 token URI is missing');
+    }
+    if (!clientId) {
+      throw new BadRequestException('T1 client ID is missing');
+    }
+    if (!clientSecret) {
+      throw new BadRequestException('T1 client secret is missing');
+    }
+    if (!username) {
+      throw new BadRequestException('T1 username is missing');
+    }
+    if (!password) {
+      throw new BadRequestException('T1 password is missing');
+    }
+
+    return {
+      tkUri,
+      clientId,
+      clientSecret,
+      username,
+      password,
+    };
+  }
+
   async createNewTk() {
     try {
       const messages: string[] = [];
 
-      const tkUri = this.configService.t1.tkUri!;
-      const clientId = this.configService.t1.tkClientId!;
-      const clientSecret = this.configService.t1.tkClientSecret!;
-      const username = this.configService.t1.tkUsername!;
-      const password = this.configService.t1.tkPassword!;
+      // Validate T1 configuration
+      const { tkUri, clientId, clientSecret, username, password } =
+        this.validateT1Config();
+
       const payload = {
         grant_type: 'password',
         client_id: clientId,
