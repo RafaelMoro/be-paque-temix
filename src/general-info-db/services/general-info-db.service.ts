@@ -90,6 +90,23 @@ export class GeneralInfoDbService implements OnModuleInit {
     }
   }
 
+  async getToneTk({ isProd }: { isProd: boolean }) {
+    try {
+      const config = await this.getConfig();
+      if (!config) {
+        return null;
+      }
+
+      // Return the appropriate token based on isProd parameter
+      return isProd ? config.toneConfig.tkProd : config.toneConfig.tkDev;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   async updateMnToken(payload: UpdateMnTokenDto) {
     try {
       const { token, isProd } = payload;
@@ -105,6 +122,33 @@ export class GeneralInfoDbService implements OnModuleInit {
 
       if (!updated) {
         throw new BadRequestException('Failed to update MN token config');
+      }
+
+      this.generalConfig = updated;
+      return this.generalConfig;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateToneToken(payload: UpdateMnTokenDto) {
+    try {
+      const { token, isProd } = payload;
+      const updateField = isProd ? 'toneConfig.tkProd' : 'toneConfig.tkDev';
+
+      const updated = await this.generalInfoDbModel
+        .findOneAndUpdate(
+          { configId: 'global' },
+          { $set: { [updateField]: token } },
+          { new: true },
+        )
+        .exec();
+
+      if (!updated) {
+        throw new BadRequestException('Failed to update Tone token config');
       }
 
       this.generalConfig = updated;

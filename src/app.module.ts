@@ -19,6 +19,7 @@ import { ManuableModule } from './manuable/manuable.module';
 import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 import { QuotesModule } from './quotes/quotes.module';
 import { GlobalConfigsModule } from './global-configs/global-configs.module';
+import { TokenManagerModule } from './token-manager/token-manager.module';
 
 @Module({
   imports: [
@@ -44,7 +45,11 @@ import { GlobalConfigsModule } from './global-configs/global-configs.module';
         GUIA_ENVIA_KEY: Joi.string().required(),
         GUIA_ENVIA_URI: Joi.string().uri().required(),
         T1_URI: Joi.string().uri().required(),
-        T1_KEY: Joi.string().required(),
+        T1_TK_URI: Joi.string().uri().required(),
+        T1_CLIENT_ID: Joi.string().required(),
+        T1_CLIENT_SECRET: Joi.string().required(),
+        T1_USERNAME: Joi.string().email().required(),
+        T1_PASSWORD: Joi.string().required(),
         T1_STORE_ID: Joi.string().required(),
         PAKKE_KEY: Joi.string().required(),
         PAKKE_URI: Joi.string().uri().required(),
@@ -70,6 +75,7 @@ import { GlobalConfigsModule } from './global-configs/global-configs.module';
     GeneralInfoDbModule,
     QuotesModule,
     GlobalConfigsModule,
+    TokenManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
