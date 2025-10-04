@@ -136,39 +136,15 @@ export class T1Service {
   async createNewTk() {
     try {
       const messages: string[] = [];
-
-      // Validate T1 configuration
-      const { tkUri, clientId, clientSecret, username, password } =
-        this.validateT1Config();
-
-      const payload = {
-        grant_type: 'password',
-        client_id: clientId,
-        client_secret: clientSecret,
-        username,
-        password,
-      };
-
-      const response: AxiosResponse<T1GetTokenResponse, unknown> =
-        await axios.post(tkUri, payload, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        });
-      const accessToken = response?.data?.access_token;
-
-      // Store the token in the database
-      if (!accessToken) {
-        throw new BadRequestException(T1_MISSING_ACCESS_TOKEN);
-      }
-      messages.push('Token retrieved successfully');
       const env = this.configService.environment;
       const isProd = env === PROD_ENV;
 
-      await this.generalInfoDbService.updateToneToken({
-        token: accessToken,
-        isProd,
-      });
+      // Use token operations to create and store the new token
+      const tokenOps = this.getT1TokenOperations();
+      const newToken = await tokenOps.createNewToken();
+      await tokenOps.updateStoredToken(newToken, isProd);
+
+      messages.push('Token retrieved successfully');
       messages.push('Token stored successfully');
 
       return {
