@@ -84,7 +84,12 @@ export class T1Service {
   ): Promise<ExtApiGetQuoteResponse> {
     try {
       const messages: string[] = [];
-      const apiKey = this.configService.t1.apiKey!;
+
+      // Get API key from database instead of config
+      const env = this.configService.environment;
+      const isProd = env === PROD_ENV;
+      const apiKey = await this.generalInfoDbService.getToneTk({ isProd });
+
       const uri = this.configService.t1.uri!;
       const storeId = this.configService.t1.storeId!;
 
