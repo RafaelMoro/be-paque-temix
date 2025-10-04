@@ -96,6 +96,7 @@ export class T1Service {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
             },
+            timeout: 45000, // 45 seconds timeout
           });
 
         const accessToken = response?.data?.access_token;
@@ -222,6 +223,7 @@ export class T1Service {
           Authorization: `Bearer ${token}`,
           shop_id: storeId,
         },
+        timeout: 45000, // 45 seconds timeout
       });
 
     return response?.data;
