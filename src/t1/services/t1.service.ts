@@ -11,7 +11,11 @@ import {
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
 } from '../t1.constants';
-import { T1GetQuoteResponse, T1GetTokenResponse } from '../t1.interface';
+import {
+  T1GetQuoteResponse,
+  T1GetTokenResponse,
+  T1FormattedPayload,
+} from '../t1.interface';
 import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -87,7 +91,7 @@ export class T1Service {
     config,
     messages,
   }: {
-    payloadFormatted: any;
+    payloadFormatted: T1FormattedPayload;
     apiKey: string;
     config: GlobalConfigsDoc;
     messages: string[];
