@@ -148,15 +148,14 @@ export class T1Service {
       if (!apiKey) {
         // If no API key exists, create a new token first
         messages.push('T1: No API key found, creating new token');
-        await this.createNewTk();
+        const { messages: messagesGotten } = await this.createNewTk();
+        messages.push(...messagesGotten);
 
         // Get the newly created API key
         const newApiKey = await this.generalInfoDbService.getToneTk({ isProd });
         if (!newApiKey) {
           throw new BadRequestException(T1_MISSING_API_KEY_ERROR);
         }
-
-        messages.push('T1: New token created and retrieved successfully');
 
         // Use the new API key to fetch quotes
         return await this.fetchQuotesWithToken({
