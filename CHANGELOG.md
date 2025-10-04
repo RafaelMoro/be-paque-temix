@@ -1,3 +1,9 @@
+## v0.19.0 (2025-10-04)
+
+### Pull Requests
+[#27](https://github.com/RafaelMoro/be-paque-temix/pull/27) | Change general info dbs to singleton and add Tone into it
+
+
 ## v0.18.0 (2025-10-02)
 
 ### Pull Requests
