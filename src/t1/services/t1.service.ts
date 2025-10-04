@@ -78,6 +78,48 @@ export class T1Service {
     }
   }
 
+  /**
+   * Private method to fetch quotes from T1 API with the given token
+   */
+  private async fetchQuotesWithToken(
+    payloadFormatted: any,
+    apiKey: string,
+    config: GlobalConfigsDoc,
+    messages: string[],
+  ): Promise<ExtApiGetQuoteResponse> {
+    const uri = this.configService.t1.uri!;
+    const storeId = this.configService.t1.storeId!;
+
+    if (!uri) {
+      throw new BadRequestException(T1_MISSING_URI_ERROR);
+    }
+    if (!storeId) {
+      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+    }
+
+    const url = `${uri}${QUOTE_T1_ENDPOINT}`;
+    const response: AxiosResponse<T1GetQuoteResponse, unknown> =
+      await axios.post(url, payloadFormatted, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          shop_id: storeId,
+        },
+      });
+    const data = response?.data;
+    const formattedQuotes = formatT1QuoteData(data);
+    const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+      quotes: formattedQuotes,
+      provider: 'TONE',
+      config,
+      messages,
+      providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
+    });
+    return {
+      quotes,
+      messages: updatedMessages,
+    };
+  }
+
   async getQuote(
     payload: GetQuoteDto,
     config: GlobalConfigsDoc,
@@ -90,7 +132,6 @@ export class T1Service {
       const isProd = env === PROD_ENV;
       const apiKey = await this.generalInfoDbService.getToneTk({ isProd });
 
-      const uri = this.configService.t1.uri!;
       const storeId = this.configService.t1.storeId!;
 
       const payloadFormatted = formatPayloadT1({ payload, storeId });
@@ -107,61 +148,23 @@ export class T1Service {
         }
 
         messages.push('T1: New token created and retrieved successfully');
-        // Use the new API key for the rest of the method
-        const finalApiKey = newApiKey;
 
-        const url = `${uri}${QUOTE_T1_ENDPOINT}`;
-        const response: AxiosResponse<T1GetQuoteResponse, unknown> =
-          await axios.post(url, payloadFormatted, {
-            headers: {
-              Authorization: `Bearer ${finalApiKey}`,
-              shop_id: storeId,
-            },
-          });
-        const data = response?.data;
-        const formattedQuotes = formatT1QuoteData(data);
-        const { quotes, messages: updatedMessages } = calculateTotalQuotes({
-          quotes: formattedQuotes,
-          provider: 'TONE',
+        // Use the new API key to fetch quotes
+        return await this.fetchQuotesWithToken(
+          payloadFormatted,
+          newApiKey,
           config,
           messages,
-          providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
-        });
-        return {
-          quotes,
-          messages: updatedMessages,
-        };
+        );
       }
 
-      // If API key exists, use it directly
-      if (!uri) {
-        throw new BadRequestException(T1_MISSING_URI_ERROR);
-      }
-      if (!storeId) {
-        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
-      }
-
-      const url = `${uri}${QUOTE_T1_ENDPOINT}`;
-      const response: AxiosResponse<T1GetQuoteResponse, unknown> =
-        await axios.post(url, payloadFormatted, {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            shop_id: storeId,
-          },
-        });
-      const data = response?.data;
-      const formattedQuotes = formatT1QuoteData(data);
-      const { quotes, messages: updatedMessages } = calculateTotalQuotes({
-        quotes: formattedQuotes,
-        provider: 'TONE',
+      // If API key exists, use it directly to fetch quotes
+      return await this.fetchQuotesWithToken(
+        payloadFormatted,
+        apiKey,
         config,
         messages,
-        providerNotFoundMessage: T1_MISSING_PROVIDER_PROFIT_MARGIN,
-      });
-      return {
-        quotes,
-        messages: updatedMessages,
-      };
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
