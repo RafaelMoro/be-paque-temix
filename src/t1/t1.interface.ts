@@ -1,3 +1,5 @@
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
+
 export type T1Courier = 'EXPRESS' | 'DHL' | 'FEDEX' | 'UPS' | '99MIN' | 'AMPM';
 
 export interface T1FormattedPayload {
@@ -153,5 +155,14 @@ export interface T1ExternalCreateGuideResponse {
     guia: string;
     file: string;
     link_guia: string;
+  };
+}
+
+export interface CreateGuideToneDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: GlobalCreateGuideResponse | null;
   };
 }
