@@ -213,3 +213,56 @@ export class CreateGuideToneRequestDto {
   })
   readonly quoteToken: string;
 }
+
+export class CreateGuideToneDataDto {
+  @ApiProperty({ example: '794914961710' })
+  trackingNumber: string;
+
+  @ApiProperty({ example: 'T1' })
+  carrier: string;
+
+  @ApiProperty({ example: '600.54' })
+  price: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'URL to view the guide online',
+  })
+  guideLink: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: 'https://example.com/label.pdf',
+    description: 'URL to download the shipping label',
+  })
+  labelUrl: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Base64 encoded file content',
+  })
+  file: string | null;
+}
+
+export class CreateGuideToneDataWrapperDto {
+  @ApiProperty({ type: CreateGuideToneDataDto })
+  guide: CreateGuideToneDataDto;
+}
+
+export class CreateGuideToneResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: [String], example: ['Guide created successfully'] })
+  messages: string[];
+
+  @ApiProperty({
+    type: CreateGuideToneDataWrapperDto,
+  })
+  data: CreateGuideToneDataWrapperDto;
+}
