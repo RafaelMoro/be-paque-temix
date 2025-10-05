@@ -244,40 +244,54 @@ export class T1Service {
   }
 
   async createGuide(payload: T1CreateGuideRequest) {
-    try {
-      // const messages: string[] = [];
-      const uri = this.configService.t1.uri!;
-      const storeId = this.configService.t1.storeId!;
+    const storeId = this.configService.t1.storeId!;
 
-      const payloadFormatted = formatPayloadCreateGuideT1({
-        payload,
-        storeId,
-        notifyMe: payload.notifyMe,
-        quoteToken: payload.quoteToken,
+    const payloadFormatted = formatPayloadCreateGuideT1({
+      payload,
+      storeId,
+      notifyMe: payload.notifyMe,
+      quoteToken: payload.quoteToken,
+    });
+
+    const { result: guideResponse } = await this.executeWithT1Token(
+      (token) => this.createT1Guide(payloadFormatted, token),
+      'guide creation',
+    );
+
+    if (!guideResponse) {
+      throw new BadRequestException('T1: Failed to create guide');
+    }
+
+    return guideResponse;
+  }
+
+  /**
+   * Private method to create guide in T1 API with a given token
+   */
+  private async createT1Guide(
+    payloadFormatted: any,
+    token: string,
+  ): Promise<T1ExternalCreateGuideResponse> {
+    const uri = this.configService.t1.uri!;
+    const storeId = this.configService.t1.storeId!;
+
+    if (!uri) {
+      throw new BadRequestException(T1_MISSING_URI_ERROR);
+    }
+    if (!storeId) {
+      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+    }
+
+    const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
+    const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
+      await axios.post(url, payloadFormatted, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          shop_id: storeId,
+        },
+        timeout: 45000, // 45 seconds timeout
       });
 
-      if (!uri) {
-        throw new BadRequestException(T1_MISSING_URI_ERROR);
-      }
-      if (!storeId) {
-        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
-      }
-
-      const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
-      const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
-        await axios.post(url, payloadFormatted, {
-          headers: {
-            Authorization: `Bearer`,
-            shop_id: storeId,
-          },
-        });
-      const data = response?.data;
-      return data;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('An unknown error occurred');
-    }
+    return response?.data;
   }
 }
