@@ -4,3 +4,12 @@ export interface GeneralResponse {
   message: string | null;
   error: string | object;
 }
+
+export interface GlobalCreateGuideResponse {
+  trackingNumber: string;
+  carrier: string;
+  price: string;
+  guideLink?: string;
+  labelUrl?: string;
+  file?: string;
+}
