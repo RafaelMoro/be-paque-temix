@@ -135,8 +135,8 @@ export const formatManuableCreateGuideResponse = (
     trackingNumber: manuableGuide.tracking_number,
     carrier: manuableGuide.carrier,
     price: manuableGuide.price,
-    guideLink: manuableGuide.label_url,
+    guideLink: null,
     labelUrl: manuableGuide.label_url,
-    file: undefined, // Manuable doesn't provide a file field, only label_url
+    file: null, // Manuable doesn't provide a file field, only label_url
   };
 };

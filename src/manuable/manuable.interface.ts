@@ -187,8 +187,7 @@ export interface CreateGuideMnDataResponse
   error: null;
   messages: string[];
   data: {
-    guide: ManuableGuide | null;
-    standardGuide?: GlobalCreateGuideResponse;
+    guide: GlobalCreateGuideResponse | null;
   };
 }
 

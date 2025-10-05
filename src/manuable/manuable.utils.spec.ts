@@ -22,9 +22,9 @@ describe('Manuable Utils', () => {
         trackingNumber: 'MN789012345',
         carrier: 'FEDEX',
         price: '250.50',
-        guideLink: 'https://manuable.com/labels/MN789012345.pdf',
+        guideLink: null,
         labelUrl: 'https://manuable.com/labels/MN789012345.pdf',
-        file: undefined,
+        file: null,
       };
 
       const result = formatManuableCreateGuideResponse(mockManuableGuide);

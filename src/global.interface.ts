@@ -9,7 +9,7 @@ export interface GlobalCreateGuideResponse {
   trackingNumber: string;
   carrier: string;
   price: string;
-  guideLink?: string;
-  labelUrl?: string;
-  file?: string;
+  guideLink: string | null;
+  labelUrl: string | null;
+  file: string | null;
 }

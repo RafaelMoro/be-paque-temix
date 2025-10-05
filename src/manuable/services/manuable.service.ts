@@ -158,7 +158,7 @@ export class ManuableService {
       // Create standardized guide format if guide exists
       const standardGuide = guide
         ? formatManuableCreateGuideResponse(guide)
-        : undefined;
+        : null;
 
       return {
         version: npmVersion,
@@ -166,8 +166,7 @@ export class ManuableService {
         messages,
         error: null,
         data: {
-          guide,
-          standardGuide,
+          guide: standardGuide,
         },
       };
     } catch (error) {
