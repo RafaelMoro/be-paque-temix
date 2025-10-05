@@ -1,5 +1,6 @@
 import { GeneralResponse } from '@/global.interface';
 import { GetQuoteData } from '@/quotes/quotes.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 
 export type TypeServiceMn = 'standard' | 'express';
 
@@ -187,6 +188,7 @@ export interface CreateGuideMnDataResponse
   messages: string[];
   data: {
     guide: ManuableGuide | null;
+    standardGuide?: GlobalCreateGuideResponse;
   };
 }
 
