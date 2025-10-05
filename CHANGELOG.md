@@ -1,3 +1,9 @@
+## v0.20.1 (2025-10-05)
+
+### Pull Requests
+[#29](https://github.com/RafaelMoro/be-paque-temix/pull/29) | Removal of dead code (example entity, temp create guide, unused endpoints)
+
+
 ## v0.20.0 (2025-10-05)
 
 ### Pull Requests
