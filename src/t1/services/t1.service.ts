@@ -17,6 +17,7 @@ import {
   T1FormattedPayload,
   T1CreateGuideRequest,
   T1ExternalCreateGuideResponse,
+  CreateGuideToneDataResponse,
 } from '../t1.interface';
 import {
   formatPayloadCreateGuideT1,
@@ -30,7 +31,6 @@ import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { PROD_ENV } from '@/app.constant';
-import { GlobalCreateGuideResponse } from '@/global.interface';
 import {
   TokenManagerService,
   TokenOperations,
@@ -247,7 +247,7 @@ export class T1Service {
 
   async createGuide(
     payload: T1CreateGuideRequest,
-  ): Promise<GlobalCreateGuideResponse> {
+  ): Promise<CreateGuideToneDataResponse> {
     const storeId = this.configService.t1.storeId!;
 
     const payloadFormatted = formatPayloadCreateGuideT1({
@@ -257,7 +257,7 @@ export class T1Service {
       quoteToken: payload.quoteToken,
     });
 
-    const { result: guideResponse } = await this.executeWithT1Token(
+    const { result: guideResponse, messages } = await this.executeWithT1Token(
       (token) => this.createT1Guide(payloadFormatted, token),
       'guide creation',
     );
@@ -266,7 +266,18 @@ export class T1Service {
       throw new BadRequestException('T1: Failed to create guide');
     }
 
-    return formatT1CreateGuideResponse(guideResponse);
+    const standardGuide = formatT1CreateGuideResponse(guideResponse);
+    const npmVersion: string = this.configService.version!;
+
+    return {
+      version: npmVersion,
+      message: null,
+      messages,
+      error: null,
+      data: {
+        guide: standardGuide,
+      },
+    };
   }
 
   /**

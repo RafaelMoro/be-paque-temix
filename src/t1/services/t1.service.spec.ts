@@ -47,6 +47,7 @@ describe('T1Service', () => {
       storeId: 'test-store-id',
     },
     environment: 'development',
+    version: '1.0.0',
   };
 
   const mockPayload: GetQuoteDto = {
@@ -306,6 +307,7 @@ describe('T1Service', () => {
           storeId: 'test-store-id',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -334,6 +336,7 @@ describe('T1Service', () => {
           storeId: 'test-store-id',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -360,6 +363,7 @@ describe('T1Service', () => {
           storeId: '',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -706,7 +710,15 @@ describe('T1Service', () => {
       expect(utils.formatT1CreateGuideResponse).toHaveBeenCalledWith(
         mockGuideResponse,
       );
-      expect(result).toEqual(expectedFormattedResponse);
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        messages: ['Guide created successfully'],
+        error: null,
+        data: {
+          guide: expectedFormattedResponse,
+        },
+      });
     });
 
     it('should throw BadRequestException when TokenManagerService fails', async () => {
