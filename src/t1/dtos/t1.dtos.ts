@@ -218,7 +218,7 @@ export class CreateGuideToneDataDto {
   @ApiProperty({ example: '794914961710' })
   trackingNumber: string;
 
-  @ApiProperty({ example: 'T1' })
+  @ApiProperty({ example: 'DHL' })
   carrier: string;
 
   @ApiProperty({ example: '600.54' })
