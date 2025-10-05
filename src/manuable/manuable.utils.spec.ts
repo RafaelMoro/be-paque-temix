@@ -69,13 +69,10 @@ describe('Manuable Utils', () => {
 
       const result = formatManuableCreateGuideResponse(mockManuableGuide);
 
-      expect(result.guideLink).toBe(
-        'https://manuable.com/download/FDX987654321',
-      );
+      expect(result.guideLink).toBe(null);
       expect(result.labelUrl).toBe(
         'https://manuable.com/download/FDX987654321',
       );
-      expect(result.guideLink).toBe(result.labelUrl);
     });
 
     it('should handle price as string correctly', () => {
@@ -98,7 +95,7 @@ describe('Manuable Utils', () => {
       expect(typeof result.price).toBe('string');
     });
 
-    it('should set file as undefined since Manuable does not provide file field', () => {
+    it('should set file as null since Manuable does not provide file field', () => {
       const mockManuableGuide: ManuableGuide = {
         token: 'mn-token-333444',
         tracking_number: 'MN555666777',
@@ -114,7 +111,7 @@ describe('Manuable Utils', () => {
 
       const result = formatManuableCreateGuideResponse(mockManuableGuide);
 
-      expect(result.file).toBeUndefined();
+      expect(result.file).toBe(null);
     });
   });
 });

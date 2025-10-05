@@ -718,14 +718,13 @@ describe('ManuableService', () => {
         ],
         error: null,
         data: {
-          guide,
-          standardGuide: {
+          guide: {
             trackingNumber: 'TRK123',
             carrier: 'DHL',
             price: '100.00',
-            guideLink: 'http://example.com/label',
+            guideLink: null,
             labelUrl: 'http://example.com/label',
-            file: undefined,
+            file: null,
           },
         },
       });
