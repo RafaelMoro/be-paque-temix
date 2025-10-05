@@ -692,6 +692,12 @@ describe('ManuableService', () => {
       });
       tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
 
+      // Spy on the formatting function
+      const formatManuableCreateGuideResponseSpy = jest.spyOn(
+        utils,
+        'formatManuableCreateGuideResponse',
+      );
+
       const result = await service.createGuideWithAutoRetry(payload as any);
 
       expect(mockExecuteWithRetry).toHaveBeenCalledWith(
@@ -712,9 +718,19 @@ describe('ManuableService', () => {
         ],
         error: null,
         data: {
-          guide,
+          guide: {
+            trackingNumber: 'TRK123',
+            carrier: 'DHL',
+            price: '100.00',
+            guideLink: null,
+            labelUrl: 'http://example.com/label',
+            file: null,
+          },
         },
       });
+
+      // Verify that the formatting function was called with the guide
+      expect(formatManuableCreateGuideResponseSpy).toHaveBeenCalledWith(guide);
     });
 
     it('throws BadRequestException when TokenManagerService fails', async () => {

@@ -6,3 +6,4 @@ export const T1_MISSING_PROVIDER_PROFIT_MARGIN =
   'TONE provider not found in global config';
 
 export const QUOTE_T1_ENDPOINT = '/quote/create';
+export const CREATE_GUIDE_T1_ENDPOINT = '/guide/create';

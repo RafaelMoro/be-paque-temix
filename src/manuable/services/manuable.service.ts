@@ -36,6 +36,7 @@ import {
   formatManuableQuote,
   formatPayloadManuable,
   formatPayloadRequestMn,
+  formatManuableCreateGuideResponse,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -153,13 +154,19 @@ export class ManuableService {
           'guide creation',
         );
       const npmVersion: string = this.configService.version!;
+
+      // Create standardized guide format if guide exists
+      const standardGuide = guide
+        ? formatManuableCreateGuideResponse(guide)
+        : null;
+
       return {
         version: npmVersion,
         message: null,
         messages,
         error: null,
         data: {
-          guide,
+          guide: standardGuide,
         },
       };
     } catch (error) {

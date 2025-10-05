@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 
 import config from '@/config';
 import {
+  CREATE_GUIDE_T1_ENDPOINT,
   QUOTE_T1_ENDPOINT,
   T1_MISSING_ACCESS_TOKEN,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
@@ -14,8 +15,16 @@ import {
   T1GetQuoteResponse,
   T1GetTokenResponse,
   T1FormattedPayload,
+  T1CreateGuideRequest,
+  T1ExternalCreateGuideResponse,
+  CreateGuideToneDataResponse,
 } from '../t1.interface';
-import { formatPayloadT1, formatT1QuoteData } from '../t1.utils';
+import {
+  formatPayloadCreateGuideT1,
+  formatPayloadT1,
+  formatT1QuoteData,
+  formatT1CreateGuideResponse,
+} from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -234,5 +243,70 @@ export class T1Service {
     config: GlobalConfigsDoc,
   ): Promise<ExtApiGetQuoteResponse> {
     return this.retrieveT1Quotes(payload, config);
+  }
+
+  async createGuide(
+    payload: T1CreateGuideRequest,
+  ): Promise<CreateGuideToneDataResponse> {
+    const storeId = this.configService.t1.storeId!;
+
+    const payloadFormatted = formatPayloadCreateGuideT1({
+      payload,
+      storeId,
+      notifyMe: payload.notifyMe,
+      quoteToken: payload.quoteToken,
+    });
+
+    const { result: guideResponse, messages } = await this.executeWithT1Token(
+      (token) => this.createT1Guide(payloadFormatted, token),
+      'guide creation',
+    );
+
+    if (!guideResponse) {
+      throw new BadRequestException('T1: Failed to create guide');
+    }
+
+    const standardGuide = formatT1CreateGuideResponse(guideResponse);
+    const npmVersion: string = this.configService.version!;
+
+    return {
+      version: npmVersion,
+      message: null,
+      messages,
+      error: null,
+      data: {
+        guide: standardGuide,
+      },
+    };
+  }
+
+  /**
+   * Private method to create guide in T1 API with a given token
+   */
+  private async createT1Guide(
+    payloadFormatted: any,
+    token: string,
+  ): Promise<T1ExternalCreateGuideResponse> {
+    const uri = this.configService.t1.uri!;
+    const storeId = this.configService.t1.storeId!;
+
+    if (!uri) {
+      throw new BadRequestException(T1_MISSING_URI_ERROR);
+    }
+    if (!storeId) {
+      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+    }
+
+    const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
+    const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
+      await axios.post(url, payloadFormatted, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          shop_id: storeId,
+        },
+        timeout: 45000, // 45 seconds timeout
+      });
+
+    return response?.data;
   }
 }

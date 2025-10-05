@@ -1,43 +1,44 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateGuideDataDto {
-  @ApiProperty({ example: '1234-5678-91011' })
-  token: string;
-
   @ApiProperty({ example: '794914961710' })
-  tracking_number: string;
+  trackingNumber: string;
 
-  @ApiProperty({ example: 'Fedex' })
+  @ApiProperty({ example: 'Estafeta' })
   carrier: string;
-
-  @ApiProperty({ type: 'null', nullable: true, example: null })
-  tracking_status: null;
 
   @ApiProperty({ example: '600.54' })
   price: string;
 
-  @ApiProperty({ type: 'null', nullable: true, example: null })
-  waybill: null;
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'URL to view the guide online',
+  })
+  guideLink: string | null;
 
   @ApiProperty({
+    type: 'string',
+    nullable: true,
     example:
       'https://label-test-bucket-api.s3.us-west-2.amazonaws.com/uploads/manuable-575853230244848975-3Guvbdjkoic0EWdlh4J.pdf',
+    description: 'URL to download the shipping label',
   })
-  label_url: string;
+  labelUrl: string | null;
 
-  @ApiProperty({ type: 'boolean', example: true })
-  cancellable: boolean;
-
-  @ApiProperty({ example: '2025-09-16T19:59:57' })
-  created_at: string;
-
-  @ApiProperty({ example: 'generated' })
-  label_status: string;
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Base64 encoded file content',
+  })
+  file: string | null;
 }
 
 export class CreateGuideDataWrapperDto {
-  @ApiProperty({ type: CreateGuideDataDto })
-  guide: CreateGuideDataDto;
+  @ApiProperty({ type: CreateGuideDataDto, nullable: true })
+  guide: CreateGuideDataDto | null;
 }
 
 export class CreateGuideResponseDto {

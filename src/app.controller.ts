@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreateGuideMnRequestDto } from './manuable/manuable.dto';
+import { CreateGuideMnRequestDto } from './manuable/dtos/manuable.dto';
 
 @Controller()
 export class AppController {

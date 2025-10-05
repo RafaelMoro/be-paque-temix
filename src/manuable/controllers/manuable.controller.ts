@@ -2,7 +2,7 @@ import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ManuableService } from '../services/manuable.service';
 import { GetHistoryGuidesPayload } from '../manuable.interface';
-import { CreateGuideMnRequestDto } from '../manuable.dto';
+import { CreateGuideMnRequestDto } from '../dtos/manuable.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   CreateGuideResponseDto,

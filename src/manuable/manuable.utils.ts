@@ -8,10 +8,12 @@ import {
   CreateGuideMnRequest,
   ManuablePayload,
   ManuableQuote,
+  ManuableGuide,
   MnCarrier,
   TypeServiceMn,
 } from './manuable.interface';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 
 export const getTypeServiceMn = (
   service: TypeServiceMn,
@@ -120,5 +122,21 @@ export const formatPayloadRequestMn = (
     },
     label_format: 'PDF',
     rate_token: quoteId,
+  };
+};
+
+/**
+ * Transforms ManuableGuide to standardized global response format
+ */
+export const formatManuableCreateGuideResponse = (
+  manuableGuide: ManuableGuide,
+): GlobalCreateGuideResponse => {
+  return {
+    trackingNumber: manuableGuide.tracking_number,
+    carrier: manuableGuide.carrier,
+    price: manuableGuide.price,
+    guideLink: null,
+    labelUrl: manuableGuide.label_url,
+    file: null, // Manuable doesn't provide a file field, only label_url
   };
 };

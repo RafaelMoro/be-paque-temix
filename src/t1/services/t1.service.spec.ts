@@ -20,7 +20,12 @@ import {
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
 } from '../t1.constants';
-import { T1GetQuoteResponse } from '../t1.interface';
+import {
+  T1GetQuoteResponse,
+  T1CreateGuideRequest,
+  T1ExternalCreateGuideResponse,
+} from '../t1.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 import { GetQuoteT1Dto } from '../dtos/t1.dtos';
 
 // Mock axios
@@ -42,6 +47,7 @@ describe('T1Service', () => {
       storeId: 'test-store-id',
     },
     environment: 'development',
+    version: '1.0.0',
   };
 
   const mockPayload: GetQuoteDto = {
@@ -301,6 +307,7 @@ describe('T1Service', () => {
           storeId: 'test-store-id',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -329,6 +336,7 @@ describe('T1Service', () => {
           storeId: 'test-store-id',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -355,6 +363,7 @@ describe('T1Service', () => {
           storeId: '',
         },
         environment: 'development',
+        version: '1.0.0',
       });
 
       // Mock the TokenManagerService to throw the validation error
@@ -596,5 +605,153 @@ describe('T1Service', () => {
 
     const response = await service.getQuote(payload, mockGlobalConfig);
     expect(response).toBe(result);
+  });
+
+  describe('createGuide', () => {
+    const mockCreateGuidePayload: T1CreateGuideRequest = {
+      parcel: {
+        content: 'Test package',
+      },
+      origin: {
+        name: 'Test',
+        lastName: 'User',
+        street1: 'Test Street 123',
+        neighborhood: 'Test Neighborhood',
+        external_number: '123',
+        town: 'Test Town',
+        state: 'Test State',
+        phone: '1234567890',
+        email: 'test@example.com',
+        reference: 'Test Reference',
+      },
+      destination: {
+        name: 'Dest',
+        lastName: 'User',
+        street1: 'Dest Street 456',
+        neighborhood: 'Dest Neighborhood',
+        external_number: '456',
+        town: 'Dest Town',
+        state: 'Dest State',
+        phone: '0987654321',
+        email: 'dest@example.com',
+        reference: 'Dest Reference',
+      },
+      quoteToken: 'test-quote-token',
+      notifyMe: true,
+    };
+
+    const mockGuideResponse: T1ExternalCreateGuideResponse = {
+      success: true,
+      message: 'Guide created successfully',
+      location: 'test',
+      detail: {
+        paquetes: 1,
+        num_orden: 'ORD123456',
+        paqueteria: 'T1',
+        fecha_creacion: '2024-01-01',
+        costo: 100.5,
+        destino: 'Test Destination',
+        guia: 'GUIDE123456',
+        file: 'test-file.pdf',
+        link_guia: 'https://example.com/guide/123456',
+      },
+    };
+
+    const expectedFormattedResponse: GlobalCreateGuideResponse = {
+      trackingNumber: 'GUIDE123456',
+      carrier: 'T1',
+      price: '100.5',
+      guideLink: 'https://example.com/guide/123456',
+      labelUrl: 'https://example.com/guide/123456',
+      file: 'test-file.pdf',
+    };
+
+    it('should successfully create guide using TokenManagerService', async () => {
+      // Mock the TokenManagerService to return successful result
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: mockGuideResponse,
+        messages: ['Guide created successfully'],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      // Mock formatPayloadCreateGuideT1
+      const mockFormattedPayload = {
+        contenido: 'Test package',
+        nombre_origen: 'Test',
+        apellidos_origen: 'User',
+        // ... other required fields would be here in real implementation
+      };
+
+      jest
+        .spyOn(utils, 'formatPayloadCreateGuideT1')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        .mockReturnValue(mockFormattedPayload as any);
+
+      // Mock formatT1CreateGuideResponse
+      jest
+        .spyOn(utils, 'formatT1CreateGuideResponse')
+        .mockReturnValue(expectedFormattedResponse);
+
+      const result = await service.createGuide(mockCreateGuidePayload);
+
+      expect(mockExecuteWithToken).toHaveBeenCalledWith(
+        expect.any(Function),
+        'guide creation',
+        false, // isProd
+        expect.any(Object), // token operations
+        'T1',
+      );
+      expect(utils.formatPayloadCreateGuideT1).toHaveBeenCalledWith({
+        payload: mockCreateGuidePayload,
+        storeId: 'test-store-id',
+        notifyMe: mockCreateGuidePayload.notifyMe,
+        quoteToken: mockCreateGuidePayload.quoteToken,
+      });
+      expect(utils.formatT1CreateGuideResponse).toHaveBeenCalledWith(
+        mockGuideResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        messages: ['Guide created successfully'],
+        error: null,
+        data: {
+          guide: expectedFormattedResponse,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when TokenManagerService fails', async () => {
+      const mockExecuteWithToken = jest
+        .fn()
+        .mockRejectedValueOnce(new BadRequestException('Token error'));
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      jest
+        .spyOn(utils, 'formatPayloadCreateGuideT1')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        .mockReturnValue({} as unknown as any);
+
+      await expect(service.createGuide(mockCreateGuidePayload)).rejects.toThrow(
+        new BadRequestException('Token error'),
+      );
+    });
+
+    it('should throw BadRequestException when guide creation fails', async () => {
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: null,
+        messages: ['Guide creation failed'],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      jest
+        .spyOn(utils, 'formatPayloadCreateGuideT1')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        .mockReturnValue({} as unknown as any);
+
+      await expect(service.createGuide(mockCreateGuidePayload)).rejects.toThrow(
+        new BadRequestException('T1: Failed to create guide'),
+      );
+    });
   });
 });
