@@ -1,3 +1,9 @@
+## v0.20.0 (2025-10-05)
+
+### Pull Requests
+[#28](https://github.com/RafaelMoro/be-paque-temix/pull/28) | Add Tone create guide
+
+
 ## v0.19.0 (2025-10-04)
 
 ### Pull Requests
