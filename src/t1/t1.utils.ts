@@ -1,4 +1,10 @@
-import { T1Courier, T1GetQuoteResponse } from './t1.interface';
+import {
+  T1Courier,
+  T1GetQuoteResponse,
+  T1CreateGuideRequest,
+  T1ExternalCreateGuideRequest,
+  T1ExternalCreateGuideResponse,
+} from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import {
@@ -6,6 +12,7 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;
@@ -62,6 +69,9 @@ export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
   }));
 };
 
+/**
+ * Formats the payload for T1 quote request.
+ */
 export const formatPayloadT1 = ({
   payload,
   storeId,
@@ -89,5 +99,68 @@ export const formatPayloadT1 = ({
     valor_paquete: 0, // Default value, can be changed as needed
     tipo_paquete: 0, // Default value, can be changed as needed
     comercio_id: storeId, // This should be set dynamically based on your application logic
+  };
+};
+
+export const formatPayloadCreateGuideT1 = ({
+  payload,
+  quoteToken,
+  storeId,
+  notifyMe = false,
+}: {
+  payload: T1CreateGuideRequest;
+  quoteToken: string;
+  storeId: string;
+  notifyMe?: boolean;
+}): T1ExternalCreateGuideRequest => {
+  return {
+    contenido: payload.parcel.content, // Max 25 characters
+
+    // Origin fields
+    nombre_origen: payload.origin.name, // Max 25 characters
+    apellidos_origen: payload.origin.lastName, // Max 25 characters
+    email_origen: payload.origin.email, // Max 35 characters
+    calle_origen: payload.origin.street1, // Max 35 characters
+    numero_origen: payload.origin.external_number, // Max 15 characters
+    colonia_origen: payload.origin.neighborhood, // Max 35 characters
+    telefono_origen: payload.origin.phone, // Max 10 characters
+    estado_origen: payload.origin.state, // Max 35 characters
+    municipio_origen: payload.origin.town, // Max 35 characters
+    referencias_origen: payload.origin.reference, // Max 35 characters
+
+    // Destination fields
+    nombre_destino: payload.destination.name, // Max 25 characters
+    apellidos_destino: payload.destination.lastName, // Max 25 characters
+    email_destino: payload.destination.email, // Max 35 characters
+    calle_destino: payload.destination.street1, // Max 35 characters
+    numero_destino: payload.destination.external_number, // Max 15 characters
+    colonia_destino: payload.destination.neighborhood, // Max 35 characters
+    telefono_destino: payload.destination.phone, // Max 10 characters
+    estado_destino: payload.destination.state, // Max 35 characters
+    municipio_destino: payload.destination.town, // Max 35 characters
+    referencias_destino: payload.destination.reference, // Max 35 characters
+
+    // Rest fields
+    generar_recoleccion: false, // Default value - can be made configurable
+    tiene_notificacion: notifyMe,
+    origen_guia: 't1envios',
+    comercio_id: storeId,
+    token_quote: quoteToken,
+  };
+};
+
+/**
+ * Transforms T1 external create guide response to standardized global response format
+ */
+export const formatT1CreateGuideResponse = (
+  t1Response: T1ExternalCreateGuideResponse,
+): GlobalCreateGuideResponse => {
+  return {
+    trackingNumber: t1Response.detail.guia,
+    carrier: t1Response.detail.paqueteria,
+    price: t1Response.detail.costo.toString(),
+    guideLink: t1Response.detail.link_guia,
+    labelUrl: t1Response.detail.link_guia, // Using the same link for both guide and label
+    file: t1Response.detail.file,
   };
 };

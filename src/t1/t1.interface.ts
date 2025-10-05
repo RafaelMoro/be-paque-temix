@@ -1,4 +1,20 @@
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
+
 export type T1Courier = 'EXPRESS' | 'DHL' | 'FEDEX' | 'UPS' | '99MIN' | 'AMPM';
+
+export interface T1FormattedPayload {
+  codigo_postal_origen: string;
+  codigo_postal_destino: string;
+  peso: number;
+  largo: number;
+  alto: number;
+  ancho: number;
+  dias_embarque: number;
+  seguro: boolean;
+  valor_paquete: number;
+  tipo_paquete: number;
+  comercio_id: string;
+}
 
 export interface ShippingService {
   servicio: string;
@@ -43,4 +59,110 @@ export interface T1GetQuoteResponse {
   success: boolean;
   message: string;
   result: T1QuoteResult[];
+}
+
+export interface T1GetTokenResponse {
+  access_token: string;
+  expires_in: number;
+  refresh_expires_in: number;
+  refresh_token: string;
+  token_type: string;
+  'not-before-policy': number;
+  session_state: string;
+  scope: string;
+}
+
+export interface T1ExternalCreateGuideRequest {
+  contenido: string; // Max 25 characters
+  // Origin
+  nombre_origen: string; // Max 25 characters
+  apellidos_origen: string; // Max 25 characters
+  email_origen: string; // Max 35 characters
+  calle_origen: string; // Max 35 characters
+  numero_origen: string; // Max 15 characters
+  colonia_origen: string; // Max 35 characters
+  telefono_origen: string; // Max 10 characters
+  estado_origen: string; // Max 35 characters
+  municipio_origen: string; // Max 35 characters
+  referencias_origen: string; // Max 35 characters
+
+  // Destination
+  nombre_destino: string; // Max 25 characters
+  apellidos_destino: string; // Max 25 characters
+  email_destino: string; // Max 35 characters
+  calle_destino: string; // Max 35 characters
+  numero_destino: string; // Max 15 characters
+  colonia_destino: string; // Max 35 characters
+  telefono_destino: string; // Max 10 characters
+  estado_destino: string; // Max 35 characters
+  municipio_destino: string; // Max 35 characters
+  referencias_destino: string; // Max 35 characters
+
+  // Rest
+  generar_recoleccion: boolean;
+  tiene_notificacion: boolean;
+  origen_guia: string;
+  comercio_id: string;
+  token_quote: string;
+}
+
+export interface T1CreateGuideRequest {
+  parcel: {
+    content: string;
+  };
+  origin: {
+    name: string;
+    lastName: string;
+    street1: string;
+    neighborhood: string;
+    external_number: string;
+    town: string; // (Municipio)
+    state: string;
+    phone: string;
+    email: string;
+    reference: string;
+  };
+  destination: {
+    name: string;
+    lastName: string;
+    street1: string;
+    neighborhood: string;
+    external_number: string;
+    town: string; // (Municipio)
+    state: string;
+    phone: string;
+    email: string;
+    reference: string;
+  };
+  notifyMe?: boolean; // Whether to send notifications or not
+  quoteToken: string;
+}
+
+export interface T1ExternalCreateGuideResponse {
+  success: boolean;
+  message: string;
+  // Indicates the environment where the request was executed.
+  location: string;
+  detail: {
+    // Guide number
+    paquetes: number;
+    // Internal Id
+    num_orden: string;
+    paqueteria: string;
+    fecha_creacion: string;
+    costo: number;
+    destino: string;
+    guia: string;
+    file: string;
+    link_guia: string;
+  };
+}
+
+export interface CreateGuideToneDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: GlobalCreateGuideResponse | null;
+  };
 }

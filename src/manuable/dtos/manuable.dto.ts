@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-class ParcelDto {
+class MnParcelDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -45,7 +45,7 @@ class ParcelDto {
   readonly quantity: number;
 }
 
-class AddressDto {
+class MnAddressDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -145,26 +145,26 @@ export class CreateGuideMnRequestDto {
   readonly quoteId: string;
 
   @ValidateNested()
-  @Type(() => ParcelDto)
+  @Type(() => MnParcelDto)
   @ApiProperty({
-    type: ParcelDto,
+    type: MnParcelDto,
     description: 'Parcel information',
   })
-  readonly parcel: ParcelDto;
+  readonly parcel: MnParcelDto;
 
   @ValidateNested()
-  @Type(() => AddressDto)
+  @Type(() => MnAddressDto)
   @ApiProperty({
-    type: AddressDto,
+    type: MnAddressDto,
     description: 'Origin address',
   })
-  readonly origin: AddressDto;
+  readonly origin: MnAddressDto;
 
   @ValidateNested()
-  @Type(() => AddressDto)
+  @Type(() => MnAddressDto)
   @ApiProperty({
-    type: AddressDto,
+    type: MnAddressDto,
     description: 'Destination address',
   })
-  readonly destination: AddressDto;
+  readonly destination: MnAddressDto;
 }

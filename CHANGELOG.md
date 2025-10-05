@@ -1,3 +1,27 @@
+## v0.20.1 (2025-10-05)
+
+### Pull Requests
+[#29](https://github.com/RafaelMoro/be-paque-temix/pull/29) | Removal of dead code (example entity, temp create guide, unused endpoints)
+
+
+## v0.20.0 (2025-10-05)
+
+### Pull Requests
+[#28](https://github.com/RafaelMoro/be-paque-temix/pull/28) | Add Tone create guide
+
+
+## v0.19.0 (2025-10-04)
+
+### Pull Requests
+[#27](https://github.com/RafaelMoro/be-paque-temix/pull/27) | Change general info dbs to singleton and add Tone into it
+
+
+## v0.18.0 (2025-10-02)
+
+### Pull Requests
+[#26](https://github.com/RafaelMoro/be-paque-temix/pull/26) | Change general info dbs to have dev and prod mn token
+
+
 ## v0.17.0 (2025-09-18)
 
 ### Pull Requests

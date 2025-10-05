@@ -3,6 +3,7 @@ import { ManuableService } from './manuable.service';
 import config from '@/config';
 import axios from 'axios';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
+import { TokenManagerService } from '@/token-manager/services/token-manager.service';
 import * as utils from '../manuable.utils';
 import * as quotesUtils from '@/quotes/quotes.utils';
 import {
@@ -18,16 +19,17 @@ import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entit
 import {
   MANUABLE_ERROR_MISSING_URI,
   MANUABLE_FAILED_CREATE_TOKEN,
-  MANUABLE_FAILED_TOKEN,
   MANUABLE_ERROR_UNAUTHORIZED,
   QUOTE_MANUABLE_ENDPOINT,
   CREATE_GUIDE_MANUABLE_ENDPOINT,
   MANUABLE_FAILED_FETCH_GUIDES,
+  MANUABLE_FAILED_FETCH_QUOTES,
 } from '../manuable.constants';
 
 describe('ManuableService', () => {
   let service: ManuableService;
   let generalInfoDb: GeneralInfoDbService;
+  let tokenManagerService: TokenManagerService;
 
   const mockGlobalConfig: GlobalConfigsDoc = {
     globalMarginProfit: {
@@ -80,15 +82,23 @@ describe('ManuableService', () => {
               pwd: 's3cr3t',
               uri: 'https://mn.example.com',
             },
+            environment: 'development', // Default to development environment
+            version: '1.0.0',
           },
         },
         {
           provide: GeneralInfoDbService,
           useValue: {
             // minimal mocked API used across tests
-            createMnTk: jest.fn(),
             getMnTk: jest.fn(),
-            updateMbTk: jest.fn(),
+            updateMnToken: jest.fn(),
+          },
+        },
+        {
+          provide: TokenManagerService,
+          useValue: {
+            executeWithTokenManagement: jest.fn(),
+            executeWithRetryOnUnauthorized: jest.fn(),
           },
         },
       ],
@@ -96,6 +106,7 @@ describe('ManuableService', () => {
 
     service = module.get<ManuableService>(ManuableService);
     generalInfoDb = module.get<GeneralInfoDbService>(GeneralInfoDbService);
+    tokenManagerService = module.get<TokenManagerService>(TokenManagerService);
   });
 
   it('getManuableSession returns token', async () => {
@@ -148,22 +159,29 @@ describe('ManuableService', () => {
 
   it('createToken returns newly created token record when session returns token', async () => {
     const token = 'mn-session-token';
-    const created: GeneralInfoDbDoc = {
-      _id: 'id1',
-      mnTk: token,
-    } as unknown as GeneralInfoDbDoc;
+    const mockConfigDoc = {
+      configId: 'global',
+      mnConfig: {
+        tkProd: '',
+        tkDev: token,
+      },
+    } as GeneralInfoDbDoc;
+
     const sessionSpy = jest
       .spyOn(service, 'getManuableSession')
       .mockResolvedValueOnce(token);
-    const createMnTkMock = jest
-      .spyOn(generalInfoDb, 'createMnTk')
-      .mockResolvedValueOnce(created);
+    const updateMnTokenMock = jest
+      .spyOn(generalInfoDb, 'updateMnToken')
+      .mockResolvedValueOnce(mockConfigDoc);
 
     const res = await service.createToken();
 
     expect(sessionSpy).toHaveBeenCalledTimes(1);
-    expect(createMnTkMock).toHaveBeenCalledWith(token);
-    expect(res).toBe(created);
+    expect(updateMnTokenMock).toHaveBeenCalledWith({
+      token,
+      isProd: false, // development environment
+    });
+    expect(res).toEqual({ mnTk: token });
   });
 
   it('createToken throws BadRequestException when session returns no token', async () => {
@@ -239,6 +257,13 @@ describe('ManuableService', () => {
           },
         },
         { provide: GeneralInfoDbService, useValue: {} },
+        {
+          provide: TokenManagerService,
+          useValue: {
+            executeWithTokenManagement: jest.fn(),
+            executeWithRetryOnUnauthorized: jest.fn(),
+          },
+        },
       ],
     }).compile();
     const svc = module.get<ManuableService>(ManuableService);
@@ -266,30 +291,29 @@ describe('ManuableService', () => {
     );
   });
 
-  it('updateOldToken updates token and returns new token', async () => {
-    const getSessionSpy = jest
+  it('updateOldToken calls token update with a new token', async () => {
+    const token = 'new-token';
+    const mockConfigDoc = {
+      configId: 'global',
+      mnConfig: {
+        tkProd: '',
+        tkDev: token,
+      },
+    } as GeneralInfoDbDoc;
+
+    const sessionSpy = jest
       .spyOn(service, 'getManuableSession')
-      .mockResolvedValueOnce('new-token');
-    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce({
-      _id: 'oldId',
-      mnTk: 'old-token',
-    });
-    (generalInfoDb.updateMbTk as jest.Mock).mockResolvedValueOnce(null);
+      .mockResolvedValueOnce(token);
+    jest
+      .spyOn(generalInfoDb, 'updateMnToken')
+      .mockResolvedValueOnce(mockConfigDoc);
 
-    const res = await service.updateOldToken();
+    await service.updateOldToken();
 
-    expect(getSessionSpy).toHaveBeenCalledTimes(1);
-    expect((generalInfoDb.getMnTk as jest.Mock).mock.calls.length).toBe(1);
-    const updateCalls = (generalInfoDb.updateMbTk as jest.Mock).mock
-      .calls as unknown[];
-    expect(updateCalls.length).toBeGreaterThan(0);
-    const [firstUpdateArg] = updateCalls[0] as [
-      { changes: { mnTkId: string; mnTk: string } },
-    ];
-    expect(firstUpdateArg).toEqual({
-      changes: { mnTkId: 'oldId', mnTk: 'new-token' },
-    });
-    expect(res).toBe('new-token');
+    expect(sessionSpy).toHaveBeenCalledTimes(1);
+    const updateCalls = (generalInfoDb.updateMnToken as jest.Mock).mock.calls;
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toEqual([{ token, isProd: false }]); // development environment
   });
 
   it('updateOldToken throws when new token cannot be created', async () => {
@@ -300,18 +324,7 @@ describe('ManuableService', () => {
     );
   });
 
-  it('updateOldToken throws when old token missing', async () => {
-    jest
-      .spyOn(service, 'getManuableSession')
-      .mockResolvedValueOnce('new-token');
-    (generalInfoDb.getMnTk as jest.Mock).mockResolvedValueOnce(null);
-
-    await expect(service.updateOldToken()).rejects.toThrow(
-      MANUABLE_FAILED_TOKEN,
-    );
-  });
-
-  it('retrieveManuableQuotes returns direct result when no unauthorized message', async () => {
+  it('retrieveManuableQuotes returns result when TokenManagerService succeeds', async () => {
     const dto: GetQuoteDto = {
       originPostalCode: '01010',
       destinationPostalCode: '02020',
@@ -320,34 +333,62 @@ describe('ManuableService', () => {
       width: 5,
       weight: 1,
     };
-    const baseResult = { messages: ['Mn: Token valid'], quotes: [] };
-    const getQuoteSpy = jest
-      .spyOn(service, 'getManuableQuote')
-      .mockResolvedValueOnce(baseResult);
+    const formattedQuotes: GetQuoteData[] = [
+      {
+        id: 'u1',
+        service: 'Express',
+        total: 200,
+        source: 'Mn',
+        courier: 'DHL',
+        typeService: 'nextDay',
+      },
+    ];
+
+    // Mock TokenManagerService.executeWithRetryOnUnauthorized to return success
+    const mockExecuteWithRetry = jest.fn().mockResolvedValueOnce({
+      result: formattedQuotes,
+      messages: [
+        'Mn: Token valid',
+        'Mn: quote retrieval completed successfully',
+      ],
+    });
+    tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
 
     // Mock calculateTotalQuotes for this specific test
     jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
-      quotes: [],
-      messages: [],
+      quotes: formattedQuotes,
+      messages: ['Total calculated'],
     });
 
     const res = await service.retrieveManuableQuotes(dto, mockGlobalConfig);
 
-    expect(getQuoteSpy).toHaveBeenCalledWith(dto);
+    expect(mockExecuteWithRetry).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      'quote retrieval',
+      MANUABLE_ERROR_UNAUTHORIZED,
+      expect.any(Object), // token operations
+      false, // isProd (development environment)
+      'Mn',
+    );
     expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
-      quotes: baseResult.quotes,
+      quotes: formattedQuotes,
       provider: 'Mn',
       config: mockGlobalConfig,
       messages: [],
       providerNotFoundMessage: expect.any(String) as string,
     });
     expect(res).toEqual({
-      quotes: [],
-      messages: ['Mn: Token valid'],
+      quotes: formattedQuotes,
+      messages: [
+        'Mn: Token valid',
+        'Mn: quote retrieval completed successfully',
+        'Total calculated',
+      ],
     });
   });
 
-  it('retrieveManuableQuotes retries on unauthorized and formats quotes', async () => {
+  it('retrieveManuableQuotes handles TokenManagerService failure', async () => {
     const dto: GetQuoteDto = {
       originPostalCode: '01010',
       destinationPostalCode: '02020',
@@ -356,73 +397,26 @@ describe('ManuableService', () => {
       width: 5,
       weight: 1,
     };
-    const unauthorizedResult = {
-      messages: [MANUABLE_ERROR_UNAUTHORIZED],
-      quotes: [],
-    };
-    const rawQuotes: ManuableQuote[] = [
-      {
-        service: 'express',
-        currency: 'MXN',
-        uuid: 'u3',
-        additional_fees: [],
-        zone: 3,
-        total_amount: '300',
-        carrier: 'FEDEX',
-        cancellable: true,
-        shipping_type: 'air',
-        lead_time: '3d',
-      },
-    ];
-    const formattedQuotes: GetQuoteData[] = [
-      {
-        id: 'u3',
-        service: 'Carrier C',
-        total: 300,
-        source: 'Mn',
-        courier: 'Fedex',
-        typeService: 'nextDay',
-      },
-    ];
 
-    // Mock the initial operation that returns unauthorized
-    jest
-      .spyOn(service, 'getManuableQuote')
-      .mockResolvedValueOnce(unauthorizedResult);
+    // Mock TokenManagerService.executeWithRetryOnUnauthorized to throw error
+    const mockExecuteWithRetry = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('Token management failed'));
+    tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
 
-    // Mock updateOldToken to return a new token
-    jest.spyOn(service, 'updateOldToken').mockResolvedValueOnce('new-token');
+    await expect(
+      service.retrieveManuableQuotes(dto, mockGlobalConfig),
+    ).rejects.toThrow('Token management failed');
 
-    // Mock the retry operation components
-    jest
-      .spyOn(service, 'formatManuablePayload')
-      .mockReturnValueOnce({} as ManuablePayload);
-    jest.spyOn(service, 'fetchManuableQuotes').mockResolvedValueOnce(rawQuotes);
-    jest
-      .spyOn(utils, 'formatManuableQuote')
-      .mockReturnValueOnce(formattedQuotes);
-
-    // Mock calculateTotalQuotes for this specific test
-    jest.spyOn(quotesUtils, 'calculateTotalQuotes').mockReturnValue({
-      quotes: formattedQuotes,
-      messages: [],
-    });
-
-    const res = await service.retrieveManuableQuotes(dto, mockGlobalConfig);
-
-    expect(quotesUtils.calculateTotalQuotes).toHaveBeenCalledWith({
-      quotes: formattedQuotes,
-      provider: 'Mn',
-      config: mockGlobalConfig,
-      messages: [],
-      providerNotFoundMessage: expect.any(String) as string,
-    });
-    expect(res.quotes).toBe(formattedQuotes);
-    expect(res.messages).toEqual([
+    expect(mockExecuteWithRetry).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      'quote retrieval',
       MANUABLE_ERROR_UNAUTHORIZED,
-      'Mn: Attempting to retry quote retrieval with a new token',
-      'Mn: quote retrieval completed successfully',
-    ]);
+      expect.any(Object), // token operations
+      false, // isProd (development environment)
+      'Mn',
+    );
   });
 
   describe('fetchManuableHistoryGuides', () => {
@@ -495,6 +489,13 @@ describe('ManuableService', () => {
             },
           },
           { provide: GeneralInfoDbService, useValue: {} },
+          {
+            provide: TokenManagerService,
+            useValue: {
+              executeWithTokenManagement: jest.fn(),
+              executeWithRetryOnUnauthorized: jest.fn(),
+            },
+          },
         ],
       }).compile();
       const svc = module.get<ManuableService>(ManuableService);
@@ -600,7 +601,7 @@ describe('ManuableService', () => {
   });
 
   describe('getHistoryGuidesWithAutoRetry', () => {
-    it('returns guides response when executeWithRetryOnUnauthorized succeeds', async () => {
+    it('returns guides response when TokenManagerService succeeds', async () => {
       const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
       const guides: ManuableGuide[] = [
         {
@@ -617,25 +618,26 @@ describe('ManuableService', () => {
         },
       ];
 
-      const executeSpy = jest
-        .spyOn(service as any, 'executeWithRetryOnUnauthorized')
-        .mockResolvedValueOnce({
-          result: guides,
-          messages: [
-            'Mn: Token valid',
-            'Mn: get guides completed successfully',
-          ],
-        });
+      // Mock TokenManagerService.executeWithRetryOnUnauthorized to return success
+      const mockExecuteWithRetry = jest.fn().mockResolvedValueOnce({
+        result: guides,
+        messages: ['Mn: Token valid', 'Mn: get guides completed successfully'],
+      });
+      tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
 
       const result = await service.getHistoryGuidesWithAutoRetry(payload);
 
-      expect(executeSpy).toHaveBeenCalledWith(
+      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
         expect.any(Function),
         expect.any(Function),
         'get guides',
+        MANUABLE_ERROR_UNAUTHORIZED,
+        expect.any(Object), // token operations
+        false, // isProd (development environment)
+        'Mn',
       );
       expect(result).toEqual({
-        version: undefined, // configService.version is undefined in test
+        version: '1.0.0', // from configService.version
         message: null,
         messages: ['Mn: Token valid', 'Mn: get guides completed successfully'],
         error: null,
@@ -645,16 +647,249 @@ describe('ManuableService', () => {
       });
     });
 
-    it('throws BadRequestException when executeWithRetryOnUnauthorized fails', async () => {
+    it('throws BadRequestException when TokenManagerService fails', async () => {
       const payload: GetHistoryGuidesPayload = {};
 
-      jest
-        .spyOn(service as any, 'executeWithRetryOnUnauthorized')
+      // Mock TokenManagerService.executeWithRetryOnUnauthorized to throw error
+      const mockExecuteWithRetry = jest
+        .fn()
         .mockRejectedValueOnce(new Error('Service error'));
+      tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
 
       await expect(
         service.getHistoryGuidesWithAutoRetry(payload),
       ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('createGuideWithAutoRetry', () => {
+    it('returns guide response when TokenManagerService succeeds', async () => {
+      const payload = {
+        tracking_number: 'TRK123',
+        carrier: 'DHL',
+      } as const; // Using const assertion for better type safety
+
+      const guide = {
+        token: 'guide-token',
+        tracking_number: 'TRK123',
+        carrier: 'DHL',
+        tracking_status: null,
+        price: '100.00',
+        waybill: null,
+        label_url: 'http://example.com/label',
+        cancellable: true,
+        created_at: '2023-01-01',
+        label_status: 'active',
+      };
+
+      // Mock TokenManagerService.executeWithRetryOnUnauthorized to return success
+      const mockExecuteWithRetry = jest.fn().mockResolvedValueOnce({
+        result: guide,
+        messages: [
+          'Mn: Token valid',
+          'Mn: guide creation completed successfully',
+        ],
+      });
+      tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
+
+      // Spy on the formatting function
+      const formatManuableCreateGuideResponseSpy = jest.spyOn(
+        utils,
+        'formatManuableCreateGuideResponse',
+      );
+
+      const result = await service.createGuideWithAutoRetry(payload as any);
+
+      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Function),
+        'guide creation',
+        MANUABLE_ERROR_UNAUTHORIZED,
+        expect.any(Object), // token operations
+        false, // isProd (development environment)
+        'Mn',
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        messages: [
+          'Mn: Token valid',
+          'Mn: guide creation completed successfully',
+        ],
+        error: null,
+        data: {
+          guide: {
+            trackingNumber: 'TRK123',
+            carrier: 'DHL',
+            price: '100.00',
+            guideLink: null,
+            labelUrl: 'http://example.com/label',
+            file: null,
+          },
+        },
+      });
+
+      // Verify that the formatting function was called with the guide
+      expect(formatManuableCreateGuideResponseSpy).toHaveBeenCalledWith(guide);
+    });
+
+    it('throws BadRequestException when TokenManagerService fails', async () => {
+      const payload = {} as const;
+
+      // Mock TokenManagerService.executeWithRetryOnUnauthorized to throw error
+      const mockExecuteWithRetry = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Guide creation failed'));
+      tokenManagerService.executeWithRetryOnUnauthorized = mockExecuteWithRetry;
+
+      await expect(
+        service.createGuideWithAutoRetry(payload as any),
+      ).rejects.toThrow('Guide creation failed');
+    });
+  });
+
+  describe('getManuableQuote', () => {
+    it('returns quotes when TokenManagerService succeeds', async () => {
+      const dto: GetQuoteDto = {
+        originPostalCode: '01010',
+        destinationPostalCode: '02020',
+        height: 5,
+        length: 5,
+        width: 5,
+        weight: 1,
+      };
+      const rawQuotes: ManuableQuote[] = [
+        {
+          service: 'express',
+          currency: 'MXN',
+          uuid: 'u1',
+          additional_fees: [],
+          zone: 1,
+          total_amount: '200',
+          carrier: 'DHL',
+          cancellable: true,
+          shipping_type: 'ground',
+          lead_time: '2d',
+        },
+      ];
+      const formattedQuotes: GetQuoteData[] = [
+        {
+          id: 'u1',
+          service: 'Express',
+          total: 200,
+          source: 'Mn',
+          courier: 'DHL',
+          typeService: 'nextDay',
+        },
+      ];
+
+      // Mock TokenManagerService.executeWithTokenManagement to return success
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: rawQuotes,
+        messages: [
+          'Mn: Token valid',
+          'Mn: quote fetching completed successfully',
+        ],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      // Mock the formatting utility
+      jest
+        .spyOn(utils, 'formatManuableQuote')
+        .mockReturnValueOnce(formattedQuotes);
+
+      const result = await service.getManuableQuote(dto);
+
+      expect(mockExecuteWithToken).toHaveBeenCalledWith(
+        expect.any(Function),
+        'quote fetching',
+        false, // isProd (development environment)
+        expect.any(Object), // token operations
+        'Mn',
+      );
+      expect(utils.formatManuableQuote).toHaveBeenCalledWith(rawQuotes);
+      expect(result).toEqual({
+        messages: [
+          'Mn: Token valid',
+          'Mn: quote fetching completed successfully',
+        ],
+        quotes: formattedQuotes,
+      });
+    });
+
+    it('returns unauthorized error when TokenManagerService throws 401', async () => {
+      const dto: GetQuoteDto = {
+        originPostalCode: '01010',
+        destinationPostalCode: '02020',
+        height: 5,
+        length: 5,
+        width: 5,
+        weight: 1,
+      };
+
+      // Mock TokenManagerService.executeWithTokenManagement to throw 401 error
+      const mockExecuteWithToken = jest
+        .fn()
+        .mockRejectedValueOnce(
+          new Error('Request failed with status code 401'),
+        );
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.getManuableQuote(dto);
+
+      expect(result).toEqual({
+        messages: [MANUABLE_ERROR_UNAUTHORIZED],
+        quotes: [],
+      });
+    });
+
+    it('returns error message when TokenManagerService throws other error', async () => {
+      const dto: GetQuoteDto = {
+        originPostalCode: '01010',
+        destinationPostalCode: '02020',
+        height: 5,
+        length: 5,
+        width: 5,
+        weight: 1,
+      };
+
+      // Mock TokenManagerService.executeWithTokenManagement to throw other error
+      const mockExecuteWithToken = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Network error'));
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.getManuableQuote(dto);
+
+      expect(result).toEqual({
+        messages: ['Mn: Network error'],
+        quotes: [],
+      });
+    });
+
+    it('returns error when quotes result is null', async () => {
+      const dto: GetQuoteDto = {
+        originPostalCode: '01010',
+        destinationPostalCode: '02020',
+        height: 5,
+        length: 5,
+        width: 5,
+        weight: 1,
+      };
+
+      // Mock TokenManagerService.executeWithTokenManagement to return null
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: null,
+        messages: ['Mn: Token valid'],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.getManuableQuote(dto);
+
+      expect(result).toEqual({
+        messages: ['Mn: Token valid', `Mn: ${MANUABLE_FAILED_FETCH_QUOTES}`],
+        quotes: [],
+      });
     });
   });
 });
