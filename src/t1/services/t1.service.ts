@@ -22,6 +22,7 @@ import {
   formatPayloadCreateGuideT1,
   formatPayloadT1,
   formatT1QuoteData,
+  formatT1CreateGuideResponse,
 } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -29,6 +30,7 @@ import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { PROD_ENV } from '@/app.constant';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 import {
   TokenManagerService,
   TokenOperations,
@@ -243,7 +245,9 @@ export class T1Service {
     return this.retrieveT1Quotes(payload, config);
   }
 
-  async createGuide(payload: T1CreateGuideRequest) {
+  async createGuide(
+    payload: T1CreateGuideRequest,
+  ): Promise<GlobalCreateGuideResponse> {
     const storeId = this.configService.t1.storeId!;
 
     const payloadFormatted = formatPayloadCreateGuideT1({
@@ -262,7 +266,7 @@ export class T1Service {
       throw new BadRequestException('T1: Failed to create guide');
     }
 
-    return guideResponse;
+    return formatT1CreateGuideResponse(guideResponse);
   }
 
   /**

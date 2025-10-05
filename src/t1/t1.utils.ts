@@ -3,6 +3,7 @@ import {
   T1GetQuoteResponse,
   T1CreateGuideRequest,
   T1ExternalCreateGuideRequest,
+  T1ExternalCreateGuideResponse,
 } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -11,6 +12,7 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;
@@ -144,5 +146,21 @@ export const formatPayloadCreateGuideT1 = ({
     origen_guia: 't1envios',
     comercio_id: storeId,
     token_quote: quoteToken,
+  };
+};
+
+/**
+ * Transforms T1 external create guide response to standardized global response format
+ */
+export const formatT1CreateGuideResponse = (
+  t1Response: T1ExternalCreateGuideResponse,
+): GlobalCreateGuideResponse => {
+  return {
+    trackingNumber: t1Response.detail.guia,
+    carrier: t1Response.detail.paqueteria,
+    price: t1Response.detail.costo.toString(),
+    guideLink: t1Response.detail.link_guia,
+    labelUrl: t1Response.detail.link_guia, // Using the same link for both guide and label
+    file: t1Response.detail.file,
   };
 };

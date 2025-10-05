@@ -25,6 +25,7 @@ import {
   T1CreateGuideRequest,
   T1ExternalCreateGuideResponse,
 } from '../t1.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 import { GetQuoteT1Dto } from '../dtos/t1.dtos';
 
 // Mock axios
@@ -652,6 +653,15 @@ describe('T1Service', () => {
       },
     };
 
+    const expectedFormattedResponse: GlobalCreateGuideResponse = {
+      trackingNumber: 'GUIDE123456',
+      carrier: 'T1',
+      price: '100.5',
+      guideLink: 'https://example.com/guide/123456',
+      labelUrl: 'https://example.com/guide/123456',
+      file: 'test-file.pdf',
+    };
+
     it('should successfully create guide using TokenManagerService', async () => {
       // Mock the TokenManagerService to return successful result
       const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
@@ -673,6 +683,11 @@ describe('T1Service', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         .mockReturnValue(mockFormattedPayload as any);
 
+      // Mock formatT1CreateGuideResponse
+      jest
+        .spyOn(utils, 'formatT1CreateGuideResponse')
+        .mockReturnValue(expectedFormattedResponse);
+
       const result = await service.createGuide(mockCreateGuidePayload);
 
       expect(mockExecuteWithToken).toHaveBeenCalledWith(
@@ -688,7 +703,10 @@ describe('T1Service', () => {
         notifyMe: mockCreateGuidePayload.notifyMe,
         quoteToken: mockCreateGuidePayload.quoteToken,
       });
-      expect(result).toEqual(mockGuideResponse);
+      expect(utils.formatT1CreateGuideResponse).toHaveBeenCalledWith(
+        mockGuideResponse,
+      );
+      expect(result).toEqual(expectedFormattedResponse);
     });
 
     it('should throw BadRequestException when TokenManagerService fails', async () => {
