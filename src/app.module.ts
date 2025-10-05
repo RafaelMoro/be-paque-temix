@@ -1,13 +1,11 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
-import { MongooseModule } from '@nestjs/mongoose';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import config from './config';
-import { Example, ExampleSchema } from './example.entity';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggedMiddleware } from './middlewares/LoggedMiddleware.middleware';
@@ -58,12 +56,6 @@ import { TokenManagerModule } from './token-manager/token-manager.module';
         MANUABLE_URI: Joi.string().uri().required(),
       }),
     }),
-    MongooseModule.forFeature([
-      {
-        name: Example.name,
-        schema: ExampleSchema,
-      },
-    ]),
     DatabaseModule,
     UsersModule,
     AuthModule,
