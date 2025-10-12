@@ -215,27 +215,35 @@ export class T1Service {
     payloadFormatted: T1FormattedPayload,
     token: string,
   ): Promise<T1GetQuoteResponse> {
-    const uri = this.configService.t1.uri!;
-    const storeId = this.configService.t1.storeId!;
+    try {
+      const uri = this.configService.t1.uri!;
+      const storeId = this.configService.t1.storeId!;
 
-    if (!uri) {
-      throw new BadRequestException(T1_MISSING_URI_ERROR);
+      if (!uri) {
+        throw new BadRequestException(T1_MISSING_URI_ERROR);
+      }
+      if (!storeId) {
+        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+      }
+
+      const url = `${uri}${QUOTE_T1_ENDPOINT}`;
+      const response: AxiosResponse<T1GetQuoteResponse, unknown> =
+        await axios.post(url, payloadFormatted, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            shop_id: storeId,
+          },
+          timeout: 45000, // 45 seconds timeout
+        });
+
+      return response?.data;
+    } catch (error) {
+      console.log('Error in fetchT1Quotes:', error);
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
     }
-    if (!storeId) {
-      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
-    }
-
-    const url = `${uri}${QUOTE_T1_ENDPOINT}`;
-    const response: AxiosResponse<T1GetQuoteResponse, unknown> =
-      await axios.post(url, payloadFormatted, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          shop_id: storeId,
-        },
-        timeout: 45000, // 45 seconds timeout
-      });
-
-    return response?.data;
   }
 
   async getQuote(

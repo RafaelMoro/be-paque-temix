@@ -1,3 +1,9 @@
+## v0.20.2 (2025-10-11)
+
+### Pull Requests
+[#31](https://github.com/RafaelMoro/be-paque-temix/pull/31) | Add try catch into method fetchT1Quotes
+
+
 ## v0.20.1 (2025-10-05)
 
 ### Pull Requests
