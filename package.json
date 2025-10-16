@@ -1,6 +1,6 @@
 {
   "name": "be-paque-temix",
-  "version": "0.20.2",
+  "version": "0.20.3",
   "description": "",
   "author": "",
   "private": true,
@@ -99,7 +99,8 @@
     "moduleFileExtensions": [
       "js",
       "json",
-      "ts"
+      "ts",
+      "tsx"
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",

@@ -48,7 +48,8 @@ export const getT1Courier = (clave: T1Courier): QuoteCourier | null => {
 
 export const formatT1QuoteData = (data: T1GetQuoteResponse): GetQuoteData[] => {
   return data?.result.map((item) => ({
-    id: item.id,
+    id: item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
+      .token,
     service: Object.keys(item.cotizacion.servicios)[0], // Assuming you want the first service
     total:
       item.cotizacion.servicios[Object.keys(item.cotizacion.servicios)[0]]
