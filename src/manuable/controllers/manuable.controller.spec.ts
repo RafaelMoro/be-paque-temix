@@ -99,16 +99,12 @@ describe('ManuableController', () => {
         error: null,
         data: {
           guide: {
-            token: 'guide-token-123',
-            created_at: '2023-01-01T00:00:00Z',
-            tracking_number: 'TRK123456789',
-            label_url: 'https://example.com/label.pdf',
-            price: '150.00',
+            trackingNumber: 'TRK123456789',
             carrier: 'DHL',
-            tracking_status: null,
-            waybill: null,
-            cancellable: true,
-            label_status: 'ready',
+            price: '150.00',
+            guideLink: null,
+            labelUrl: 'https://example.com/label.pdf',
+            file: null,
           },
         },
       };
@@ -220,16 +216,12 @@ describe('ManuableController', () => {
         error: null,
         data: {
           guide: {
-            token: 'test-token',
-            created_at: '2023-01-01',
-            tracking_number: 'TEST123',
-            label_url: 'http://example.com/label',
-            price: '50.00',
+            trackingNumber: 'TEST123',
             carrier: 'test-carrier',
-            tracking_status: null,
-            waybill: null,
-            cancellable: true,
-            label_status: 'active',
+            price: '50.00',
+            guideLink: null,
+            labelUrl: 'http://example.com/label',
+            file: null,
           },
         },
       };

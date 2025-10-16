@@ -3,6 +3,8 @@ import { QuotesController } from './quotes.controller';
 import { QuotesService } from '../services/quotes.service';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
+import { Reflector } from '@nestjs/core';
+import config from '@/config';
 
 describe('QuotesController', () => {
   let controller: QuotesController;
@@ -47,6 +49,23 @@ describe('QuotesController', () => {
         {
           provide: QuotesService,
           useValue: mockQuotesService,
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn().mockReturnValue(false), // Mock reflector for JwtGuard
+          },
+        },
+        {
+          provide: config.KEY,
+          useValue: {
+            auth: {
+              publicKey: 'test-public-key',
+              jwtKey: 'test-jwt-key',
+              roleKey: 'test-role-key',
+              oneTimeJwtKey: 'test-one-time-jwt-key',
+            },
+          },
         },
       ],
     }).compile();
