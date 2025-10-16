@@ -1,3 +1,9 @@
+## v0.20.4 (2025-10-16)
+
+### Pull Requests
+[#35](https://github.com/RafaelMoro/be-paque-temix/pull/35) | Fix testing in mail spec
+
+
 ## v0.20.3 (2025-10-16)
 
 ### Pull Requests
