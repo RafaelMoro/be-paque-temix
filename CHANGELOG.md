@@ -1,3 +1,9 @@
+## v0.20.3 (2025-10-16)
+
+### Pull Requests
+[#33](https://github.com/RafaelMoro/be-paque-temix/pull/33) | Fix creation of tone guide and add missing tests
+
+
 ## v0.20.2 (2025-10-11)
 
 ### Pull Requests
