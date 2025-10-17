@@ -5,3 +5,4 @@ export const PAKKE_MISSING_PROVIDER_PROFIT_MARGIN =
   'Pkk provider not found in global config';
 
 export const QUOTE_PAKKE_ENDPOINT = '/Shipments/rates';
+export const CREATE_GUIDE_PAKKE_ENDPOINT = '/Shipments';
