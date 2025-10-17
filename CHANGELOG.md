@@ -1,3 +1,9 @@
+## v0.21.0 (2025-10-17)
+
+### Pull Requests
+[#36](https://github.com/RafaelMoro/be-paque-temix/pull/36) | Add endpoint to create a guide for Pkk
+
+
 ## v0.20.4 (2025-10-16)
 
 ### Pull Requests
