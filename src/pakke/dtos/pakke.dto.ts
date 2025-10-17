@@ -195,6 +195,17 @@ class PakkeAddressDto {
   readonly zipcode: string;
 }
 
+class PakkeDestinationAddressDto extends PakkeAddressDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'ACME Corp',
+    description: 'Company name (mandatory for destination)',
+  })
+  declare readonly company: string;
+}
+
 export class CreateGuidePakkeRequestDto {
   @ValidateNested()
   @Type(() => PakkeParcelDto)
@@ -213,10 +224,10 @@ export class CreateGuidePakkeRequestDto {
   readonly origin: PakkeAddressDto;
 
   @ValidateNested()
-  @Type(() => PakkeAddressDto)
+  @Type(() => PakkeDestinationAddressDto)
   @ApiProperty({
-    type: PakkeAddressDto,
+    type: PakkeDestinationAddressDto,
     description: 'Destination address',
   })
-  readonly destination: PakkeAddressDto;
+  readonly destination: PakkeDestinationAddressDto;
 }
