@@ -111,6 +111,24 @@ export interface PkkAddressCreateGuide {
   Residential: boolean;
 }
 
+export interface PkkSenderCreateGuide {
+  Name: string;
+  Email?: string;
+  Phone1?: string;
+  Phone2?: string;
+  // This field is not mandatory only for sender
+  CompanyName?: string;
+}
+
+export interface PkkRecipientCreateGuide {
+  Name: string;
+  Email?: string;
+  Phone1?: string;
+  Phone2?: string;
+  // This field is mandatory only for recipient
+  CompanyName: string;
+}
+
 export interface PkkExternalCreateGuideRequest {
   AddressFrom: PkkAddressCreateGuide;
   AddressTo: PkkAddressCreateGuide;
@@ -121,20 +139,63 @@ export interface PkkExternalCreateGuideRequest {
     Height: number;
     Weight: number;
   };
-  Sender: {
-    Name: string;
-    Email?: string;
-    Phone1?: string;
-    Phone2?: string;
-    // This field is not mandatory only for sender
-    CompanyName?: string;
+  Sender: PkkSenderCreateGuide;
+  Recipient: PkkRecipientCreateGuide;
+}
+
+export interface PakkeExternalCreateGuideResponse {
+  ShipmentId: string;
+  ResellerId: string;
+  OwnerId: string;
+  CreatedAt: Date;
+  ExpiresAt: Date;
+  CourierName: string;
+  CourierCode: string;
+  CourierServiceId: string;
+  CourierService: string;
+  // Personalized reference of the package
+  ResellerReference: string;
+  // Flag to determine if the deliveryt has exceptions
+  HasExceptions: boolean;
+  // Flag to know if the delivery address postal code has changed
+  HasChangeZipCode: boolean;
+  // Flag to know if the guide has enabled the sending of notifications
+  SendRecipientNotifications: boolean;
+  InsuredAmount: number;
+  Parcel: {
+    Length: number;
+    Width: number;
+    Height: number;
+    Weight: number;
   };
-  Recipient: {
-    Name: string;
-    Email?: string;
-    Phone1?: string;
-    Phone2?: string;
-    // This field is mandatory only for recipient
-    CompanyName: string;
-  };
+  AddressFrom: PkkAddressCreateGuide;
+  AddressTo: PkkAddressCreateGuide;
+  Sender: PkkSenderCreateGuide;
+  Recipient: PkkRecipientCreateGuide;
+  QuotedAmount: number;
+  DiscountAmount: number;
+  InsuranceAmount: number;
+  TotalAmount: number;
+  OverWeightPrice: number;
+  OriginalWeight: number;
+  OriginalWidth: number;
+  OriginalLength: number;
+  OriginalHeight: number;
+  OriginalVolumetricWeight: number;
+  RealWeight: number;
+  RealOverWeight: number;
+  Owner: string;
+  DaysInTransit: number;
+  Content: string;
+  Status: 'SUCCESS' | 'REFUNDED' | 'REFUNDPENDING' | 'REFUNDFAILED';
+  TrackingNumber: string;
+  TrackingStatus:
+    | 'WAITING '
+    | 'IN_TRANSIT'
+    | 'ON_DELIVERY'
+    | 'DELIVERED'
+    | 'RETURNED'
+    | 'CANCELLED'
+    | 'EXCEPTION';
+  Label: string;
 }
