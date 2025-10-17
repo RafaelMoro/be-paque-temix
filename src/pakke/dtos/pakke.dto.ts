@@ -231,3 +231,68 @@ export class CreateGuidePakkeRequestDto {
   })
   readonly destination: PakkeDestinationAddressDto;
 }
+
+export class CreateGuidePakkeDataDto {
+  @ApiProperty({ example: '794914961710' })
+  trackingNumber: string;
+
+  @ApiProperty({ example: 'Pakke' })
+  carrier: string;
+
+  @ApiProperty({ example: '450.75' })
+  price: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'URL to view the guide online',
+  })
+  guideLink: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: 'https://example.com/label.pdf',
+    description: 'URL to download the shipping label',
+  })
+  labelUrl: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Base64 encoded file content',
+  })
+  file: string | null;
+}
+
+export class CreateGuidePakkeDataWrapperDto {
+  @ApiProperty({
+    type: CreateGuidePakkeDataDto,
+    nullable: true,
+    description: 'Guide information or null if creation failed',
+  })
+  guide: CreateGuidePakkeDataDto | null;
+}
+
+export class CreateGuidePakkeResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({ type: [String], example: ['Guide created successfully'] })
+  messages: string[];
+
+  @ApiProperty({
+    type: CreateGuidePakkeDataWrapperDto,
+  })
+  data: CreateGuidePakkeDataWrapperDto;
+}
