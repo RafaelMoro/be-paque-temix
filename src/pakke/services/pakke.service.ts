@@ -4,13 +4,23 @@ import { ConfigType } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 
 import {
+  CREATE_GUIDE_PAKKE_ENDPOINT,
   PAKKE_MISSING_API_KEY_ERROR,
   PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
   PAKKE_MISSING_URI_ERROR,
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
-import { PakkeGetQuoteResponse } from '../pakke.interface';
-import { convertPayloadToPakkeDto, formatPakkeQuotes } from '../pakke.utils';
+import {
+  PakkeExternalCreateGuideResponse,
+  PakkeGetQuoteResponse,
+  PkkCreateGuideRequest,
+} from '../pakke.interface';
+import {
+  convertPayloadToPakkeDto,
+  convertPkkCreateGuideToExternal,
+  formatPakkeCreateGuideResponse,
+  formatPakkeQuotes,
+} from '../pakke.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -59,6 +69,48 @@ export class PakkeService {
       return {
         quotes,
         messages: updatedMessages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuidePakke(payload: PkkCreateGuideRequest) {
+    try {
+      const messages: string[] = [];
+      const apiKey = this.configService.pakke.apiKey!;
+      const uri = this.configService.pakke.uri!;
+
+      if (!apiKey) {
+        throw new BadRequestException(PAKKE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
+      }
+
+      const payloadTransformed = convertPkkCreateGuideToExternal(payload);
+      const url = `${uri}${CREATE_GUIDE_PAKKE_ENDPOINT}`;
+      const response: AxiosResponse<PakkeExternalCreateGuideResponse, unknown> =
+        await axios.post(url, payloadTransformed, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      messages.push('Pkk Guide created successfully');
+      const data = response?.data;
+      const formattedData = formatPakkeCreateGuideResponse(data);
+      const npmVersion: string = this.configService.version!;
+      return {
+        version: npmVersion,
+        message: null,
+        messages,
+        error: null,
+        data: {
+          guide: formattedData,
+        },
       };
     } catch (error) {
       if (error instanceof Error) {
