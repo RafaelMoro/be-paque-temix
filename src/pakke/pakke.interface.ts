@@ -57,6 +57,46 @@ export interface PakkeQuote {
   courierLogo: string;
 }
 
+export interface PakkeGetQuoteResponse {
+  Pakke: PakkeQuote[];
+}
+
+export interface PkkCreateGuideRequest {
+  parcel: {
+    content: string;
+    length: string;
+    width: string;
+    height: string;
+    weight: string;
+  };
+  origin: {
+    name: string;
+    email: string;
+    phone: string;
+    company?: string;
+    street1: string;
+    // equivalent to reference
+    street2?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipcode: string;
+  };
+  destination: {
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    street1: string;
+    // equivalent to reference
+    street2?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipcode: string;
+  };
+}
+
 export interface PkkAddressCreateGuide {
   ZipCode: string;
   State: string;
@@ -69,9 +109,10 @@ export interface PkkAddressCreateGuide {
   Residential: boolean;
 }
 
-export interface PkkCreateGuideRequest {
+export interface PkkExternalCreateGuideRequest {
   AddressFrom: PkkAddressCreateGuide;
   AddressTo: PkkAddressCreateGuide;
+  Content: string;
   Parcel: {
     Length: number;
     Width: number;
@@ -94,8 +135,4 @@ export interface PkkCreateGuideRequest {
     // This field is mandatory only for recipient
     CompanyName: string;
   };
-}
-
-export interface PakkeGetQuoteResponse {
-  Pakke: PakkeQuote[];
 }
