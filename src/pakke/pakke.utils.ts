@@ -3,6 +3,7 @@ import {
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
   PkkExternalCreateGuideRequest,
+  PakkeExternalCreateGuideResponse,
 } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -11,6 +12,7 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 
 export const getTypeServicePakke = (
   service: string,
@@ -123,5 +125,18 @@ export const convertPkkCreateGuideToExternal = (
       Phone1: payload.destination.phone,
       CompanyName: payload.destination.company,
     },
+  };
+};
+
+export const formatPakkeCreateGuideResponse = (
+  response: PakkeExternalCreateGuideResponse,
+): GlobalCreateGuideResponse => {
+  return {
+    trackingNumber: response.TrackingNumber,
+    carrier: response.CourierName,
+    price: response.TotalAmount.toString(),
+    guideLink: null,
+    labelUrl: response.Label || null,
+    file: null,
   };
 };
