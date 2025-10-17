@@ -57,6 +57,45 @@ export interface PakkeQuote {
   courierLogo: string;
 }
 
+export interface PkkAddressCreateGuide {
+  ZipCode: string;
+  State: string;
+  City: string;
+  Neighborhood: string;
+  // Street name and number
+  Address1: string;
+  // For additional data of the address
+  Address2: string;
+  Residential: boolean;
+}
+
+export interface PkkCreateGuideRequest {
+  AddressFrom: PkkAddressCreateGuide;
+  AddressTo: PkkAddressCreateGuide;
+  Parcel: {
+    Length: number;
+    Width: number;
+    Height: number;
+    Weight: number;
+  };
+  Sender: {
+    Name: string;
+    Email?: string;
+    Phone1?: string;
+    Phone2?: string;
+    // This field is not mandatory only for sender
+    CompanyName?: string;
+  };
+  Recipient: {
+    Name: string;
+    Email?: string;
+    Phone1?: string;
+    Phone2?: string;
+    // This field is mandatory only for recipient
+    CompanyName: string;
+  };
+}
+
 export interface PakkeGetQuoteResponse {
   Pakke: PakkeQuote[];
 }
