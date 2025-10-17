@@ -1,3 +1,5 @@
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
+
 export type PakkeCourier =
   | 'Estafeta'
   | 'AMPM'
@@ -198,4 +200,13 @@ export interface PakkeExternalCreateGuideResponse {
     | 'CANCELLED'
     | 'EXCEPTION';
   Label: string;
+}
+
+export interface CreateGuidePkkDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: GlobalCreateGuideResponse | null;
+  };
 }

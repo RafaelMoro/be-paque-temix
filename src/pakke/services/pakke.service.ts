@@ -11,6 +11,7 @@ import {
   QUOTE_PAKKE_ENDPOINT,
 } from '../pakke.constants';
 import {
+  CreateGuidePkkDataResponse,
   PakkeExternalCreateGuideResponse,
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
@@ -78,7 +79,9 @@ export class PakkeService {
     }
   }
 
-  async createGuidePakke(payload: PkkCreateGuideRequest) {
+  async createGuidePakke(
+    payload: PkkCreateGuideRequest,
+  ): Promise<CreateGuidePkkDataResponse> {
     try {
       const messages: string[] = [];
       const apiKey = this.configService.pakke.apiKey!;
