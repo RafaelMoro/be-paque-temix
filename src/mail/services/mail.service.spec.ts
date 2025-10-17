@@ -3,21 +3,26 @@ import { MailService } from './mail.service';
 import { MailForgotPasswordDto } from '../dtos/mail.dto';
 import config from '@/config';
 
-// Mock dependencies before importing the service
-// jest.mock('../../../emails/ResetPassword', () => jest.fn());
-
-// Get the mocked modules
-// const mockCreateElement = jest.mocked(require('react').createElement);
-// const mockResend = jest.mocked(require('resend').Resend);
+// Mock the email send function
 const mockSend = jest.fn();
 
-// Configure the mocks
-// mockCreateElement.mockReturnValue('<MockReactElement />');
-// mockResend.mockImplementation(() => ({
-//   emails: {
-//     send: mockSend,
-//   },
-// }));
+// Mock dependencies before importing the service
+jest.mock('../../../emails/ResetPassword', () => ({
+  __esModule: true,
+  default: jest.fn(() => 'MockResetPasswordComponent'),
+}));
+
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: mockSend,
+    },
+  })),
+}));
+
+jest.mock('react', () => ({
+  createElement: jest.fn(() => 'MockReactElement'),
+}));
 
 describe('MailService', () => {
   let service: MailService;
@@ -49,11 +54,11 @@ describe('MailService', () => {
     service = module.get<MailService>(MailService);
   });
 
-  it.skip('should be defined', () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it.skip('should send password reset email successfully', async () => {
+  it('should send password reset email successfully', async () => {
     const mockPayload: MailForgotPasswordDto = {
       email: 'test@example.com',
       hostname: 'https://test.com',
@@ -71,7 +76,7 @@ describe('MailService', () => {
       from: 'noreply@example.com',
       to: 'test@example.com',
       subject: 'Recupera tu contraseña en Kraft Envios',
-      react: '<MockReactElement />',
+      react: 'MockReactElement',
     });
   });
 });

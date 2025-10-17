@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class Parcel {
   @IsString()
@@ -41,4 +49,250 @@ export class GetQuotePakkeDto {
   @ValidateNested({ each: true })
   @Type(() => Parcel)
   readonly Parcel: Parcel;
+}
+
+class PakkeParcelDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: 'Electronics',
+    description: 'Content description',
+  })
+  @MaxLength(50)
+  readonly content: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: '30',
+    description: 'Package length in cm',
+  })
+  readonly length: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: '20',
+    description: 'Package width in cm',
+  })
+  readonly width: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: '10',
+    description: 'Package height in cm',
+  })
+  readonly height: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: '5',
+    description: 'Package weight in kg',
+  })
+  readonly weight: string;
+}
+
+class PakkeAddressDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'John Doe',
+    description: 'Full name',
+  })
+  readonly name: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'john.doe@example.com',
+    description: 'Email address',
+  })
+  readonly email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20)
+  @ApiProperty({
+    example: '+52 55 1234 5678',
+    description: 'Phone number',
+  })
+  readonly phone: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'ACME Corp',
+    description: 'Company name',
+    required: false,
+  })
+  readonly company?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @ApiProperty({
+    example: 'Calle Principal 123',
+    description: 'Street address',
+  })
+  readonly street1: string;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Whether the address is residential',
+  })
+  readonly isResidential: boolean;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  @ApiProperty({
+    example: 'Near the park',
+    description: 'Additional address reference',
+    required: false,
+  })
+  readonly street2?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'Centro',
+    description: 'Neighborhood',
+  })
+  readonly neighborhood: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'Mexico City',
+    description: 'City name',
+  })
+  readonly city: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'CDMX',
+    description: 'State or province',
+  })
+  readonly state: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(10)
+  @ApiProperty({
+    example: '06000',
+    description: 'Postal code',
+  })
+  readonly zipcode: string;
+}
+
+class PakkeDestinationAddressDto extends PakkeAddressDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @ApiProperty({
+    example: 'ACME Corp',
+    description: 'Company name (mandatory for destination)',
+  })
+  declare readonly company: string;
+}
+
+export class CreateGuidePakkeRequestDto {
+  @ValidateNested()
+  @Type(() => PakkeParcelDto)
+  @ApiProperty({
+    type: PakkeParcelDto,
+    description: 'Parcel information',
+  })
+  readonly parcel: PakkeParcelDto;
+
+  @ValidateNested()
+  @Type(() => PakkeAddressDto)
+  @ApiProperty({
+    type: PakkeAddressDto,
+    description: 'Origin address',
+  })
+  readonly origin: PakkeAddressDto;
+
+  @ValidateNested()
+  @Type(() => PakkeDestinationAddressDto)
+  @ApiProperty({
+    type: PakkeDestinationAddressDto,
+    description: 'Destination address',
+  })
+  readonly destination: PakkeDestinationAddressDto;
+}
+
+export class CreateGuidePakkeDataDto {
+  @ApiProperty({ example: '794914961710' })
+  trackingNumber: string;
+
+  @ApiProperty({ example: 'Pakke' })
+  carrier: string;
+
+  @ApiProperty({ example: '450.75' })
+  price: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'URL to view the guide online',
+  })
+  guideLink: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: 'https://example.com/label.pdf',
+    description: 'URL to download the shipping label',
+  })
+  labelUrl: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Base64 encoded file content',
+  })
+  file: string | null;
+}
+
+export class CreateGuidePakkeDataWrapperDto {
+  @ApiProperty({
+    type: CreateGuidePakkeDataDto,
+    nullable: true,
+    description: 'Guide information or null if creation failed',
+  })
+  guide: CreateGuidePakkeDataDto | null;
+}
+
+export class CreateGuidePakkeResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({ type: [String], example: ['Guide created successfully'] })
+  messages: string[];
+
+  @ApiProperty({
+    type: CreateGuidePakkeDataWrapperDto,
+  })
+  data: CreateGuidePakkeDataWrapperDto;
 }

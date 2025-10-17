@@ -1,3 +1,5 @@
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
+
 export type PakkeCourier =
   | 'Estafeta'
   | 'AMPM'
@@ -59,4 +61,152 @@ export interface PakkeQuote {
 
 export interface PakkeGetQuoteResponse {
   Pakke: PakkeQuote[];
+}
+
+export interface PkkCreateGuideRequest {
+  parcel: {
+    content: string;
+    length: string;
+    width: string;
+    height: string;
+    weight: string;
+  };
+  origin: {
+    name: string;
+    email: string;
+    phone: string;
+    company?: string;
+    street1: string;
+    isResidential: boolean;
+    // equivalent to reference
+    street2?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipcode: string;
+  };
+  destination: {
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    street1: string;
+    isResidential: boolean;
+    // equivalent to reference
+    street2?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipcode: string;
+  };
+}
+
+export interface PkkAddressCreateGuide {
+  ZipCode: string;
+  State: string;
+  City: string;
+  Neighborhood: string;
+  // Street name and number
+  Address1: string;
+  // For additional data of the address
+  Address2: string;
+  Residential: boolean;
+}
+
+export interface PkkSenderCreateGuide {
+  Name: string;
+  Email?: string;
+  Phone1?: string;
+  Phone2?: string;
+  // This field is not mandatory only for sender
+  CompanyName?: string;
+}
+
+export interface PkkRecipientCreateGuide {
+  Name: string;
+  Email?: string;
+  Phone1?: string;
+  Phone2?: string;
+  // This field is mandatory only for recipient
+  CompanyName: string;
+}
+
+export interface PkkExternalCreateGuideRequest {
+  AddressFrom: PkkAddressCreateGuide;
+  AddressTo: PkkAddressCreateGuide;
+  Content: string;
+  Parcel: {
+    Length: number;
+    Width: number;
+    Height: number;
+    Weight: number;
+  };
+  Sender: PkkSenderCreateGuide;
+  Recipient: PkkRecipientCreateGuide;
+}
+
+export interface PakkeExternalCreateGuideResponse {
+  ShipmentId: string;
+  ResellerId: string;
+  OwnerId: string;
+  CreatedAt: Date;
+  ExpiresAt: Date;
+  CourierName: string;
+  CourierCode: string;
+  CourierServiceId: string;
+  CourierService: string;
+  // Personalized reference of the package
+  ResellerReference: string;
+  // Flag to determine if the deliveryt has exceptions
+  HasExceptions: boolean;
+  // Flag to know if the delivery address postal code has changed
+  HasChangeZipCode: boolean;
+  // Flag to know if the guide has enabled the sending of notifications
+  SendRecipientNotifications: boolean;
+  InsuredAmount: number;
+  Parcel: {
+    Length: number;
+    Width: number;
+    Height: number;
+    Weight: number;
+  };
+  AddressFrom: PkkAddressCreateGuide;
+  AddressTo: PkkAddressCreateGuide;
+  Sender: PkkSenderCreateGuide;
+  Recipient: PkkRecipientCreateGuide;
+  QuotedAmount: number;
+  DiscountAmount: number;
+  InsuranceAmount: number;
+  TotalAmount: number;
+  OverWeightPrice: number;
+  OriginalWeight: number;
+  OriginalWidth: number;
+  OriginalLength: number;
+  OriginalHeight: number;
+  OriginalVolumetricWeight: number;
+  RealWeight: number;
+  RealOverWeight: number;
+  Owner: string;
+  DaysInTransit: number;
+  Content: string;
+  Status: 'SUCCESS' | 'REFUNDED' | 'REFUNDPENDING' | 'REFUNDFAILED';
+  TrackingNumber: string;
+  TrackingStatus:
+    | 'WAITING '
+    | 'IN_TRANSIT'
+    | 'ON_DELIVERY'
+    | 'DELIVERED'
+    | 'RETURNED'
+    | 'CANCELLED'
+    | 'EXCEPTION';
+  Label: string;
+}
+
+export interface CreateGuidePkkDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: GlobalCreateGuideResponse | null;
+  };
 }
