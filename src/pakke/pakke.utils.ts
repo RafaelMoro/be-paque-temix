@@ -1,4 +1,9 @@
-import { PakkeCourier, PakkeGetQuoteResponse } from './pakke.interface';
+import {
+  PakkeCourier,
+  PakkeGetQuoteResponse,
+  PkkCreateGuideRequest,
+  PkkExternalCreateGuideRequest,
+} from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import {
@@ -75,4 +80,48 @@ export const formatPakkeQuotes = (
     courier: getPakkeCourier(item.CourierName),
     source: 'Pkk',
   }));
+};
+
+export const convertPkkCreateGuideToExternal = (
+  payload: PkkCreateGuideRequest,
+): PkkExternalCreateGuideRequest => {
+  return {
+    AddressFrom: {
+      ZipCode: payload.origin.zipcode,
+      State: payload.origin.state,
+      City: payload.origin.city,
+      Neighborhood: payload.origin.neighborhood,
+      Address1: payload.origin.street1,
+      Address2: payload.origin.street2 || '',
+      Residential: payload.origin.isResidential,
+    },
+    AddressTo: {
+      ZipCode: payload.destination.zipcode,
+      State: payload.destination.state,
+      City: payload.destination.city,
+      Neighborhood: payload.destination.neighborhood,
+      Address1: payload.destination.street1,
+      Address2: payload.destination.street2 || '',
+      Residential: payload.destination.isResidential,
+    },
+    Content: payload.parcel.content,
+    Parcel: {
+      Length: Number(payload.parcel.length),
+      Width: Number(payload.parcel.width),
+      Height: Number(payload.parcel.height),
+      Weight: Number(payload.parcel.weight),
+    },
+    Sender: {
+      Name: payload.origin.name,
+      Email: payload.origin.email,
+      Phone1: payload.origin.phone,
+      CompanyName: payload.origin.company,
+    },
+    Recipient: {
+      Name: payload.destination.name,
+      Email: payload.destination.email,
+      Phone1: payload.destination.phone,
+      CompanyName: payload.destination.company,
+    },
+  };
 };

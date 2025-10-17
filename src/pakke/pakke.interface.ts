@@ -75,6 +75,7 @@ export interface PkkCreateGuideRequest {
     phone: string;
     company?: string;
     street1: string;
+    isResidential: boolean;
     // equivalent to reference
     street2?: string;
     neighborhood: string;
@@ -88,6 +89,7 @@ export interface PkkCreateGuideRequest {
     phone: string;
     company: string;
     street1: string;
+    isResidential: boolean;
     // equivalent to reference
     street2?: string;
     neighborhood: string;
