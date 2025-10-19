@@ -14,3 +14,17 @@ export interface GEFormattedQuote extends GEQuote {
 export interface GetNeighborhoodInfoPayload {
   zipcode: string;
 }
+
+export interface NeighborhoodGE {
+  colonia: string;
+  cp: string;
+  estado: string;
+  ciudad: string;
+}
+
+export interface Neighborhood {
+  neighborhood: string;
+  zipcode: string;
+  state: string;
+  city: string;
+}
