@@ -10,3 +10,7 @@ export interface GEQuote {
 export interface GEFormattedQuote extends GEQuote {
   source: 'GE';
 }
+
+export interface GetNeighborhoodInfoPayload {
+  zipcode: string;
+}

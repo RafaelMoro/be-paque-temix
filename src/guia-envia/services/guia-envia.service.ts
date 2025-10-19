@@ -9,8 +9,9 @@ import {
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
   GE_MISSING_PROVIDER_PROFIT_MARGIN,
+  GET_NEIGHBORHOOD_ENDPOINT_GE,
 } from '../guia-envia.constants';
-import { GEQuote } from '../guia-envia.interface';
+import { GEQuote, GetNeighborhoodInfoPayload } from '../guia-envia.interface';
 import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -66,6 +67,33 @@ export class GuiaEnviaService {
         quotes,
         messages: updatedMessages,
       };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getAddressInfo(payload: GetNeighborhoodInfoPayload) {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_NEIGHBORHOOD_ENDPOINT_GE}${payload.zipcode}`;
+      const response: AxiosResponse<GEQuote[], unknown> = await axios.get(url, {
+        headers: {
+          Authorization: apiKey,
+        },
+      });
+      console.log('response data', response.data);
+      return response.data;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
