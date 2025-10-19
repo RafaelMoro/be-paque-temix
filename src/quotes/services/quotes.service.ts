@@ -5,7 +5,7 @@ import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { T1Service } from '@/t1/services/t1.service';
-import { GetQuoteDto } from '../dtos/quotes.dto';
+import { GetNeighborhoodInfoDto, GetQuoteDto } from '../dtos/quotes.dto';
 import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
 import { orderQuotesByPrice } from '../quotes.utils';
@@ -98,5 +98,9 @@ export class QuotesService {
       }
       throw new BadRequestException('An unknown error occurred');
     }
+  }
+
+  async getAddressInfo(payload: GetNeighborhoodInfoDto) {
+    return this.guiaEnviaService.getAddressInfo(payload);
   }
 }

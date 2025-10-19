@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { QuotesService } from '../services/quotes.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetQuoteResponseDto } from '../dtos/quotes-responses.dto';
@@ -22,5 +22,14 @@ export class QuotesController {
   })
   async getQuote(@Body() payload: GetQuoteDto) {
     return this.quotesService.getQuote(payload);
+  }
+
+  @Get('address-info/:zipcode')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get address information.',
+  })
+  async getAddressInfo(@Param('zipcode') zipcode: string) {
+    return this.quotesService.getAddressInfo({ zipcode });
   }
 }
