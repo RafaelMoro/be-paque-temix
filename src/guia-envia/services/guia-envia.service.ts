@@ -15,8 +15,13 @@ import {
   NeighborhoodGE,
   GEQuote,
   GetNeighborhoodInfoPayload,
+  GetAddressInfoResponse,
 } from '../guia-envia.interface';
-import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
+import {
+  formatNeighborhoodGE,
+  formatPayloadGE,
+  formatQuotesGE,
+} from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -79,7 +84,9 @@ export class GuiaEnviaService {
     }
   }
 
-  async getAddressInfo(payload: GetNeighborhoodInfoPayload) {
+  async getAddressInfo(
+    payload: GetNeighborhoodInfoPayload,
+  ): Promise<GetAddressInfoResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -98,8 +105,16 @@ export class GuiaEnviaService {
             Authorization: apiKey,
           },
         });
-      console.log('response data', response.data);
-      return response.data;
+      const data = response?.data;
+      const transformedData = formatNeighborhoodGE(data);
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          neighborhoods: transformedData,
+        },
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

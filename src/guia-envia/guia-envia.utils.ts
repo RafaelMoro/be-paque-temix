@@ -1,5 +1,5 @@
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GEQuote } from './guia-envia.interface';
+import { GEQuote, NeighborhoodGE, Neighborhood } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -50,4 +50,15 @@ export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
     alto: String(payload.height),
     ancho: String(payload.width),
   };
+};
+
+export const formatNeighborhoodGE = (
+  neighborhoods: NeighborhoodGE[],
+): Neighborhood[] => {
+  return neighborhoods.map((neighborhood) => ({
+    neighborhood: neighborhood.colonia,
+    zipcode: neighborhood.cp,
+    state: neighborhood.estado,
+    city: neighborhood.ciudad,
+  }));
 };

@@ -1,3 +1,5 @@
+import { GeneralResponse } from '@/global.interface';
+
 /**
  * Represents a quote object as returned by the Guia Envia API.
  */
@@ -27,4 +29,12 @@ export interface Neighborhood {
   zipcode: string;
   state: string;
   city: string;
+}
+
+export interface GetAddressInfoResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    neighborhoods: Neighborhood[];
+  };
 }
