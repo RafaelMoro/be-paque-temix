@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import config from '@/config';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -105,6 +108,7 @@ export class PakkeService {
       messages.push('Pkk Guide created successfully');
       const data = response?.data;
       console.log('data', data);
+
       const formattedData = formatPakkeCreateGuideResponse(data);
       console.log('formattedData', formattedData);
       const npmVersion: string = this.configService.version!;
@@ -118,6 +122,17 @@ export class PakkeService {
         },
       };
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error?.message;
+        const errorDetails = error?.response?.data?.error?.details;
+        const allErrorDetails = errorDetails.join('|  ');
+
+        if (errorMessage || errorDetails) {
+          throw new BadRequestException(`${errorMessage}: ${allErrorDetails}`);
+        }
+        throw new BadRequestException(error.message);
+      }
+      console.log('error', error);
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
