@@ -14,6 +14,24 @@ import {
 } from '@/quotes/quotes.interface';
 import { GlobalCreateGuideResponse } from '@/global.interface';
 
+/**
+ * Formats a phone number string to the pattern XXXX-XXX-XXX
+ * @param phone - The phone number string to format (e.g., "5627452122")
+ * @returns Formatted phone number (e.g., "5627-452-122")
+ */
+export const formatPhoneNumber = (phone: string): string => {
+  // Remove any non-digit characters
+  const cleanPhone = phone.replace(/\D/g, '');
+
+  // Handle 10-digit phone numbers (Mexican format)
+  if (cleanPhone.length === 10) {
+    return `${cleanPhone.slice(0, 4)}-${cleanPhone.slice(4, 7)}-${cleanPhone.slice(7)}`;
+  }
+
+  // Return original if not 10 digits
+  return phone;
+};
+
 export const getTypeServicePakke = (
   service: string,
 ): QuoteTypeSevice | null => {
