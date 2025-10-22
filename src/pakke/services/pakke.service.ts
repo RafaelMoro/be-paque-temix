@@ -127,12 +127,13 @@ export class PakkeService {
         const errorDetails = error?.response?.data?.error?.details;
         const allErrorDetails = errorDetails.join('|  ');
 
+        const errorFormatted = `${errorMessage}: ${allErrorDetails}`;
+
         if (errorMessage || errorDetails) {
-          throw new BadRequestException(`${errorMessage}: ${allErrorDetails}`);
+          throw new BadRequestException(errorFormatted);
         }
         throw new BadRequestException(error.message);
       }
-      console.log('error', error);
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
