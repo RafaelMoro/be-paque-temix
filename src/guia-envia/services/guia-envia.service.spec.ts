@@ -15,8 +15,14 @@ import {
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
+  GET_NEIGHBORHOOD_ENDPOINT_GE,
 } from '../guia-envia.constants';
-import { GEQuote } from '../guia-envia.interface';
+import {
+  GEQuote,
+  NeighborhoodGE,
+  GetNeighborhoodInfoPayload,
+  Neighborhood,
+} from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
 // Mock axios
@@ -110,11 +116,6 @@ describe('GuiaEnviaService', () => {
       },
     ],
   } as GlobalConfigsDoc;
-
-  const mockExtApiResponse: ExtApiGetQuoteResponse = {
-    quotes: mockFormattedQuotes,
-    messages: [],
-  };
 
   const createServiceWithConfig = async (configOverride: typeof mockConfig) => {
     const module: TestingModule = await Test.createTestingModule({
@@ -461,5 +462,343 @@ describe('GuiaEnviaService', () => {
       .mockImplementation(async () => result);
     const response = await service.getQuote(payload, mockGlobalConfig);
     expect(response).toBe(result);
+  });
+
+  describe('getAddressInfo', () => {
+    const mockNeighborhoodPayload: GetNeighborhoodInfoPayload = {
+      zipcode: '72000',
+    };
+
+    const mockNeighborhoodGEResponse: NeighborhoodGE[] = [
+      {
+        colonia: 'Centro',
+        cp: '72000',
+        estado: 'Puebla',
+        ciudad: 'Heroica Puebla de Zaragoza',
+      },
+      {
+        colonia: 'El Carmen',
+        cp: '72000',
+        estado: 'Puebla',
+        ciudad: 'Heroica Puebla de Zaragoza',
+      },
+    ];
+
+    const mockFormattedNeighborhoods: Neighborhood[] = [
+      {
+        neighborhood: 'Centro',
+        zipcode: '72000',
+        state: 'Puebla',
+        city: 'Heroica Puebla de Zaragoza',
+      },
+      {
+        neighborhood: 'El Carmen',
+        zipcode: '72000',
+        state: 'Puebla',
+        city: 'Heroica Puebla de Zaragoza',
+      },
+    ];
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get address information from Guia Envia', async () => {
+      // Create service with version in config
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock formatNeighborhoodGE utility
+      jest
+        .spyOn(utils, 'formatNeighborhoodGE')
+        .mockReturnValue(mockFormattedNeighborhoods);
+
+      // Mock axios response
+      mockedAxios.get.mockResolvedValue({
+        data: mockNeighborhoodGEResponse,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${GET_NEIGHBORHOOD_ENDPOINT_GE}72000`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(
+        mockNeighborhoodGEResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          neighborhoods: mockFormattedNeighborhoods,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error';
+
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Reject with non-Error object
+      mockedAxios.get.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should handle response with empty neighborhoods array', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [],
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith([]);
+      expect(result.data.neighborhoods).toEqual([]);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(undefined);
+      expect(result.data.neighborhoods).toEqual([]);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should handle single neighborhood in response', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const singleNeighborhoodGE: NeighborhoodGE[] = [
+        {
+          colonia: 'Zona Dorada',
+          cp: '72000',
+          estado: 'Puebla',
+          ciudad: 'Heroica Puebla de Zaragoza',
+        },
+      ];
+
+      const expectedSingleNeighborhood: Neighborhood[] = [
+        {
+          neighborhood: 'Zona Dorada',
+          zipcode: '72000',
+          state: 'Puebla',
+          city: 'Heroica Puebla de Zaragoza',
+        },
+      ];
+
+      jest
+        .spyOn(utils, 'formatNeighborhoodGE')
+        .mockReturnValue(expectedSingleNeighborhood);
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleNeighborhoodGE,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(
+        singleNeighborhoodGE,
+      );
+      expect(result.data.neighborhoods).toEqual(expectedSingleNeighborhood);
+      expect(result.data.neighborhoods).toHaveLength(1);
+      expect(result.version).toBe('1.0.0');
+    });
+
+    it('should construct correct URL with zipcode parameter', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const customZipcode = '12345';
+      const customPayload: GetNeighborhoodInfoPayload = {
+        zipcode: customZipcode,
+      };
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [],
+      });
+
+      await serviceWithVersion.getAddressInfo(customPayload);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${GET_NEIGHBORHOOD_ENDPOINT_GE}${customZipcode}`,
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should propagate BadRequestException from utils', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockNeighborhoodGEResponse,
+      });
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockImplementation(() => {
+        throw new BadRequestException('Invalid neighborhood data structure');
+      });
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(
+        new BadRequestException('Invalid neighborhood data structure'),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatNeighborhoodGE');
+
+      await expect(
+        serviceWithInvalidConfig.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before API call and utility function call
+      expect(formatSpy).not.toHaveBeenCalled();
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
   });
 });
