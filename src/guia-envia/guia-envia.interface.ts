@@ -38,3 +38,19 @@ export interface GetAddressInfoResponse
     neighborhoods: Neighborhood[];
   };
 }
+
+export interface ExtCreateAddressPayload {
+  cp: string;
+  colonia: string;
+  ciudad: string;
+  estado: string;
+  otros_campos: string;
+}
+
+export interface CreateAddressPayload {
+  zipcode: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  otherFields: string;
+}
