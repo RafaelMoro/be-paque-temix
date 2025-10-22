@@ -72,3 +72,24 @@ export class GetQuoteDto {
   @ApiProperty({ example: 10 })
   readonly width: number;
 }
+
+export class GetNeighborhoodInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
+  @MaxLength(5, {
+    message: 'Origin postal code must be 5 characters long',
+  })
+  @Matches(/^[0-9]+$/, {
+    message: 'Origin postal code must contain only numbers',
+  })
+  @ApiProperty({
+    example: '72000',
+    description: 'Postal code of the origin',
+    minLength: 5,
+    maxLength: 5,
+  })
+  readonly zipcode: string;
+}

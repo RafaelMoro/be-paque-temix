@@ -9,9 +9,19 @@ import {
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
   GE_MISSING_PROVIDER_PROFIT_MARGIN,
+  GET_NEIGHBORHOOD_ENDPOINT_GE,
 } from '../guia-envia.constants';
-import { GEQuote } from '../guia-envia.interface';
-import { formatPayloadGE, formatQuotesGE } from '../guia-envia.utils';
+import {
+  NeighborhoodGE,
+  GEQuote,
+  GetNeighborhoodInfoPayload,
+  GetAddressInfoResponse,
+} from '../guia-envia.interface';
+import {
+  formatNeighborhoodGE,
+  formatPayloadGE,
+  formatQuotesGE,
+} from '../guia-envia.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -65,6 +75,45 @@ export class GuiaEnviaService {
       return {
         quotes,
         messages: updatedMessages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getAddressInfo(
+    payload: GetNeighborhoodInfoPayload,
+  ): Promise<GetAddressInfoResponse> {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_NEIGHBORHOOD_ENDPOINT_GE}${payload.zipcode}`;
+      const response: AxiosResponse<NeighborhoodGE[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const transformedData = formatNeighborhoodGE(data);
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          neighborhoods: transformedData,
+        },
       };
     } catch (error) {
       if (error instanceof Error) {
