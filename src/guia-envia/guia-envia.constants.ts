@@ -7,3 +7,4 @@ export const GE_MISSING_PROVIDER_PROFIT_MARGIN =
 export const QUOTE_ENDPOINT_GE = '/cotizar';
 export const GET_NEIGHBORHOOD_ENDPOINT_GE = '/colonias?cp=';
 export const CREATE_ADDRESS_ENDPOINT_GE = '/direcciones';
+export const GET_SERVICES_ENDPOINT_GE = '/servicios';

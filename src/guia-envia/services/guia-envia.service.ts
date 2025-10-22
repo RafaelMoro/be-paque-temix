@@ -11,6 +11,7 @@ import {
   GE_MISSING_PROVIDER_PROFIT_MARGIN,
   GET_NEIGHBORHOOD_ENDPOINT_GE,
   CREATE_ADDRESS_ENDPOINT_GE,
+  GET_SERVICES_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   NeighborhoodGE,
@@ -20,6 +21,7 @@ import {
   CreateAddressPayload,
   ExtCreateAddressResponse,
   CreateAddressResponseGE,
+  GetServiceGEResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -156,6 +158,40 @@ export class GuiaEnviaService {
       return formattedData;
     } catch (error) {
       console.log('error creating address ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error.message);
+        // throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async listServicesGe() {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      // const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_SERVICES_ENDPOINT_GE}`;
+      const response: AxiosResponse<GetServiceGEResponse[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      return data;
+    } catch (error) {
+      console.log('error list services ge', error);
       if (axios.isAxiosError(error)) {
         throw new BadRequestException(error.message);
         // throw new BadRequestException(error?.response?.data || error.message);

@@ -13,6 +13,13 @@ export interface GEFormattedQuote extends GEQuote {
   source: 'GE';
 }
 
+export interface GetServiceGEResponse {
+  id: string;
+  nombre: string;
+}
+
+//#region Get Neighborhood info GE
+
 export interface GetNeighborhoodInfoPayload {
   zipcode: string;
 }
@@ -39,6 +46,9 @@ export interface GetAddressInfoResponse
   };
 }
 
+//#endregion
+
+//#region Create address
 export interface ExtCreateAddressPayload {
   cp: string;
   colonia: string;
@@ -54,8 +64,6 @@ export interface ExtCreateAddressPayload {
   referencia: string;
   alias: string;
 }
-
-//#region Create address
 
 export interface CreateAddressPayload {
   zipcode: string;
