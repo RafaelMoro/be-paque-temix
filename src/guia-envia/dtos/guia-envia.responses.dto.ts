@@ -40,3 +40,29 @@ export class GetAddressInfoResponseDto {
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
 }
+
+export class CreateAddressDataDto {
+  @ApiProperty({ example: '72000' })
+  zipcode: string;
+
+  @ApiProperty({ example: 'Centro' })
+  neighborhood: string;
+
+  @ApiProperty({ example: 'Heroica Puebla de Zaragoza' })
+  city: string;
+
+  @ApiProperty({ example: 'Puebla' })
+  state: string;
+
+  @ApiProperty({ example: 'Avenida Juárez' })
+  street: string;
+
+  @ApiProperty({ example: '123' })
+  number: string;
+
+  @ApiProperty({ example: 'Entre calle A y calle B, edificio azul' })
+  reference: string;
+
+  @ApiProperty({ example: 'Casa Principal' })
+  alias: string;
+}
