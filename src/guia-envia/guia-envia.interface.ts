@@ -55,6 +55,8 @@ export interface ExtCreateAddressPayload {
   alias: string;
 }
 
+//#region Create address
+
 export interface CreateAddressPayload {
   zipcode: string;
   neighborhood: string;
@@ -100,4 +102,20 @@ export interface CreateAddressResponseGE {
   number: string;
   reference: string;
   alias: string;
+}
+
+//#endregion
+
+//#region Create guide
+
+export interface ExtCreateGuideGEPayload {
+  origen_alias: string;
+  destino_alias: string;
+  peso: string;
+  largo: string;
+  alto: string;
+  ancho: string;
+  sat_id: string;
+  contenido: string;
+  servicio_id: string;
 }
