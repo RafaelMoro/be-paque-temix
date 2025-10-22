@@ -134,13 +134,13 @@ export const convertPkkCreateGuideToExternal = (
     Sender: {
       Name: payload.origin.name,
       Email: payload.origin.email,
-      Phone1: payload.origin.phone,
+      Phone1: formatPhoneNumber(payload.origin.phone),
       CompanyName: payload.origin.company,
     },
     Recipient: {
       Name: payload.destination.name,
       Email: payload.destination.email,
-      Phone1: payload.destination.phone,
+      Phone1: formatPhoneNumber(payload.destination.phone),
       CompanyName: payload.destination.company,
     },
   };
