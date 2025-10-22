@@ -18,17 +18,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 10
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Create .env file
         run: |
           echo "REACT_APP_LOCAL_STORAGE=BUDGET_MASTER" > .env
 
       - name: Run unit tests
-        run: pnpm test
+        run: bun test
