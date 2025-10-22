@@ -54,3 +54,23 @@ export interface CreateAddressPayload {
   state: string;
   otherFields: string;
 }
+
+export interface ExtCreateAddressResponse {
+  cp: string;
+  ciudad: string;
+  estado: string;
+  colonia: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  empresa: string;
+  rfc: string;
+  calle: string;
+  numero: string;
+  referencia: string;
+  alias: string;
+  users: string;
+  createdAt: string;
+  updatedAt: string;
+  id: string;
+}
