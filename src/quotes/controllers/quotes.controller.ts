@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetQuoteResponseDto } from '../dtos/quotes-responses.dto';
 import { GetQuoteDto } from '../dtos/quotes.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { GetAddressInfoResponseDto } from '@/guia-envia/dtos/guia-envia.dtos';
+import { GetAddressInfoResponseDto } from '@/guia-envia/dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
 @Controller('quotes')
