@@ -1,3 +1,9 @@
+## v0.23.0 (2025-10-22)
+
+### Pull Requests
+[#39](https://github.com/RafaelMoro/be-paque-temix/pull/39) | Add endpoint to create address GE
+
+
 ## v0.22.0 (2025-10-22)
 
 ### Pull Requests
