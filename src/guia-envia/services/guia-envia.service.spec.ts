@@ -16,12 +16,16 @@ import {
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
   GET_NEIGHBORHOOD_ENDPOINT_GE,
+  CREATE_ADDRESS_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   GEQuote,
   NeighborhoodGE,
   GetNeighborhoodInfoPayload,
   Neighborhood,
+  CreateAddressPayload,
+  ExtCreateAddressResponse,
+  CreateAddressResponseGE,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -799,6 +803,254 @@ describe('GuiaEnviaService', () => {
       // Verify that validation happens before API call and utility function call
       expect(formatSpy).not.toHaveBeenCalled();
       expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createAddress', () => {
+    const mockCreateAddressPayload: CreateAddressPayload = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      name: 'Juan Pérez',
+      email: 'juan.perez@example.com',
+      phone: '+52 222 123 4567',
+      company: 'Empresa SA de CV',
+      rfc: 'XAXX010101000',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    const mockExtCreateAddressResponse: ExtCreateAddressResponse = {
+      cp: '72000',
+      colonia: 'Centro',
+      ciudad: 'Heroica Puebla de Zaragoza',
+      estado: 'Puebla',
+      nombre: 'Juan Pérez',
+      email: 'juan.perez@example.com',
+      telefono: '+52 222 123 4567',
+      empresa: 'Empresa SA de CV',
+      rfc: 'XAXX010101000',
+      calle: 'Avenida Juárez',
+      numero: '123',
+      referencia: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+      users: 'user123',
+      createdAt: '2023-10-22T12:00:00Z',
+      updatedAt: '2023-10-22T12:00:00Z',
+      id: 'address-123',
+    };
+
+    const mockFormattedCreateAddressResponse: CreateAddressResponseGE = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully create address with Guia Envia', async () => {
+      // Mock utilities
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateAddressResponseGE')
+        .mockReturnValue(mockFormattedCreateAddressResponse);
+
+      // Mock axios response
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateAddressResponse,
+      });
+
+      const result = await service.createAddress(mockCreateAddressPayload);
+
+      expect(utils.formatCreateAddressPayloadGE).toHaveBeenCalledWith(
+        mockCreateAddressPayload,
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+      const [url, , config] = mockedAxios.post.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatCreateAddressResponseGE).toHaveBeenCalledWith(
+        mockExtCreateAddressResponse,
+      );
+      expect(result).toEqual(mockFormattedCreateAddressResponse);
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      const errorMessage = 'Network error';
+      mockedAxios.post.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should handle axios error correctly', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      const axiosError = {
+        isAxiosError: true,
+        message: 'Request failed with status code 400',
+        response: {
+          status: 400,
+          data: { error: 'Invalid address data' },
+        },
+      };
+
+      // Mock axios.isAxiosError to return true
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+      mockedAxios.post.mockRejectedValue(axiosError);
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(
+        new BadRequestException('Request failed with status code 400'),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      // Mock axios.isAxiosError to return false
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(false);
+
+      // Reject with non-Error object
+      mockedAxios.post.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatCreateAddressPayloadGE');
+
+      await expect(
+        serviceWithInvalidConfig.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before payload transformation
+      expect(formatSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
   });
 });
