@@ -13,11 +13,12 @@ import {
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
 import { GlobalCreateGuideResponse } from '@/global.interface';
+import { DEFAULT_LADA } from './pakke.constants';
 
 /**
- * Formats a phone number string to the pattern XXXX-XXX-XXX
+ * Formats a phone number string to include lada (+52) prefix
  * @param phone - The phone number string to format (e.g., "5627452122")
- * @returns Formatted phone number (e.g., "5627-452-122")
+ * @returns Formatted phone number with lada (e.g., "+525627452122")
  */
 export const formatPhoneNumber = (phone: string): string => {
   // Remove any non-digit characters
@@ -25,7 +26,7 @@ export const formatPhoneNumber = (phone: string): string => {
 
   // Handle 10-digit phone numbers (Mexican format)
   if (cleanPhone.length === 10) {
-    return `${cleanPhone.slice(0, 4)}-${cleanPhone.slice(4, 7)}-${cleanPhone.slice(7)}`;
+    return `${DEFAULT_LADA}${cleanPhone}`;
   }
 
   // Return original if not 10 digits
