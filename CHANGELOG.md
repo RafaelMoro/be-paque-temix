@@ -1,3 +1,9 @@
+## v0.22.0 (2025-10-22)
+
+### Pull Requests
+[#38](https://github.com/RafaelMoro/be-paque-temix/pull/38) | Add get address endpoint
+
+
 ## v0.21.0 (2025-10-17)
 
 ### Pull Requests
