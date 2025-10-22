@@ -117,3 +117,34 @@ private async fetchQuotesWithToken({
 - **Better IDE support**: Autocomplete and IntelliSense
 - **Self-documenting**: Interfaces serve as documentation
 - **Maintainability**: Easier to refactor and understand code structure
+
+## ESLint and Code Quality Guidelines
+
+Focus primarily on functionality and type safety rather than minor ESLint formatting issues. Only address ESLint errors when they relate to:
+
+### ✅ Priority ESLint Issues (Address these):
+
+- **Type safety errors**: `@typescript-eslint/no-unsafe-*` rules
+- **Unused variables/imports**: `@typescript-eslint/no-unused-vars`
+- **Missing return types**: `@typescript-eslint/explicit-function-return-type`
+- **Any type usage**: `@typescript-eslint/no-explicit-any`
+
+### ❌ Low Priority ESLint Issues (Don't focus on these unless specifically requested):
+
+- **Formatting issues**: Spacing, line breaks, indentation
+- **Method binding**: `@typescript-eslint/unbound-method` (unless causing runtime issues)
+- **Prefer readonly**: `@typescript-eslint/prefer-readonly`
+- **Naming conventions**: `@typescript-eslint/naming-convention` (unless severely impacting readability)
+
+### Guidelines:
+
+1. **Functionality first**: Ensure code works correctly before addressing style issues
+2. **Type safety second**: Fix type-related ESLint errors as they improve code quality
+3. **Formatting last**: Only address formatting ESLint issues if specifically requested
+4. **Use eslint disable comments sparingly**: Only when the rule doesn't apply to the specific context
+
+### Benefits:
+
+- **Faster development**: Focus on what matters most
+- **Better prioritization**: Address issues that impact functionality and maintainability first
+- **Reduced noise**: Avoid getting distracted by minor formatting issues
