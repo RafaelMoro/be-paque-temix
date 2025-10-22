@@ -93,3 +93,84 @@ export class GetNeighborhoodInfoDto {
   })
   readonly zipcode: string;
 }
+
+export class CreateAddressDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5, {
+    message: 'Zipcode must be 5 characters long',
+  })
+  @MaxLength(5, {
+    message: 'Zipcode must be 5 characters long',
+  })
+  @Matches(/^[0-9]+$/, {
+    message: 'Zipcode must contain only numbers',
+  })
+  @ApiProperty({
+    example: '72000',
+    description: 'Postal code of the address',
+    minLength: 5,
+    maxLength: 5,
+  })
+  readonly zipcode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: 'Neighborhood must be at least 2 characters long',
+  })
+  @MaxLength(100, {
+    message: 'Neighborhood must not exceed 100 characters',
+  })
+  @ApiProperty({
+    example: 'Centro',
+    description: 'Neighborhood name',
+    minLength: 2,
+    maxLength: 100,
+  })
+  readonly neighborhood: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: 'City must be at least 2 characters long',
+  })
+  @MaxLength(100, {
+    message: 'City must not exceed 100 characters',
+  })
+  @ApiProperty({
+    example: 'Heroica Puebla de Zaragoza',
+    description: 'City name',
+    minLength: 2,
+    maxLength: 100,
+  })
+  readonly city: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: 'State must be at least 2 characters long',
+  })
+  @MaxLength(100, {
+    message: 'State must not exceed 100 characters',
+  })
+  @ApiProperty({
+    example: 'Puebla',
+    description: 'State name',
+    minLength: 2,
+    maxLength: 100,
+  })
+  readonly state: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500, {
+    message: 'Other fields must not exceed 500 characters',
+  })
+  @ApiProperty({
+    example: 'Additional address information',
+    description: 'Other fields for additional address information',
+    maxLength: 500,
+  })
+  readonly otherFields: string;
+}

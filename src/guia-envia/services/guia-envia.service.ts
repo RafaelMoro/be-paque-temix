@@ -151,6 +151,11 @@ export class GuiaEnviaService {
       console.log('data', data);
       return data;
     } catch (error) {
+      console.log('error', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error.message);
+        // throw new BadRequestException(error?.response?.data || error.message);
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
