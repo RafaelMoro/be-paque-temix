@@ -193,7 +193,7 @@ export class GuiaEnviaService {
     } catch (error) {
       console.log('error list services ge', error);
       if (axios.isAxiosError(error)) {
-        throw new BadRequestException(error.message);
+        throw new BadRequestException(error?.response?.data);
         // throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
