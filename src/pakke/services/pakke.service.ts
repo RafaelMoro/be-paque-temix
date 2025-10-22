@@ -122,6 +122,7 @@ export class PakkeService {
         },
       };
     } catch (error) {
+      console.log('error in create guide Pkk', error);
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.error?.message;
         const errorDetails = error?.response?.data?.error?.details;
