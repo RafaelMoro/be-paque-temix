@@ -98,6 +98,8 @@ export class PakkeService {
       }
 
       const payloadTransformed = convertPkkCreateGuideToExternal(payload);
+      console.log('payloadTransformed', payloadTransformed);
+
       const url = `${uri}${CREATE_GUIDE_PAKKE_ENDPOINT}`;
       const response: AxiosResponse<PakkeExternalCreateGuideResponse, unknown> =
         await axios.post(url, payloadTransformed, {
