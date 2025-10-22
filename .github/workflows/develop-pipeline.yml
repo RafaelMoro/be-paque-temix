@@ -16,6 +16,10 @@ jobs:
   check_label:
     uses: ./.github/workflows/verify_pr.yml
     secrets: inherit
+  
+  unit-tests:
+    uses: ./.github/workflows/unit-tests.yml
+    secrets: inherit
 
   bump_version:
     name: Create and push tag
