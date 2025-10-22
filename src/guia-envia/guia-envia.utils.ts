@@ -1,5 +1,13 @@
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GEQuote, NeighborhoodGE, Neighborhood } from './guia-envia.interface';
+import {
+  GEQuote,
+  NeighborhoodGE,
+  Neighborhood,
+  CreateAddressPayload,
+  ExtCreateAddressPayload,
+  ExtCreateAddressResponse,
+  CreateAddressResponseGE,
+} from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -61,4 +69,39 @@ export const formatNeighborhoodGE = (
     state: neighborhood.estado,
     city: neighborhood.ciudad,
   }));
+};
+
+export const formatCreateAddressPayloadGE = (
+  payload: CreateAddressPayload,
+): ExtCreateAddressPayload => {
+  return {
+    cp: payload.zipcode,
+    colonia: payload.neighborhood,
+    ciudad: payload.city,
+    estado: payload.state,
+    nombre: payload.name,
+    email: payload.email,
+    telefono: payload.phone,
+    empresa: payload.company,
+    rfc: payload.rfc,
+    calle: payload.street,
+    numero: payload.number,
+    referencia: payload.reference,
+    alias: payload.alias,
+  };
+};
+
+export const formatCreateAddressResponseGE = (
+  response: ExtCreateAddressResponse,
+): CreateAddressResponseGE => {
+  return {
+    zipcode: response.cp,
+    neighborhood: response.colonia,
+    city: response.ciudad,
+    state: response.estado,
+    street: response.calle,
+    number: response.numero,
+    reference: response.referencia,
+    alias: response.alias,
+  };
 };

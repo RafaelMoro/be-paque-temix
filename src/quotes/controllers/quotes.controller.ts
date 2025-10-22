@@ -2,9 +2,12 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { QuotesService } from '../services/quotes.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetQuoteResponseDto } from '../dtos/quotes-responses.dto';
-import { GetQuoteDto } from '../dtos/quotes.dto';
+import { CreateAddressDto, GetQuoteDto } from '../dtos/quotes.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { GetAddressInfoResponseDto } from '@/guia-envia/dtos/guia-envia.responses.dto';
+import {
+  GetAddressInfoResponseDto,
+  CreateAddressDataDto,
+} from '@/guia-envia/dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
 @Controller('quotes')
@@ -37,5 +40,19 @@ export class QuotesController {
   })
   async getAddressInfo(@Param('zipcode') zipcode: string) {
     return this.quotesService.getAddressInfo({ zipcode });
+  }
+
+  @Post('create-address')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create a new address.',
+  })
+  @ApiResponse({
+    status: 201,
+    type: CreateAddressDataDto,
+    description: 'Address created successfully.',
+  })
+  async createAddress(@Body() payload: CreateAddressDto) {
+    return this.quotesService.createAddress(payload);
   }
 }

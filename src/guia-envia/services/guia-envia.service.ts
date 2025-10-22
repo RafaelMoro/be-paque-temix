@@ -10,14 +10,20 @@ import {
   GE_MISSING_CONFIG_ERROR,
   GE_MISSING_PROVIDER_PROFIT_MARGIN,
   GET_NEIGHBORHOOD_ENDPOINT_GE,
+  CREATE_ADDRESS_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   NeighborhoodGE,
   GEQuote,
   GetNeighborhoodInfoPayload,
   GetAddressInfoResponse,
+  CreateAddressPayload,
+  ExtCreateAddressResponse,
+  CreateAddressResponseGE,
 } from '../guia-envia.interface';
 import {
+  formatCreateAddressPayloadGE,
+  formatCreateAddressResponseGE,
   formatNeighborhoodGE,
   formatPayloadGE,
   formatQuotesGE,
@@ -116,6 +122,44 @@ export class GuiaEnviaService {
         },
       };
     } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createAddress(
+    payload: CreateAddressPayload,
+  ): Promise<CreateAddressResponseGE> {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      // const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
+      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
+      const response: AxiosResponse<ExtCreateAddressResponse, unknown> =
+        await axios.post(url, transformedPayload, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const formattedData = formatCreateAddressResponseGE(data);
+      return formattedData;
+    } catch (error) {
+      console.log('error creating address ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error.message);
+        // throw new BadRequestException(error?.response?.data || error.message);
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }

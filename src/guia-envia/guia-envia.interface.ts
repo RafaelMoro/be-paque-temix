@@ -38,3 +38,66 @@ export interface GetAddressInfoResponse
     neighborhoods: Neighborhood[];
   };
 }
+
+export interface ExtCreateAddressPayload {
+  cp: string;
+  colonia: string;
+  ciudad: string;
+  estado: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  empresa: string;
+  rfc: string;
+  calle: string;
+  numero: string;
+  referencia: string;
+  alias: string;
+}
+
+export interface CreateAddressPayload {
+  zipcode: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  rfc: string;
+  street: string;
+  number: string;
+  reference: string;
+  alias: string;
+}
+
+export interface ExtCreateAddressResponse {
+  cp: string;
+  ciudad: string;
+  estado: string;
+  colonia: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  empresa: string;
+  rfc: string;
+  calle: string;
+  numero: string;
+  referencia: string;
+  alias: string;
+  users: string;
+  createdAt: string;
+  updatedAt: string;
+  id: string;
+}
+
+export interface CreateAddressResponseGE {
+  zipcode: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  street: string;
+  number: string;
+  reference: string;
+  alias: string;
+}
