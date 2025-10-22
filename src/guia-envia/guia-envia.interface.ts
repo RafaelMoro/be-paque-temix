@@ -90,3 +90,14 @@ export interface ExtCreateAddressResponse {
   updatedAt: string;
   id: string;
 }
+
+export interface CreateAddressResponseGE {
+  zipcode: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  street: string;
+  number: string;
+  reference: string;
+  alias: string;
+}

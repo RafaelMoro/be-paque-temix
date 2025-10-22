@@ -5,6 +5,8 @@ import {
   Neighborhood,
   CreateAddressPayload,
   ExtCreateAddressPayload,
+  ExtCreateAddressResponse,
+  CreateAddressResponseGE,
 } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
@@ -86,5 +88,20 @@ export const formatCreateAddressPayloadGE = (
     numero: payload.number,
     referencia: payload.reference,
     alias: payload.alias,
+  };
+};
+
+export const formatCreateAddressResponseGE = (
+  response: ExtCreateAddressResponse,
+): CreateAddressResponseGE => {
+  return {
+    zipcode: response.cp,
+    neighborhood: response.colonia,
+    city: response.ciudad,
+    state: response.estado,
+    street: response.calle,
+    number: response.numero,
+    reference: response.referencia,
+    alias: response.alias,
   };
 };

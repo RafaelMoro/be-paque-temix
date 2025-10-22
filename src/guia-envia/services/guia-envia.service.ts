@@ -19,9 +19,11 @@ import {
   GetAddressInfoResponse,
   CreateAddressPayload,
   ExtCreateAddressResponse,
+  CreateAddressResponseGE,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
+  formatCreateAddressResponseGE,
   formatNeighborhoodGE,
   formatPayloadGE,
   formatQuotesGE,
@@ -127,7 +129,9 @@ export class GuiaEnviaService {
     }
   }
 
-  async createAddress(payload: CreateAddressPayload) {
+  async createAddress(
+    payload: CreateAddressPayload,
+  ): Promise<CreateAddressResponseGE> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -148,10 +152,10 @@ export class GuiaEnviaService {
           },
         });
       const data = response?.data;
-      console.log('data', data);
-      return data;
+      const formattedData = formatCreateAddressResponseGE(data);
+      return formattedData;
     } catch (error) {
-      console.log('error', error);
+      console.log('error creating address ge', error);
       if (axios.isAxiosError(error)) {
         throw new BadRequestException(error.message);
         // throw new BadRequestException(error?.response?.data || error.message);
