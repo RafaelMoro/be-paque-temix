@@ -44,7 +44,15 @@ export interface ExtCreateAddressPayload {
   colonia: string;
   ciudad: string;
   estado: string;
-  otros_campos: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  empresa: string;
+  rfc: string;
+  calle: string;
+  numero: string;
+  referencia: string;
+  alias: string;
 }
 
 export interface CreateAddressPayload {
@@ -52,7 +60,15 @@ export interface CreateAddressPayload {
   neighborhood: string;
   city: string;
   state: string;
-  otherFields: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  rfc: string;
+  street: string;
+  number: string;
+  reference: string;
+  alias: string;
 }
 
 export interface ExtCreateAddressResponse {

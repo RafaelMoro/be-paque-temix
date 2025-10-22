@@ -77,6 +77,14 @@ export const formatCreateAddressPayloadGE = (
     colonia: payload.neighborhood,
     ciudad: payload.city,
     estado: payload.state,
-    otros_campos: payload.otherFields,
+    nombre: payload.name,
+    email: payload.email,
+    telefono: payload.phone,
+    empresa: payload.company,
+    rfc: payload.rfc,
+    calle: payload.street,
+    numero: payload.number,
+    referencia: payload.reference,
+    alias: payload.alias,
   };
 };
