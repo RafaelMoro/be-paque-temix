@@ -134,3 +134,24 @@ export class CreateGuideGEResponseDto {
   })
   data: CreateGuideDataWrapperDto;
 }
+
+export class CourierServiceDto {
+  @ApiProperty({ example: '1' })
+  id: string;
+
+  @ApiProperty({ example: 'Paquete Express' })
+  nombre: string;
+}
+
+export class GetCourierServicesResponseDto {
+  @ApiProperty({
+    type: [CourierServiceDto],
+    description: 'List of available courier services',
+    example: [
+      { id: '1', nombre: 'Paquete Express' },
+      { id: '2', nombre: 'DHL' },
+      { id: '3', nombre: 'FedEx' },
+    ],
+  })
+  data: CourierServiceDto[];
+}

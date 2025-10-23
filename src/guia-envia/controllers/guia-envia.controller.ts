@@ -4,7 +4,10 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { GuiaEnviaService } from '../services/guia-envia.service';
 import { CreateGuideGeDto } from '../dtos/guia-envia.dtos';
-import { CreateGuideGEResponseDto } from '../dtos/guia-envia.responses.dto';
+import {
+  CreateGuideGEResponseDto,
+  GetCourierServicesResponseDto,
+} from '../dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
 @Controller('ge')
@@ -15,6 +18,11 @@ export class GuiaEnviaController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get a list of courier services.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: GetCourierServicesResponseDto,
+    description: 'Courier services retrieved successfully.',
   })
   async getCourierServices() {
     return this.guiaEnviaService.listServicesGe();
