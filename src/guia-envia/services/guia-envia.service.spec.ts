@@ -24,7 +24,7 @@ import {
   GetNeighborhoodInfoPayload,
   Neighborhood,
   CreateAddressPayload,
-  ExtCreateAddressResponse,
+  ExtAddressGEResponse,
   CreateAddressResponseGE,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
@@ -823,7 +823,7 @@ describe('GuiaEnviaService', () => {
       alias: 'Casa Principal',
     };
 
-    const mockExtCreateAddressResponse: ExtCreateAddressResponse = {
+    const mockExtCreateAddressResponse: ExtAddressGEResponse = {
       cp: '72000',
       colonia: 'Centro',
       ciudad: 'Heroica Puebla de Zaragoza',

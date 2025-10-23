@@ -81,7 +81,7 @@ export interface CreateAddressPayload {
   alias: string;
 }
 
-export interface ExtCreateAddressResponse {
+export interface ExtAddressGEResponse {
   cp: string;
   ciudad: string;
   estado: string;
@@ -144,4 +144,31 @@ export interface CreateGuideGeRequest {
   destination: {
     alias: string;
   };
+}
+
+export interface ExtGEShipment {
+  envio_id: string;
+  servicio: string;
+  costo: string;
+  guia: string;
+}
+
+export interface ExtGEGuide {
+  // Origin zipcode
+  origen: string;
+  // Destination zipcode
+  destino: string;
+  // Name of the sender
+  remitente: string;
+  // Name of the recipient
+  destinatario: string;
+  numero_guia: string;
+  url: string;
+}
+
+export interface ExtCreateGuideGEResponse {
+  origen: ExtAddressGEResponse;
+  destino: ExtAddressGEResponse;
+  envio: ExtGEShipment[];
+  guias: ExtGEGuide[];
 }
