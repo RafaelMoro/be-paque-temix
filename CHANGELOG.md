@@ -1,3 +1,21 @@
+## v0.24.0 (2025-10-23)
+
+### Pull Requests
+[#40](https://github.com/RafaelMoro/be-paque-temix/pull/40) | Create guide GE
+
+
+## v0.23.0 (2025-10-22)
+
+### Pull Requests
+[#39](https://github.com/RafaelMoro/be-paque-temix/pull/39) | Add endpoint to create address GE
+
+
+## v0.22.0 (2025-10-22)
+
+### Pull Requests
+[#38](https://github.com/RafaelMoro/be-paque-temix/pull/38) | Add get address endpoint
+
+
 ## v0.21.0 (2025-10-17)
 
 ### Pull Requests

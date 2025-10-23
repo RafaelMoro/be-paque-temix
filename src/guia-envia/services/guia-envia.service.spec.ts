@@ -15,8 +15,24 @@ import {
   GE_MISSING_API_KEY_ERROR,
   GE_MISSING_URI_ERROR,
   GE_MISSING_CONFIG_ERROR,
+  GET_NEIGHBORHOOD_ENDPOINT_GE,
+  CREATE_ADDRESS_ENDPOINT_GE,
+  GET_SERVICES_ENDPOINT_GE,
+  CREATE_GUIDE_ENDPOINT_GE,
 } from '../guia-envia.constants';
-import { GEQuote } from '../guia-envia.interface';
+import {
+  GEQuote,
+  NeighborhoodGE,
+  GetNeighborhoodInfoPayload,
+  Neighborhood,
+  CreateAddressPayload,
+  ExtAddressGEResponse,
+  CreateAddressResponseGE,
+  GetServiceGEResponse,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEResponse,
+  CreateGuideGEDataResponse,
+} from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
 // Mock axios
@@ -110,11 +126,6 @@ describe('GuiaEnviaService', () => {
       },
     ],
   } as GlobalConfigsDoc;
-
-  const mockExtApiResponse: ExtApiGetQuoteResponse = {
-    quotes: mockFormattedQuotes,
-    messages: [],
-  };
 
   const createServiceWithConfig = async (configOverride: typeof mockConfig) => {
     const module: TestingModule = await Test.createTestingModule({
@@ -461,5 +472,1289 @@ describe('GuiaEnviaService', () => {
       .mockImplementation(async () => result);
     const response = await service.getQuote(payload, mockGlobalConfig);
     expect(response).toBe(result);
+  });
+
+  describe('getAddressInfo', () => {
+    const mockNeighborhoodPayload: GetNeighborhoodInfoPayload = {
+      zipcode: '72000',
+    };
+
+    const mockNeighborhoodGEResponse: NeighborhoodGE[] = [
+      {
+        colonia: 'Centro',
+        cp: '72000',
+        estado: 'Puebla',
+        ciudad: 'Heroica Puebla de Zaragoza',
+      },
+      {
+        colonia: 'El Carmen',
+        cp: '72000',
+        estado: 'Puebla',
+        ciudad: 'Heroica Puebla de Zaragoza',
+      },
+    ];
+
+    const mockFormattedNeighborhoods: Neighborhood[] = [
+      {
+        neighborhood: 'Centro',
+        zipcode: '72000',
+        state: 'Puebla',
+        city: 'Heroica Puebla de Zaragoza',
+      },
+      {
+        neighborhood: 'El Carmen',
+        zipcode: '72000',
+        state: 'Puebla',
+        city: 'Heroica Puebla de Zaragoza',
+      },
+    ];
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get address information from Guia Envia', async () => {
+      // Create service with version in config
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock formatNeighborhoodGE utility
+      jest
+        .spyOn(utils, 'formatNeighborhoodGE')
+        .mockReturnValue(mockFormattedNeighborhoods);
+
+      // Mock axios response
+      mockedAxios.get.mockResolvedValue({
+        data: mockNeighborhoodGEResponse,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${GET_NEIGHBORHOOD_ENDPOINT_GE}72000`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(
+        mockNeighborhoodGEResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          neighborhoods: mockFormattedNeighborhoods,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error';
+
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Reject with non-Error object
+      mockedAxios.get.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should handle response with empty neighborhoods array', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [],
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith([]);
+      expect(result.data.neighborhoods).toEqual([]);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(undefined);
+      expect(result.data.neighborhoods).toEqual([]);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should handle single neighborhood in response', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const singleNeighborhoodGE: NeighborhoodGE[] = [
+        {
+          colonia: 'Zona Dorada',
+          cp: '72000',
+          estado: 'Puebla',
+          ciudad: 'Heroica Puebla de Zaragoza',
+        },
+      ];
+
+      const expectedSingleNeighborhood: Neighborhood[] = [
+        {
+          neighborhood: 'Zona Dorada',
+          zipcode: '72000',
+          state: 'Puebla',
+          city: 'Heroica Puebla de Zaragoza',
+        },
+      ];
+
+      jest
+        .spyOn(utils, 'formatNeighborhoodGE')
+        .mockReturnValue(expectedSingleNeighborhood);
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleNeighborhoodGE,
+      });
+
+      const result = await serviceWithVersion.getAddressInfo(
+        mockNeighborhoodPayload,
+      );
+
+      expect(utils.formatNeighborhoodGE).toHaveBeenCalledWith(
+        singleNeighborhoodGE,
+      );
+      expect(result.data.neighborhoods).toEqual(expectedSingleNeighborhood);
+      expect(result.data.neighborhoods).toHaveLength(1);
+      expect(result.version).toBe('1.0.0');
+    });
+
+    it('should construct correct URL with zipcode parameter', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const customZipcode = '12345';
+      const customPayload: GetNeighborhoodInfoPayload = {
+        zipcode: customZipcode,
+      };
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockReturnValue([]);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [],
+      });
+
+      await serviceWithVersion.getAddressInfo(customPayload);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${GET_NEIGHBORHOOD_ENDPOINT_GE}${customZipcode}`,
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should propagate BadRequestException from utils', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockNeighborhoodGEResponse,
+      });
+
+      jest.spyOn(utils, 'formatNeighborhoodGE').mockImplementation(() => {
+        throw new BadRequestException('Invalid neighborhood data structure');
+      });
+
+      await expect(
+        serviceWithVersion.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(
+        new BadRequestException('Invalid neighborhood data structure'),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatNeighborhoodGE');
+
+      await expect(
+        serviceWithInvalidConfig.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before API call and utility function call
+      expect(formatSpy).not.toHaveBeenCalled();
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createAddress', () => {
+    const mockCreateAddressPayload: CreateAddressPayload = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      name: 'Juan Pérez',
+      email: 'juan.perez@example.com',
+      phone: '+52 222 123 4567',
+      company: 'Empresa SA de CV',
+      rfc: 'XAXX010101000',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    const mockExtCreateAddressResponse: ExtAddressGEResponse = {
+      cp: '72000',
+      colonia: 'Centro',
+      ciudad: 'Heroica Puebla de Zaragoza',
+      estado: 'Puebla',
+      nombre: 'Juan Pérez',
+      email: 'juan.perez@example.com',
+      telefono: '+52 222 123 4567',
+      empresa: 'Empresa SA de CV',
+      rfc: 'XAXX010101000',
+      calle: 'Avenida Juárez',
+      numero: '123',
+      referencia: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+      users: 'user123',
+      createdAt: '2023-10-22T12:00:00Z',
+      updatedAt: '2023-10-22T12:00:00Z',
+      id: 'address-123',
+    };
+
+    const mockFormattedCreateAddressResponse: CreateAddressResponseGE = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Entre calle A y calle B, edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully create address with Guia Envia', async () => {
+      // Mock utilities
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateAddressResponseGE')
+        .mockReturnValue(mockFormattedCreateAddressResponse);
+
+      // Mock axios response
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateAddressResponse,
+      });
+
+      const result = await service.createAddress(mockCreateAddressPayload);
+
+      expect(utils.formatCreateAddressPayloadGE).toHaveBeenCalledWith(
+        mockCreateAddressPayload,
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+      const [url, , config] = mockedAxios.post.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatCreateAddressResponseGE).toHaveBeenCalledWith(
+        mockExtCreateAddressResponse,
+      );
+      expect(result).toEqual(mockFormattedCreateAddressResponse);
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      const errorMessage = 'Network error';
+      mockedAxios.post.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should handle axios error correctly', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      const axiosError = {
+        isAxiosError: true,
+        message: 'Request failed with status code 400',
+        response: {
+          status: 400,
+          data: { error: 'Invalid address data' },
+        },
+      };
+
+      // Mock axios.isAxiosError to return true
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+      mockedAxios.post.mockRejectedValue(axiosError);
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(
+        new BadRequestException('Request failed with status code 400'),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      jest.spyOn(utils, 'formatCreateAddressPayloadGE').mockReturnValue({
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Empresa SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez',
+        numero: '123',
+        referencia: 'Entre calle A y calle B, edificio azul',
+        alias: 'Casa Principal',
+      });
+
+      // Mock axios.isAxiosError to return false
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(false);
+
+      // Reject with non-Error object
+      mockedAxios.post.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+
+      await expect(
+        service.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatCreateAddressPayloadGE');
+
+      await expect(
+        serviceWithInvalidConfig.createAddress(mockCreateAddressPayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before payload transformation
+      expect(formatSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listServicesGe', () => {
+    const mockServicesResponse: GetServiceGEResponse[] = [
+      {
+        id: '1',
+        nombre: 'Paquete Express',
+      },
+      {
+        id: '2',
+        nombre: 'DHL',
+      },
+      {
+        id: '3',
+        nombre: 'FedEx',
+      },
+    ];
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get services from Guia Envia', async () => {
+      // Mock axios response
+      mockedAxios.get.mockResolvedValue({
+        data: mockServicesResponse,
+      });
+
+      const result = await service.listServicesGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${GET_SERVICES_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(result).toEqual(mockServicesResponse);
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(serviceWithoutApiKey.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(serviceWithoutUri.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(serviceWithNullApiKey.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(serviceWithNullUri.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const errorMessage = 'Network error';
+
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException(errorMessage),
+      );
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const errorResponse = { message: 'Service unavailable' };
+
+      mockedAxios.get.mockRejectedValue({
+        isAxiosError: true,
+        response: { data: errorResponse },
+      });
+      mockedAxios.isAxiosError.mockReturnValue(true);
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException(errorResponse),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      // Reject with non-Error object and mock isAxiosError to return false
+      mockedAxios.get.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException('An unknown error occurred'),
+      );
+    });
+
+    it('should handle response with empty services array', async () => {
+      const emptyServices: GetServiceGEResponse[] = [];
+
+      mockedAxios.get.mockResolvedValue({
+        data: emptyServices,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toEqual(emptyServices);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle response with undefined data', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle single service in response', async () => {
+      const singleService: GetServiceGEResponse[] = [
+        {
+          id: 'single-service',
+          nombre: 'Estafeta Express',
+        },
+      ];
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleService,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toEqual(singleService);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('single-service');
+      expect(result[0].nombre).toBe('Estafeta Express');
+    });
+
+    it('should construct correct URL with services endpoint', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockServicesResponse,
+      });
+
+      await service.listServicesGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${GET_SERVICES_ENDPOINT_GE}`,
+        expect.objectContaining({
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        }),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      // Mock isAxiosError to return false to prevent it from interfering
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(serviceWithInvalidConfig.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // Verify that validation happens before API call
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createGuideGe', () => {
+    const mockCreateGuidePayload: CreateGuideGeRequest = {
+      quoteId: 'quote-123',
+      parcel: {
+        length: '30',
+        width: '20',
+        height: '10',
+        weight: '5.0',
+        content: 'Electronics',
+        satProductId: '43211508',
+      },
+      origin: {
+        alias: 'warehouse-1',
+      },
+      destination: {
+        alias: 'customer-address',
+      },
+    };
+
+    const mockExtCreateGuideResponse: ExtCreateGuideGEResponse = {
+      origen: {
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Warehouse Manager',
+        email: 'warehouse@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Warehouse SA de CV',
+        rfc: 'WARE010101000',
+        calle: 'Avenida Industrial',
+        numero: '100',
+        referencia: 'Warehouse Complex',
+        alias: 'warehouse-1',
+        users: 'user123',
+        createdAt: '2023-10-22T12:00:00Z',
+        updatedAt: '2023-10-22T12:00:00Z',
+        id: 'address-origin-123',
+      },
+      destino: {
+        cp: '94298',
+        colonia: 'Las Flores',
+        ciudad: 'Boca del Río',
+        estado: 'Veracruz',
+        nombre: 'Customer Name',
+        email: 'customer@example.com',
+        telefono: '+52 229 987 6543',
+        empresa: 'Customer Corp',
+        rfc: 'CUST010101000',
+        calle: 'Calle Principal',
+        numero: '456',
+        referencia: 'Casa azul',
+        alias: 'customer-address',
+        users: 'user456',
+        createdAt: '2023-10-22T13:00:00Z',
+        updatedAt: '2023-10-22T13:00:00Z',
+        id: 'address-dest-456',
+      },
+      envio: [
+        {
+          envio_id: 'shipment-789',
+          servicio: 'Estafeta Express',
+          costo: '350.50',
+          guia: 'EST123456789',
+        },
+      ],
+      guias: [
+        {
+          origen: '72000',
+          destino: '94298',
+          remitente: 'Warehouse Manager',
+          destinatario: 'Customer Name',
+          numero_guia: 'EST123456789',
+          url: 'https://app.guiaenvia.com/guia/EST123456789',
+        },
+      ],
+    };
+
+    const mockFormattedGuideResponse = {
+      trackingNumber: 'EST123456789',
+      carrier: 'Guia Envia',
+      price: '350.50',
+      guideLink: 'https://app.guiaenvia.com/guia/EST123456789',
+      labelUrl: 'https://app.guiaenvia.com/guia/EST123456789',
+      file: null,
+    };
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully create guide with Guia Envia', async () => {
+      // Create service with version in config
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock utility functions
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(mockFormattedGuideResponse);
+
+      // Mock axios response
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+      const [url, , config] = mockedAxios.post.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_GUIDE_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatCreateGuidePayloadGE).toHaveBeenCalledWith(
+        mockCreateGuidePayload,
+      );
+      expect(utils.formatCreateGuideResponseGE).toHaveBeenCalledWith(
+        mockExtCreateGuideResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          guide: mockFormattedGuideResponse,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error';
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      mockedAxios.post.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorResponse = { message: 'Service unavailable' };
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      mockedAxios.post.mockRejectedValue({
+        isAxiosError: true,
+        response: { data: errorResponse },
+      });
+      mockedAxios.isAxiosError.mockReturnValue(true);
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(errorResponse));
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      // Reject with non-Error object and mock isAxiosError to return false
+      mockedAxios.post.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(null as any);
+
+      mockedAxios.post.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      expect(utils.formatCreateGuideResponseGE).toHaveBeenCalledWith(undefined);
+      expect(result.data.guide).toBe(null);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should construct correct URL with create guide endpoint', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(mockFormattedGuideResponse);
+
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      await serviceWithVersion.createGuideGe(mockCreateGuidePayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${CREATE_GUIDE_ENDPOINT_GE}`,
+        expect.any(Object),
+        expect.objectContaining({
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        }),
+      );
+    });
+
+    it('should propagate BadRequestException from utils', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockImplementation(() => {
+        throw new BadRequestException('Invalid guide payload structure');
+      });
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(
+        new BadRequestException('Invalid guide payload structure'),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatCreateGuidePayloadGE');
+
+      // Mock isAxiosError to return false to prevent it from interfering
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(
+        serviceWithInvalidConfig.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before payload transformation
+      expect(formatSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should handle successful guide creation with all fields populated', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const completeFormattedResponse = {
+        trackingNumber: 'EST987654321',
+        carrier: 'Guia Envia',
+        price: '425.75',
+        guideLink: 'https://app.guiaenvia.com/guia/EST987654321',
+        labelUrl: 'https://app.guiaenvia.com/label/EST987654321.pdf',
+        file: 'base64-encoded-file-content',
+      };
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(completeFormattedResponse);
+
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      expect(result.data.guide).toEqual(completeFormattedResponse);
+      expect(result.data.guide!.trackingNumber).toBe('EST987654321');
+      expect(result.data.guide!.carrier).toBe('Guia Envia');
+      expect(result.data.guide!.price).toBe('425.75');
+      expect(result.data.guide!.guideLink).toBe(
+        'https://app.guiaenvia.com/guia/EST987654321',
+      );
+      expect(result.data.guide!.labelUrl).toBe(
+        'https://app.guiaenvia.com/label/EST987654321.pdf',
+      );
+      expect(result.data.guide!.file).toBe('base64-encoded-file-content');
+    });
   });
 });

@@ -1,5 +1,17 @@
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GEQuote } from './guia-envia.interface';
+import {
+  GEQuote,
+  NeighborhoodGE,
+  Neighborhood,
+  CreateAddressPayload,
+  ExtCreateAddressPayload,
+  ExtAddressGEResponse,
+  CreateAddressResponseGE,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEPayload,
+  ExtCreateGuideGEResponse,
+} from './guia-envia.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -49,5 +61,84 @@ export const formatPayloadGE = (payload: GetQuoteDto): GetQuoteGEDto => {
     largo: String(payload.length),
     alto: String(payload.height),
     ancho: String(payload.width),
+  };
+};
+
+export const formatNeighborhoodGE = (
+  neighborhoods: NeighborhoodGE[],
+): Neighborhood[] => {
+  return neighborhoods.map((neighborhood) => ({
+    neighborhood: neighborhood.colonia,
+    zipcode: neighborhood.cp,
+    state: neighborhood.estado,
+    city: neighborhood.ciudad,
+  }));
+};
+
+export const formatCreateAddressPayloadGE = (
+  payload: CreateAddressPayload,
+): ExtCreateAddressPayload => {
+  return {
+    cp: payload.zipcode,
+    colonia: payload.neighborhood,
+    ciudad: payload.city,
+    estado: payload.state,
+    nombre: payload.name,
+    email: payload.email,
+    telefono: payload.phone,
+    empresa: payload.company,
+    rfc: payload.rfc,
+    calle: payload.street,
+    numero: payload.number,
+    referencia: payload.reference,
+    alias: payload.alias,
+  };
+};
+
+export const formatCreateAddressResponseGE = (
+  response: ExtAddressGEResponse,
+): CreateAddressResponseGE => {
+  return {
+    zipcode: response.cp,
+    neighborhood: response.colonia,
+    city: response.ciudad,
+    state: response.estado,
+    street: response.calle,
+    number: response.numero,
+    reference: response.referencia,
+    alias: response.alias,
+  };
+};
+
+export const formatCreateGuidePayloadGE = (
+  payload: CreateGuideGeRequest,
+): ExtCreateGuideGEPayload => {
+  return {
+    origen_alias: payload.origin.alias,
+    destino_alias: payload.destination.alias,
+    peso: payload.parcel.weight,
+    largo: payload.parcel.length,
+    alto: payload.parcel.height,
+    ancho: payload.parcel.width,
+    sat_id: payload.parcel.satProductId,
+    contenido: payload.parcel.content,
+    servicio_id: payload.quoteId,
+  };
+};
+
+export const formatCreateGuideResponseGE = (
+  response: ExtCreateGuideGEResponse,
+): GlobalCreateGuideResponse => {
+  // Get the first guide and shipment from the arrays
+  const firstGuide = response.guias[0];
+  const firstShipment = response.envio[0];
+
+  return {
+    trackingNumber: firstGuide?.numero_guia || '',
+    carrier: firstShipment.servicio,
+    price: firstShipment?.costo || '0',
+    guideLink: null,
+    labelUrl: firstGuide?.url || null, // Using the same URL for label
+    file: null, // GE doesn't provide file, set to null
   };
 };
