@@ -17,6 +17,7 @@ import {
   GE_MISSING_CONFIG_ERROR,
   GET_NEIGHBORHOOD_ENDPOINT_GE,
   CREATE_ADDRESS_ENDPOINT_GE,
+  GET_SERVICES_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   GEQuote,
@@ -26,6 +27,7 @@ import {
   CreateAddressPayload,
   ExtAddressGEResponse,
   CreateAddressResponseGE,
+  GetServiceGEResponse,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -1051,6 +1053,231 @@ describe('GuiaEnviaService', () => {
       expect(formatSpy).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listServicesGe', () => {
+    const mockServicesResponse: GetServiceGEResponse[] = [
+      {
+        id: '1',
+        nombre: 'Paquete Express',
+      },
+      {
+        id: '2',
+        nombre: 'DHL',
+      },
+      {
+        id: '3',
+        nombre: 'FedEx',
+      },
+    ];
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get services from Guia Envia', async () => {
+      // Mock axios response
+      mockedAxios.get.mockResolvedValue({
+        data: mockServicesResponse,
+      });
+
+      const result = await service.listServicesGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${GET_SERVICES_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(result).toEqual(mockServicesResponse);
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(serviceWithoutApiKey.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(serviceWithoutUri.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(serviceWithNullApiKey.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(serviceWithNullUri.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const errorMessage = 'Network error';
+
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException(errorMessage),
+      );
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const errorResponse = { message: 'Service unavailable' };
+
+      mockedAxios.get.mockRejectedValue({
+        isAxiosError: true,
+        response: { data: errorResponse },
+      });
+      mockedAxios.isAxiosError.mockReturnValue(true);
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException(errorResponse),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      // Reject with non-Error object and mock isAxiosError to return false
+      mockedAxios.get.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(service.listServicesGe()).rejects.toThrow(
+        new BadRequestException('An unknown error occurred'),
+      );
+    });
+
+    it('should handle response with empty services array', async () => {
+      const emptyServices: GetServiceGEResponse[] = [];
+
+      mockedAxios.get.mockResolvedValue({
+        data: emptyServices,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toEqual(emptyServices);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle response with undefined data', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle single service in response', async () => {
+      const singleService: GetServiceGEResponse[] = [
+        {
+          id: 'single-service',
+          nombre: 'Estafeta Express',
+        },
+      ];
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleService,
+      });
+
+      const result = await service.listServicesGe();
+
+      expect(result).toEqual(singleService);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('single-service');
+      expect(result[0].nombre).toBe('Estafeta Express');
+    });
+
+    it('should construct correct URL with services endpoint', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockServicesResponse,
+      });
+
+      await service.listServicesGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${GET_SERVICES_ENDPOINT_GE}`,
+        expect.objectContaining({
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        }),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      // Mock isAxiosError to return false to prevent it from interfering
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(serviceWithInvalidConfig.listServicesGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // Verify that validation happens before API call
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
     });
   });
 });
