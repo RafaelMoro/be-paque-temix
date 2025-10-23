@@ -1,3 +1,9 @@
+## v0.24.0 (2025-10-23)
+
+### Pull Requests
+[#40](https://github.com/RafaelMoro/be-paque-temix/pull/40) | Create guide GE
+
+
 ## v0.23.0 (2025-10-22)
 
 ### Pull Requests
