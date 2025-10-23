@@ -1,7 +1,8 @@
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { GuiaEnviaService } from '../services/guia-envia.service';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { CreateGuideGeDto } from '../dtos/guia-envia.dtos';
 
 @UseGuards(JwtGuard)
 @Controller('ge')
@@ -15,5 +16,14 @@ export class GuiaEnviaController {
   })
   async getCourierServices() {
     return this.guiaEnviaService.listServicesGe();
+  }
+
+  @Post('create-guide')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create a new guide.',
+  })
+  async createGuide(@Body() payload: CreateGuideGeDto) {
+    return this.guiaEnviaService.createGuideGe(payload);
   }
 }
