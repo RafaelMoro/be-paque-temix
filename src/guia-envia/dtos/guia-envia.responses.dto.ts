@@ -66,3 +66,71 @@ export class CreateAddressDataDto {
   @ApiProperty({ example: 'Casa Principal' })
   alias: string;
 }
+
+export class CreateGuideResponseDto {
+  @ApiProperty({ example: '123456789' })
+  trackingNumber: string;
+
+  @ApiProperty({ example: 'Guia Envia' })
+  carrier: string;
+
+  @ApiProperty({ example: '350.50' })
+  price: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: 'https://app.guiaenvia.com/guia/123456789',
+    description: 'URL to view the guide online',
+  })
+  guideLink: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: 'https://app.guiaenvia.com/label/123456789.pdf',
+    description: 'URL to download the shipping label',
+  })
+  labelUrl: string | null;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: null,
+    description: 'Base64 encoded file content',
+  })
+  file: string | null;
+}
+
+export class CreateGuideDataWrapperDto {
+  @ApiProperty({
+    type: CreateGuideResponseDto,
+    nullable: true,
+    description: 'Guide information or null if creation failed',
+  })
+  guide: CreateGuideResponseDto | null;
+}
+
+export class CreateGuideGEResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({
+    type: [String],
+    example: ['Guide created successfully'],
+  })
+  messages: string[];
+
+  @ApiProperty({
+    type: CreateGuideDataWrapperDto,
+  })
+  data: CreateGuideDataWrapperDto;
+}
