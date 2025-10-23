@@ -11,6 +11,8 @@ import {
   GE_MISSING_PROVIDER_PROFIT_MARGIN,
   GET_NEIGHBORHOOD_ENDPOINT_GE,
   CREATE_ADDRESS_ENDPOINT_GE,
+  GET_SERVICES_ENDPOINT_GE,
+  CREATE_GUIDE_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   NeighborhoodGE,
@@ -18,12 +20,18 @@ import {
   GetNeighborhoodInfoPayload,
   GetAddressInfoResponse,
   CreateAddressPayload,
-  ExtCreateAddressResponse,
+  ExtAddressGEResponse,
   CreateAddressResponseGE,
+  GetServiceGEResponse,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEResponse,
+  CreateGuideGEDataResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
   formatCreateAddressResponseGE,
+  formatCreateGuidePayloadGE,
+  formatCreateGuideResponseGE,
   formatNeighborhoodGE,
   formatPayloadGE,
   formatQuotesGE,
@@ -145,7 +153,7 @@ export class GuiaEnviaService {
 
       const transformedPayload = formatCreateAddressPayloadGE(payload);
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
-      const response: AxiosResponse<ExtCreateAddressResponse, unknown> =
+      const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.post(url, transformedPayload, {
           headers: {
             Authorization: apiKey,
@@ -159,6 +167,84 @@ export class GuiaEnviaService {
       if (axios.isAxiosError(error)) {
         throw new BadRequestException(error.message);
         // throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async listServicesGe() {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      // const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_SERVICES_ENDPOINT_GE}`;
+      const response: AxiosResponse<GetServiceGEResponse[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      return data;
+    } catch (error) {
+      console.log('error list services ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data);
+        // throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuideGe(
+    payload: CreateGuideGeRequest,
+  ): Promise<CreateGuideGEDataResponse> {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const formattedPayload = formatCreateGuidePayloadGE(payload);
+      const url = `${uri}${CREATE_GUIDE_ENDPOINT_GE}`;
+      const response: AxiosResponse<ExtCreateGuideGEResponse, unknown> =
+        await axios.post(url, formattedPayload, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const dataFormatted = formatCreateGuideResponseGE(data);
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          guide: dataFormatted,
+        },
+      };
+    } catch (error) {
+      console.log('error create guide ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

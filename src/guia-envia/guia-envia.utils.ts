@@ -5,9 +5,13 @@ import {
   Neighborhood,
   CreateAddressPayload,
   ExtCreateAddressPayload,
-  ExtCreateAddressResponse,
+  ExtAddressGEResponse,
   CreateAddressResponseGE,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEPayload,
+  ExtCreateGuideGEResponse,
 } from './guia-envia.interface';
+import { GlobalCreateGuideResponse } from '@/global.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -92,7 +96,7 @@ export const formatCreateAddressPayloadGE = (
 };
 
 export const formatCreateAddressResponseGE = (
-  response: ExtCreateAddressResponse,
+  response: ExtAddressGEResponse,
 ): CreateAddressResponseGE => {
   return {
     zipcode: response.cp,
@@ -103,5 +107,38 @@ export const formatCreateAddressResponseGE = (
     number: response.numero,
     reference: response.referencia,
     alias: response.alias,
+  };
+};
+
+export const formatCreateGuidePayloadGE = (
+  payload: CreateGuideGeRequest,
+): ExtCreateGuideGEPayload => {
+  return {
+    origen_alias: payload.origin.alias,
+    destino_alias: payload.destination.alias,
+    peso: payload.parcel.weight,
+    largo: payload.parcel.length,
+    alto: payload.parcel.height,
+    ancho: payload.parcel.width,
+    sat_id: payload.parcel.satProductId,
+    contenido: payload.parcel.content,
+    servicio_id: payload.quoteId,
+  };
+};
+
+export const formatCreateGuideResponseGE = (
+  response: ExtCreateGuideGEResponse,
+): GlobalCreateGuideResponse => {
+  // Get the first guide and shipment from the arrays
+  const firstGuide = response.guias[0];
+  const firstShipment = response.envio[0];
+
+  return {
+    trackingNumber: firstGuide?.numero_guia || '',
+    carrier: firstShipment.servicio,
+    price: firstShipment?.costo || '0',
+    guideLink: null,
+    labelUrl: firstGuide?.url || null, // Using the same URL for label
+    file: null, // GE doesn't provide file, set to null
   };
 };

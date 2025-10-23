@@ -1,4 +1,4 @@
-import { GeneralResponse } from '@/global.interface';
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
 
 /**
  * Represents a quote object as returned by the Guia Envia API.
@@ -12,6 +12,13 @@ export interface GEQuote {
 export interface GEFormattedQuote extends GEQuote {
   source: 'GE';
 }
+
+export interface GetServiceGEResponse {
+  id: string;
+  nombre: string;
+}
+
+//#region Get Neighborhood info GE
 
 export interface GetNeighborhoodInfoPayload {
   zipcode: string;
@@ -39,6 +46,9 @@ export interface GetAddressInfoResponse
   };
 }
 
+//#endregion
+
+//#region Create address
 export interface ExtCreateAddressPayload {
   cp: string;
   colonia: string;
@@ -71,7 +81,7 @@ export interface CreateAddressPayload {
   alias: string;
 }
 
-export interface ExtCreateAddressResponse {
+export interface ExtAddressGEResponse {
   cp: string;
   ciudad: string;
   estado: string;
@@ -100,4 +110,73 @@ export interface CreateAddressResponseGE {
   number: string;
   reference: string;
   alias: string;
+}
+
+//#endregion
+
+//#region Create guide
+
+export interface ExtCreateGuideGEPayload {
+  origen_alias: string;
+  destino_alias: string;
+  peso: string;
+  largo: string;
+  alto: string;
+  ancho: string;
+  sat_id: string;
+  contenido: string;
+  servicio_id: string;
+}
+
+export interface CreateGuideGeRequest {
+  quoteId: string;
+  parcel: {
+    length: string;
+    width: string;
+    height: string;
+    weight: string;
+    content: string;
+    satProductId: string;
+  };
+  origin: {
+    alias: string;
+  };
+  destination: {
+    alias: string;
+  };
+}
+
+export interface ExtGEShipment {
+  envio_id: string;
+  servicio: string;
+  costo: string;
+  guia: string;
+}
+
+export interface ExtGEGuide {
+  // Origin zipcode
+  origen: string;
+  // Destination zipcode
+  destino: string;
+  // Name of the sender
+  remitente: string;
+  // Name of the recipient
+  destinatario: string;
+  numero_guia: string;
+  url: string;
+}
+
+export interface ExtCreateGuideGEResponse {
+  origen: ExtAddressGEResponse;
+  destino: ExtAddressGEResponse;
+  envio: ExtGEShipment[];
+  guias: ExtGEGuide[];
+}
+
+export interface CreateGuideGEDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    guide: GlobalCreateGuideResponse | null;
+  };
 }
