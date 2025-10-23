@@ -67,7 +67,7 @@ export class CreateAddressDataDto {
   alias: string;
 }
 
-export class CreateGuideResponseDto {
+export class CreateGuideResponseDtoGE {
   @ApiProperty({ example: '123456789' })
   trackingNumber: string;
 
@@ -104,11 +104,9 @@ export class CreateGuideResponseDto {
 
 export class CreateGuideDataWrapperDto {
   @ApiProperty({
-    type: CreateGuideResponseDto,
-    nullable: true,
-    description: 'Guide information or null if creation failed',
+    type: CreateGuideResponseDtoGE,
   })
-  guide: CreateGuideResponseDto | null;
+  guide: CreateGuideResponseDtoGE;
 }
 
 export class CreateGuideGEResponseDto {
