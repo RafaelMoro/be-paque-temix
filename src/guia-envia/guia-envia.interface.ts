@@ -127,3 +127,21 @@ export interface ExtCreateGuideGEPayload {
   contenido: string;
   servicio_id: string;
 }
+
+export interface CreateGuideGeRequest {
+  quoteId: string;
+  parcel: {
+    length: string;
+    width: string;
+    height: string;
+    weight: string;
+    content: string;
+    satProductId: string;
+  };
+  origin: {
+    alias: string;
+  };
+  destination: {
+    alias: string;
+  };
+}
