@@ -1,4 +1,4 @@
-import { GeneralResponse } from '@/global.interface';
+import { GeneralResponse, GlobalCreateGuideResponse } from '@/global.interface';
 
 /**
  * Represents a quote object as returned by the Guia Envia API.
@@ -171,4 +171,12 @@ export interface ExtCreateGuideGEResponse {
   destino: ExtAddressGEResponse;
   envio: ExtGEShipment[];
   guias: ExtGEGuide[];
+}
+
+export interface CreateGuideGEDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    guide: GlobalCreateGuideResponse | null;
+  };
 }
