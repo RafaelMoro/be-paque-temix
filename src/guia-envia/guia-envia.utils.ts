@@ -5,8 +5,10 @@ import {
   Neighborhood,
   CreateAddressPayload,
   ExtCreateAddressPayload,
-  ExtCreateAddressResponse,
+  ExtAddressGEResponse,
   CreateAddressResponseGE,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEPayload,
 } from './guia-envia.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
@@ -92,7 +94,7 @@ export const formatCreateAddressPayloadGE = (
 };
 
 export const formatCreateAddressResponseGE = (
-  response: ExtCreateAddressResponse,
+  response: ExtAddressGEResponse,
 ): CreateAddressResponseGE => {
   return {
     zipcode: response.cp,
@@ -103,5 +105,21 @@ export const formatCreateAddressResponseGE = (
     number: response.numero,
     reference: response.referencia,
     alias: response.alias,
+  };
+};
+
+export const formatCreateGuidePayloadGE = (
+  payload: CreateGuideGeRequest,
+): ExtCreateGuideGEPayload => {
+  return {
+    origen_alias: payload.origin.alias,
+    destino_alias: payload.destination.alias,
+    peso: payload.parcel.weight,
+    largo: payload.parcel.length,
+    alto: payload.parcel.height,
+    ancho: payload.parcel.width,
+    sat_id: payload.parcel.satProductId,
+    contenido: payload.parcel.content,
+    servicio_id: payload.quoteId,
   };
 };
