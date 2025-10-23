@@ -245,7 +245,6 @@ export class GuiaEnviaService {
       console.log('error create guide ge', error);
       if (axios.isAxiosError(error)) {
         throw new BadRequestException(error?.response?.data);
-        // throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
