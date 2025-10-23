@@ -18,6 +18,7 @@ import {
   GET_NEIGHBORHOOD_ENDPOINT_GE,
   CREATE_ADDRESS_ENDPOINT_GE,
   GET_SERVICES_ENDPOINT_GE,
+  CREATE_GUIDE_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   GEQuote,
@@ -28,6 +29,9 @@ import {
   ExtAddressGEResponse,
   CreateAddressResponseGE,
   GetServiceGEResponse,
+  CreateGuideGeRequest,
+  ExtCreateGuideGEResponse,
+  CreateGuideGEDataResponse,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -1278,6 +1282,479 @@ describe('GuiaEnviaService', () => {
       // Verify that validation happens before API call
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createGuideGe', () => {
+    const mockCreateGuidePayload: CreateGuideGeRequest = {
+      quoteId: 'quote-123',
+      parcel: {
+        length: '30',
+        width: '20',
+        height: '10',
+        weight: '5.0',
+        content: 'Electronics',
+        satProductId: '43211508',
+      },
+      origin: {
+        alias: 'warehouse-1',
+      },
+      destination: {
+        alias: 'customer-address',
+      },
+    };
+
+    const mockExtCreateGuideResponse: ExtCreateGuideGEResponse = {
+      origen: {
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Warehouse Manager',
+        email: 'warehouse@example.com',
+        telefono: '+52 222 123 4567',
+        empresa: 'Warehouse SA de CV',
+        rfc: 'WARE010101000',
+        calle: 'Avenida Industrial',
+        numero: '100',
+        referencia: 'Warehouse Complex',
+        alias: 'warehouse-1',
+        users: 'user123',
+        createdAt: '2023-10-22T12:00:00Z',
+        updatedAt: '2023-10-22T12:00:00Z',
+        id: 'address-origin-123',
+      },
+      destino: {
+        cp: '94298',
+        colonia: 'Las Flores',
+        ciudad: 'Boca del Río',
+        estado: 'Veracruz',
+        nombre: 'Customer Name',
+        email: 'customer@example.com',
+        telefono: '+52 229 987 6543',
+        empresa: 'Customer Corp',
+        rfc: 'CUST010101000',
+        calle: 'Calle Principal',
+        numero: '456',
+        referencia: 'Casa azul',
+        alias: 'customer-address',
+        users: 'user456',
+        createdAt: '2023-10-22T13:00:00Z',
+        updatedAt: '2023-10-22T13:00:00Z',
+        id: 'address-dest-456',
+      },
+      envio: [
+        {
+          envio_id: 'shipment-789',
+          servicio: 'Estafeta Express',
+          costo: '350.50',
+          guia: 'EST123456789',
+        },
+      ],
+      guias: [
+        {
+          origen: '72000',
+          destino: '94298',
+          remitente: 'Warehouse Manager',
+          destinatario: 'Customer Name',
+          numero_guia: 'EST123456789',
+          url: 'https://app.guiaenvia.com/guia/EST123456789',
+        },
+      ],
+    };
+
+    const mockFormattedGuideResponse = {
+      trackingNumber: 'EST123456789',
+      carrier: 'Guia Envia',
+      price: '350.50',
+      guideLink: 'https://app.guiaenvia.com/guia/EST123456789',
+      labelUrl: 'https://app.guiaenvia.com/guia/EST123456789',
+      file: null,
+    };
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully create guide with Guia Envia', async () => {
+      // Create service with version in config
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock utility functions
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(mockFormattedGuideResponse);
+
+      // Mock axios response
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+      const [url, , config] = mockedAxios.post.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_GUIDE_ENDPOINT_GE}`,
+      );
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatCreateGuidePayloadGE).toHaveBeenCalledWith(
+        mockCreateGuidePayload,
+      );
+      expect(utils.formatCreateGuideResponseGE).toHaveBeenCalledWith(
+        mockExtCreateGuideResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          guide: mockFormattedGuideResponse,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error';
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      mockedAxios.post.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorResponse = { message: 'Service unavailable' };
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      mockedAxios.post.mockRejectedValue({
+        isAxiosError: true,
+        response: { data: errorResponse },
+      });
+      mockedAxios.isAxiosError.mockReturnValue(true);
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(errorResponse));
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      // Reject with non-Error object and mock isAxiosError to return false
+      mockedAxios.post.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(null as any);
+
+      mockedAxios.post.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      expect(utils.formatCreateGuideResponseGE).toHaveBeenCalledWith(undefined);
+      expect(result.data.guide).toBe(null);
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe(null);
+      expect(result.error).toBe(null);
+    });
+
+    it('should construct correct URL with create guide endpoint', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(mockFormattedGuideResponse);
+
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      await serviceWithVersion.createGuideGe(mockCreateGuidePayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `https://test-guia-envia.com${CREATE_GUIDE_ENDPOINT_GE}`,
+        expect.any(Object),
+        expect.objectContaining({
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        }),
+      );
+    });
+
+    it('should propagate BadRequestException from utils', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockImplementation(() => {
+        throw new BadRequestException('Invalid guide payload structure');
+      });
+
+      await expect(
+        serviceWithVersion.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(
+        new BadRequestException('Invalid guide payload structure'),
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithInvalidConfig = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatCreateGuidePayloadGE');
+
+      // Mock isAxiosError to return false to prevent it from interfering
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(
+        serviceWithInvalidConfig.createGuideGe(mockCreateGuidePayload),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before payload transformation
+      expect(formatSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('should handle successful guide creation with all fields populated', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const completeFormattedResponse = {
+        trackingNumber: 'EST987654321',
+        carrier: 'Guia Envia',
+        price: '425.75',
+        guideLink: 'https://app.guiaenvia.com/guia/EST987654321',
+        labelUrl: 'https://app.guiaenvia.com/label/EST987654321.pdf',
+        file: 'base64-encoded-file-content',
+      };
+
+      jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({
+        origen_alias: 'warehouse-1',
+        destino_alias: 'customer-address',
+        peso: '5.0',
+        largo: '30',
+        alto: '10',
+        ancho: '20',
+        sat_id: '43211508',
+        contenido: 'Electronics',
+        servicio_id: 'quote-123',
+      });
+
+      jest
+        .spyOn(utils, 'formatCreateGuideResponseGE')
+        .mockReturnValue(completeFormattedResponse);
+
+      mockedAxios.post.mockResolvedValue({
+        data: mockExtCreateGuideResponse,
+      });
+
+      const result = await serviceWithVersion.createGuideGe(
+        mockCreateGuidePayload,
+      );
+
+      expect(result.data.guide).toEqual(completeFormattedResponse);
+      expect(result.data.guide!.trackingNumber).toBe('EST987654321');
+      expect(result.data.guide!.carrier).toBe('Guia Envia');
+      expect(result.data.guide!.price).toBe('425.75');
+      expect(result.data.guide!.guideLink).toBe(
+        'https://app.guiaenvia.com/guia/EST987654321',
+      );
+      expect(result.data.guide!.labelUrl).toBe(
+        'https://app.guiaenvia.com/label/EST987654321.pdf',
+      );
+      expect(result.data.guide!.file).toBe('base64-encoded-file-content');
     });
   });
 });
