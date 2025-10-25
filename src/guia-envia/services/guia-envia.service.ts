@@ -175,11 +175,45 @@ export class GuiaEnviaService {
     }
   }
 
-  async listServicesGe() {
+  async getAddressesSavedGe() {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
       // const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
+      const response: AxiosResponse<ExtAddressGEResponse, unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      console.log('data', data);
+      return data;
+    } catch (error) {
+      console.log('error list services ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data);
+        // throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async listServicesGe() {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
       if (!apiKey) {
         throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
       }
