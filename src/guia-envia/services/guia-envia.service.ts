@@ -26,6 +26,7 @@ import {
   CreateGuideGeRequest,
   ExtCreateGuideGEResponse,
   CreateGuideGEDataResponse,
+  ExtGetAllAddressesGEResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -188,14 +189,13 @@ export class GuiaEnviaService {
       }
 
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
-      const response: AxiosResponse<ExtAddressGEResponse, unknown> =
+      const response: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
         await axios.get(url, {
           headers: {
             Authorization: apiKey,
           },
         });
       const data = response?.data;
-      console.log('data', data);
       return data;
     } catch (error) {
       console.log('error list services ge', error);

@@ -101,6 +101,18 @@ export interface ExtAddressGEResponse {
   id: string;
 }
 
+export interface ExtGetAllAddressesGEResponse {
+  data: ExtAddressGEResponse[];
+  meta: {
+    page: number;
+    limit: 10;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 export interface CreateAddressResponseGE {
   zipcode: string;
   neighborhood: string;
