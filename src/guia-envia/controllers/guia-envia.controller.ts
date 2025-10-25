@@ -28,6 +28,15 @@ export class GuiaEnviaController {
     return this.guiaEnviaService.listServicesGe();
   }
 
+  @Get('addresses')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get a list of addresses saved in GE.',
+  })
+  async getAddressesSavedGe() {
+    return this.guiaEnviaService.getAddressesSavedGe();
+  }
+
   @Post('create-guide')
   @ApiBearerAuth()
   @ApiOperation({
