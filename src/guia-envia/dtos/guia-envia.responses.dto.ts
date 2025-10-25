@@ -133,6 +133,41 @@ export class CreateGuideGEResponseDto {
   data: CreateGuideDataWrapperDto;
 }
 
+export class GetAliasesDataDto {
+  @ApiProperty({
+    type: [String],
+    example: ['Casa Principal', 'Oficina Centro', 'Sucursal Norte'],
+    description: 'List of address aliases saved in GE',
+  })
+  aliases: string[];
+}
+
+export class GetAliasesGEResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Message information if any',
+  })
+  message: null;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({
+    type: GetAliasesDataDto,
+  })
+  data: GetAliasesDataDto;
+}
+
 export class CourierServiceDto {
   @ApiProperty({ example: '1' })
   id: string;
