@@ -32,6 +32,7 @@ import {
   CreateGuideGeRequest,
   ExtCreateGuideGEResponse,
   CreateGuideGEDataResponse,
+  ExtGetAllAddressesGEResponse,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -1282,6 +1283,450 @@ describe('GuiaEnviaService', () => {
       // Verify that validation happens before API call
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getAddressesSavedGe', () => {
+    const mockGetAllAddressesGEResponse: ExtGetAllAddressesGEResponse = {
+      data: [
+        {
+          id: 'address-1',
+          cp: '72000',
+          colonia: 'Centro',
+          ciudad: 'Heroica Puebla de Zaragoza',
+          estado: 'Puebla',
+          nombre: 'Juan Pérez',
+          email: 'juan.perez@example.com',
+          telefono: '+52 222 123 4567',
+          empresa: 'Empresa SA de CV',
+          rfc: 'XAXX010101000',
+          calle: 'Avenida Juárez',
+          numero: '123',
+          referencia: 'Entre calle A y calle B, edificio azul',
+          alias: 'Casa Principal',
+          users: 'user123',
+          createdAt: '2023-10-22T12:00:00Z',
+          updatedAt: '2023-10-22T12:00:00Z',
+        },
+        {
+          id: 'address-2',
+          cp: '94298',
+          colonia: 'Las Flores',
+          ciudad: 'Boca del Río',
+          estado: 'Veracruz',
+          nombre: 'María García',
+          email: 'maria.garcia@example.com',
+          telefono: '+52 229 987 6543',
+          empresa: 'Corporativo XYZ',
+          rfc: 'MARY010101000',
+          calle: 'Calle Principal',
+          numero: '456',
+          referencia: 'Casa azul',
+          alias: 'Oficina Centro',
+          users: 'user456',
+          createdAt: '2023-10-22T13:00:00Z',
+          updatedAt: '2023-10-22T13:00:00Z',
+        },
+      ],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 2,
+        pages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get address aliases from Guia Envia', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesGEResponse,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe('https://test-guia-envia.com/direcciones');
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: ['Casa Principal', 'Oficina Centro'],
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+        version: '1.0.0',
+      } as any);
+
+      await expect(serviceWithoutApiKey.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+        version: '1.0.0',
+      } as any);
+
+      await expect(serviceWithoutUri.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+        version: '1.0.0',
+      } as any);
+
+      await expect(serviceWithNullApiKey.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+        version: '1.0.0',
+      } as any);
+
+      await expect(serviceWithNullUri.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_URI_ERROR),
+      );
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const errorMessage = 'Service unavailable';
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(errorMessage),
+      );
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: 'API Error Response',
+        },
+      };
+
+      mockedAxios.get.mockRejectedValue(axiosError);
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException('API Error Response'),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Reject with non-Error object and ensure isAxiosError returns false
+      jest.spyOn(axios, 'isAxiosError').mockReturnValue(false);
+      mockedAxios.get.mockRejectedValue({
+        response: { status: 500 },
+        message: 'Internal server error',
+      });
+
+      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException('An unknown error occurred'),
+      );
+    });
+
+    it('should handle response with empty addresses array', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const emptyResponse: ExtGetAllAddressesGEResponse = {
+        data: [],
+        meta: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: emptyResponse,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: [],
+        },
+      });
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: [],
+        },
+      });
+    });
+
+    it('should handle response with null data property', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const responseWithNullData = {
+        data: null,
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: responseWithNullData,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: [],
+        },
+      });
+    });
+
+    it('should handle single address in response', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const singleAddressResponse: ExtGetAllAddressesGEResponse = {
+        data: [
+          {
+            id: 'address-single',
+            cp: '72000',
+            colonia: 'Centro',
+            ciudad: 'Heroica Puebla de Zaragoza',
+            estado: 'Puebla',
+            nombre: 'Single User',
+            email: 'single@example.com',
+            telefono: '+52 222 111 1111',
+            empresa: 'Single Corp',
+            rfc: 'SING010101000',
+            calle: 'Single Street',
+            numero: '1',
+            referencia: 'Single reference',
+            alias: 'Single Address',
+            users: 'user1',
+            createdAt: '2023-10-22T12:00:00Z',
+            updatedAt: '2023-10-22T12:00:00Z',
+          },
+        ],
+        meta: {
+          page: 1,
+          limit: 10,
+          total: 1,
+          pages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleAddressResponse,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: ['Single Address'],
+        },
+      });
+      expect(result.data.aliases).toHaveLength(1);
+    });
+
+    it('should construct correct URL with addresses endpoint', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesGEResponse,
+      });
+
+      await serviceWithVersion.getAddressesSavedGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://test-guia-envia.com/direcciones',
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+        version: '1.0.0',
+      } as any);
+
+      await expect(serviceWithoutApiKey.getAddressesSavedGe()).rejects.toThrow(
+        new BadRequestException(GE_MISSING_API_KEY_ERROR),
+      );
+
+      // Verify that validation happens before API call
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should handle addresses with missing alias gracefully', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const responseWithMissingAlias: ExtGetAllAddressesGEResponse = {
+        data: [
+          {
+            id: 'address-1',
+            cp: '72000',
+            colonia: 'Centro',
+            ciudad: 'Heroica Puebla de Zaragoza',
+            estado: 'Puebla',
+            nombre: 'Juan Pérez',
+            email: 'juan.perez@example.com',
+            telefono: '+52 222 123 4567',
+            empresa: 'Empresa SA de CV',
+            rfc: 'XAXX010101000',
+            calle: 'Avenida Juárez',
+            numero: '123',
+            referencia: 'Entre calle A y calle B, edificio azul',
+            alias: 'Valid Alias',
+            users: 'user123',
+            createdAt: '2023-10-22T12:00:00Z',
+            updatedAt: '2023-10-22T12:00:00Z',
+          },
+          {
+            id: 'address-2',
+            cp: '94298',
+            colonia: 'Las Flores',
+            ciudad: 'Boca del Río',
+            estado: 'Veracruz',
+            nombre: 'María García',
+            email: 'maria.garcia@example.com',
+            telefono: '+52 229 987 6543',
+            empresa: 'Corporativo XYZ',
+            rfc: 'MARY010101000',
+            calle: 'Calle Principal',
+            numero: '456',
+            referencia: 'Casa azul',
+            alias: undefined as unknown as string, // Missing alias
+            users: 'user456',
+            createdAt: '2023-10-22T13:00:00Z',
+            updatedAt: '2023-10-22T13:00:00Z',
+          },
+        ],
+        meta: {
+          page: 1,
+          limit: 10,
+          total: 2,
+          pages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: responseWithMissingAlias,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: ['Valid Alias', undefined],
+        },
+      });
     });
   });
 
