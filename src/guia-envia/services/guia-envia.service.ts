@@ -27,6 +27,7 @@ import {
   ExtCreateGuideGEResponse,
   CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
+  GetAliasesGEDataResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -176,11 +177,11 @@ export class GuiaEnviaService {
     }
   }
 
-  async getAddressesSavedGe() {
+  async getAddressesSavedGe(): Promise<GetAliasesGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
-      // const npmVersion: string = this.configService.version!;
+      const npmVersion: string = this.configService.version!;
       if (!apiKey) {
         throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
       }
@@ -196,12 +197,19 @@ export class GuiaEnviaService {
           },
         });
       const data = response?.data;
-      return data;
+      const aliases = (data?.data ?? []).map((address) => address.alias);
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          aliases,
+        },
+      };
     } catch (error) {
-      console.log('error list services ge', error);
+      console.log('error get addresses ge', error);
       if (axios.isAxiosError(error)) {
         throw new BadRequestException(error?.response?.data);
-        // throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

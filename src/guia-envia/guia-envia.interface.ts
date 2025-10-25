@@ -124,6 +124,14 @@ export interface CreateAddressResponseGE {
   alias: string;
 }
 
+export interface GetAliasesGEDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    aliases: string[];
+  };
+}
+
 //#endregion
 
 //#region Create guide

@@ -28,10 +28,10 @@ export class GuiaEnviaController {
     return this.guiaEnviaService.listServicesGe();
   }
 
-  @Get('addresses')
+  @Get('alias-addresses')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get a list of addresses saved in GE.',
+    summary: 'Get a list of aliases of the adresses saved in GE.',
   })
   async getAddressesSavedGe() {
     return this.guiaEnviaService.getAddressesSavedGe();
