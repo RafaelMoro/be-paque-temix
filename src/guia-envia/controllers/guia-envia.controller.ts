@@ -7,6 +7,7 @@ import { CreateGuideGeDto } from '../dtos/guia-envia.dtos';
 import {
   CreateGuideGEResponseDto,
   GetCourierServicesResponseDto,
+  GetAliasesGEResponseDto,
 } from '../dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
@@ -26,6 +27,20 @@ export class GuiaEnviaController {
   })
   async getCourierServices() {
     return this.guiaEnviaService.listServicesGe();
+  }
+
+  @Get('alias-addresses')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get a list of aliases of the adresses saved in GE.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: GetAliasesGEResponseDto,
+    description: 'Address aliases retrieved successfully.',
+  })
+  async getAddressesSavedGe() {
+    return this.guiaEnviaService.getAddressesSavedGe();
   }
 
   @Post('create-guide')

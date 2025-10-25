@@ -1,3 +1,9 @@
+## v0.25.0 (2025-10-25)
+
+### Pull Requests
+[#42](https://github.com/RafaelMoro/be-paque-temix/pull/42) | Add endpoint to list addresses alias GE
+
+
 ## v0.24.0 (2025-10-23)
 
 ### Pull Requests
