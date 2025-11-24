@@ -1,3 +1,9 @@
+## v0.25.1 (2025-11-24)
+
+### Pull Requests
+[#44](https://github.com/RafaelMoro/be-paque-temix/pull/44) | Catch more t1 errors to update token
+
+
 ## v0.25.0 (2025-10-25)
 
 ### Pull Requests
