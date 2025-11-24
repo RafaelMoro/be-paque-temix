@@ -1,3 +1,7 @@
+import {
+  T1_INVALID_TOKEN_ERROR,
+  T1_USER_NOT_FOUND_ERROR,
+} from '@/t1/t1.constants';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface TokenOperations {
@@ -10,6 +14,7 @@ interface HttpError extends Error {
   statusCode?: number;
   response?: {
     status?: number;
+    data?: unknown;
   };
 }
 
@@ -25,6 +30,8 @@ export class TokenManagerService {
 
     return (
       error.message === 'Request failed with status code 401' ||
+      error.message.includes(T1_INVALID_TOKEN_ERROR) ||
+      error.message.includes(T1_USER_NOT_FOUND_ERROR) ||
       httpError.statusCode === 401 ||
       httpError.response?.status === 401
     );
@@ -67,6 +74,17 @@ export class TokenManagerService {
       } catch (error) {
         // Handle 401 unauthorized - retry with new token
         if (this.isUnauthorizedError(error)) {
+          console.log('Unauthorized error detected, retrying with new token');
+          const httpError = error as HttpError;
+          const errorDetails =
+            httpError.response?.data ?? httpError.message ?? 'Unknown error';
+          const errorMessage =
+            typeof errorDetails === 'string'
+              ? errorDetails
+              : JSON.stringify(errorDetails);
+          messages.push(
+            `${prefix} carrier unauthorized error: for ${errorMessage}`,
+          );
           messages.push(
             `${prefix}Token expired, creating new token for ${operationName}`,
           );
@@ -78,16 +96,19 @@ export class TokenManagerService {
           );
           return { result, messages };
         }
+        console.log('throwing error from inner catch');
         throw error;
       }
     } catch (error) {
       if (error instanceof Error) {
+        console.log('throwing error from outer catch');
         messages.push(`${prefix}${error.message}`);
         throw error;
       }
       messages.push(
         `${prefix}An unknown error occurred during ${operationName}`,
       );
+      console.log('throwing unknown error from outer catch in unknown error');
       throw new BadRequestException(
         `An unknown error occurred during ${operationName}`,
       );
