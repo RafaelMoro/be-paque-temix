@@ -93,9 +93,18 @@ export class GuiaEnviaService {
         messages: updatedMessages,
       };
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log(
+          'Error in fetchGEQuotes:',
+          error?.response?.data || error.message,
+        );
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
       if (error instanceof Error) {
+        console.log('error getting quote ge inst error', error);
         throw new BadRequestException(error.message);
       }
+      console.log('error getting quote ge unknown error', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }
