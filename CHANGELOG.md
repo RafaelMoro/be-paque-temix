@@ -1,3 +1,9 @@
+## v0.25.2 (2025-11-24)
+
+### Pull Requests
+[#46](https://github.com/RafaelMoro/be-paque-temix/pull/46) | Catch better GE Errors
+
+
 ## v0.25.1 (2025-11-24)
 
 ### Pull Requests
