@@ -133,7 +133,6 @@ export class T1Service {
   ): Promise<{ result: T; messages: string[] }> {
     const env = this.configService.environment;
     const isProd = env === PROD_ENV;
-    console.log('isProd', isProd);
 
     return this.tokenManagerService.executeWithTokenManagement(
       operation,
