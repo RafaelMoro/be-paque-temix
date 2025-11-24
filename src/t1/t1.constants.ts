@@ -7,6 +7,7 @@ export const T1_MISSING_PROVIDER_PROFIT_MARGIN =
 
 // T1 backend errors:
 export const T1_INVALID_TOKEN_ERROR = 'Token inválido para ambas versiones.';
+export const T1_USER_NOT_FOUND_ERROR = 'Usuario no encontrado o desactivado';
 
 export const QUOTE_T1_ENDPOINT = '/quote/create';
 export const CREATE_GUIDE_T1_ENDPOINT = '/guide/create';
