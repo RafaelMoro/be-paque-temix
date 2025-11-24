@@ -14,6 +14,7 @@ interface HttpError extends Error {
   statusCode?: number;
   response?: {
     status?: number;
+    data?: unknown;
   };
 }
 
@@ -74,6 +75,16 @@ export class TokenManagerService {
         // Handle 401 unauthorized - retry with new token
         if (this.isUnauthorizedError(error)) {
           console.log('Unauthorized error detected, retrying with new token');
+          const httpError = error as HttpError;
+          const errorDetails =
+            httpError.response?.data ?? httpError.message ?? 'Unknown error';
+          const errorMessage =
+            typeof errorDetails === 'string'
+              ? errorDetails
+              : JSON.stringify(errorDetails);
+          messages.push(
+            `${prefix} carrier unauthorized error: for ${errorMessage}`,
+          );
           messages.push(
             `${prefix}Token expired, creating new token for ${operationName}`,
           );
