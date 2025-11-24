@@ -133,6 +133,7 @@ export class T1Service {
   ): Promise<{ result: T; messages: string[] }> {
     const env = this.configService.environment;
     const isProd = env === PROD_ENV;
+    console.log('isProd', isProd);
 
     return this.tokenManagerService.executeWithTokenManagement(
       operation,
@@ -238,13 +239,17 @@ export class T1Service {
 
       return response?.data;
     } catch (error) {
-      console.log('Error in fetchT1Quotes:', error);
       if (axios.isAxiosError(error)) {
+        console.log(
+          'Error in fetchT1Quotes:',
+          error?.response?.data || error.message,
+        );
         throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
+      console.log('Error in fetchT1Quotes:', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }

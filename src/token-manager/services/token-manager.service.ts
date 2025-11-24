@@ -1,3 +1,4 @@
+import { T1_INVALID_TOKEN_ERROR } from '@/t1/t1.constants';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface TokenOperations {
@@ -25,6 +26,7 @@ export class TokenManagerService {
 
     return (
       error.message === 'Request failed with status code 401' ||
+      error.message.includes(T1_INVALID_TOKEN_ERROR) ||
       httpError.statusCode === 401 ||
       httpError.response?.status === 401
     );
@@ -67,6 +69,7 @@ export class TokenManagerService {
       } catch (error) {
         // Handle 401 unauthorized - retry with new token
         if (this.isUnauthorizedError(error)) {
+          console.log('Unauthorized error detected, retrying with new token');
           messages.push(
             `${prefix}Token expired, creating new token for ${operationName}`,
           );
@@ -78,16 +81,19 @@ export class TokenManagerService {
           );
           return { result, messages };
         }
+        console.log('throwing error from inner catch');
         throw error;
       }
     } catch (error) {
       if (error instanceof Error) {
+        console.log('throwing error from outer catch');
         messages.push(`${prefix}${error.message}`);
         throw error;
       }
       messages.push(
         `${prefix}An unknown error occurred during ${operationName}`,
       );
+      console.log('throwing unknown error from outer catch in unknown error');
       throw new BadRequestException(
         `An unknown error occurred during ${operationName}`,
       );
