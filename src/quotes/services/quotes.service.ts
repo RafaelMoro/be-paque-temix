@@ -49,7 +49,7 @@ export class QuotesService {
 
       if (geQuotes.status === 'rejected') {
         messages.push('GE failed to get quotes');
-        messages.push((geQuotes.reason as Error).message);
+        messages.push(`GE Error: ${(geQuotes.reason as Error).message}`);
       }
       if (t1Quotes.status === 'rejected') {
         messages.push('T1 failed to get quotes');
