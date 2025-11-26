@@ -1,3 +1,9 @@
+## v0.25.4 (2025-11-26)
+
+### Pull Requests
+[#50](https://github.com/RafaelMoro/be-paque-temix/pull/50) | Add default company name in create guide pkk
+
+
 ## v0.25.3 (2025-11-26)
 
 ### Pull Requests
