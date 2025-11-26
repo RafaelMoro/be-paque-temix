@@ -28,6 +28,9 @@ export class Address extends Document {
 
   @Prop({ required: true })
   alias: string;
+
+  @Prop({ required: true })
+  sub: string;
 }
 
 export const AddressSchema = SchemaFactory.createForClass(Address);

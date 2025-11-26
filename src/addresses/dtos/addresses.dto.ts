@@ -61,6 +61,11 @@ export class CreateAddressDto {
   @IsNotEmpty()
   @ApiProperty()
   readonly alias: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  readonly sub: string;
 }
 
 export class UpdateAddressDto extends PartialType(CreateAddressDto) {}
