@@ -1,4 +1,4 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema()
 export class Address extends Document {
@@ -29,3 +29,5 @@ export class Address extends Document {
   @Prop({ required: true })
   alias: string;
 }
+
+export const AddressSchema = SchemaFactory.createForClass(Address);
