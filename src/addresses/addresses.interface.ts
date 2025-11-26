@@ -1,5 +1,5 @@
-import { Address } from './entities/addresses.entity';
+import { AddressDoc } from './entities/addresses.entity';
 
-export interface BudgetHistory extends Address {
+export interface BudgetHistory extends AddressDoc {
   _id: unknown;
 }
