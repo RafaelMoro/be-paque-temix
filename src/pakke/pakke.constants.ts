@@ -6,3 +6,5 @@ export const PAKKE_MISSING_PROVIDER_PROFIT_MARGIN =
 
 export const QUOTE_PAKKE_ENDPOINT = '/Shipments/rates';
 export const CREATE_GUIDE_PAKKE_ENDPOINT = '/Shipments';
+
+export const DEFAULT_COMPANY_NAME = 'Kraft Envios';
