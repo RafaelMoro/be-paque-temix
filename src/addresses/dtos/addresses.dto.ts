@@ -7,7 +7,7 @@ import {
   IsOptional,
   ArrayMinSize,
 } from 'class-validator';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 
 export class CreateAddressDto {
   @IsString()
@@ -67,5 +67,9 @@ export class CreateAddressDto {
   @ApiProperty()
   readonly sub: string;
 }
+
+export class CreateAddressDtoPayload extends OmitType(CreateAddressDto, [
+  'sub',
+] as const) {}
 
 export class UpdateAddressDto extends PartialType(CreateAddressDto) {}
