@@ -1,5 +1,14 @@
+import { GeneralResponse } from '@/global.interface';
 import { AddressDoc } from './entities/addresses.entity';
 
-export interface BudgetHistory extends AddressDoc {
+export interface Address extends AddressDoc {
   _id: unknown;
+}
+
+export interface CreateAddressResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    address: Address;
+  };
 }
