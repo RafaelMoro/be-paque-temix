@@ -5,6 +5,7 @@ import {
   MinLength,
   MaxLength,
   IsOptional,
+  ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 
@@ -45,11 +46,13 @@ export class CreateAddressDto {
   readonly state: string;
 
   @IsArray()
+  @ArrayMinSize(1)
   @IsNotEmpty()
   @ApiProperty()
   readonly city: string[];
 
   @IsArray()
+  @ArrayMinSize(1)
   @IsNotEmpty()
   @ApiProperty()
   readonly town: string[];
