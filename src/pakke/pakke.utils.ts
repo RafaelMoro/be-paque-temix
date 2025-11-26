@@ -13,6 +13,7 @@ import {
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
 import { GlobalCreateGuideResponse } from '@/global.interface';
+import { DEFAULT_COMPANY_NAME } from './pakke.constants';
 
 export const getTypeServicePakke = (
   service: string,
@@ -117,13 +118,13 @@ export const convertPkkCreateGuideToExternal = (
       Name: payload.origin.name,
       Email: payload.origin.email,
       Phone1: payload.origin.phone,
-      CompanyName: payload.origin.company,
+      CompanyName: payload.origin.company ?? DEFAULT_COMPANY_NAME,
     },
     Recipient: {
       Name: payload.destination.name,
       Email: payload.destination.email,
       Phone1: payload.destination.phone,
-      CompanyName: payload.destination.company,
+      CompanyName: payload.destination.company ?? DEFAULT_COMPANY_NAME,
     },
   };
 };
