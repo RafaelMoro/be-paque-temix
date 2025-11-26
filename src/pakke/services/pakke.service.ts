@@ -118,9 +118,18 @@ export class PakkeService {
         },
       };
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log(
+          'Error in createGuidePakke:',
+          error?.response?.data || error.message,
+        );
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
       if (error instanceof Error) {
+        console.log('error inst pkk', error);
         throw new BadRequestException(error.message);
       }
+      console.log('error unknown pkk', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }

@@ -1,3 +1,9 @@
+## v0.25.3 (2025-11-26)
+
+### Pull Requests
+[#48](https://github.com/RafaelMoro/be-paque-temix/pull/48) | Improve error handling pakke create guide
+
+
 ## v0.25.2 (2025-11-24)
 
 ### Pull Requests
