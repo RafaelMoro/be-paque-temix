@@ -1,4 +1,11 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 
@@ -28,5 +35,12 @@ export class AddressesController {
   ) {
     const email = req.user?.email as string;
     return this.addressesService.createAddress({ payload, email });
+  }
+
+  @Get()
+  @ApiBearerAuth()
+  getAddresses(@Request() req: ExpressRequest) {
+    const email = req.user?.email as string;
+    return this.addressesService.findAddressesByEmail(email);
   }
 }
