@@ -6,6 +6,7 @@ import {
   MaxLength,
   IsOptional,
   ArrayMinSize,
+  IsEmail,
 } from 'class-validator';
 import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 
@@ -63,13 +64,14 @@ export class CreateAddressDto {
   readonly alias: string;
 
   @IsString()
+  @IsEmail()
   @IsNotEmpty()
   @ApiProperty()
-  readonly sub: string;
+  readonly email: string;
 }
 
 export class CreateAddressDtoPayload extends OmitType(CreateAddressDto, [
-  'sub',
+  'email',
 ] as const) {}
 
 export class UpdateAddressDto extends PartialType(CreateAddressDto) {}

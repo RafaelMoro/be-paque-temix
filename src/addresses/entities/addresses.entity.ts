@@ -31,7 +31,7 @@ export class AddressDoc extends Document {
   alias: string;
 
   @Prop({ required: true })
-  sub: string;
+  email: string;
 }
 
 export const AddressSchema = SchemaFactory.createForClass(AddressDoc);

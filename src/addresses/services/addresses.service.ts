@@ -21,14 +21,14 @@ export class AddressesService {
 
   async createAddress({
     payload,
-    sub,
+    email,
   }: {
     payload: CreateAddressDtoPayload;
-    sub: string;
+    email: string;
   }): Promise<CreateAddressResponse> {
     try {
       const npmVersion: string = this.configService.version!;
-      const updatedPayload: CreateAddressDto = { ...payload, sub };
+      const updatedPayload: CreateAddressDto = { ...payload, email };
       const newAddress = new this.addressModel(updatedPayload);
       const model: Address = await newAddress.save();
       return {
