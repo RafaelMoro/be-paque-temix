@@ -12,3 +12,11 @@ export interface CreateAddressResponse
     address: Omit<AddressDoc, '_id'>;
   };
 }
+
+export interface GetAddressesResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    addresses: Omit<AddressDoc, '_id'>[];
+  };
+}

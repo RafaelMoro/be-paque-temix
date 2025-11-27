@@ -14,7 +14,11 @@ import {
   CreateAddressDto,
   CreateAddressDtoPayload,
 } from '../dtos/addresses.dto';
-import { Address, CreateAddressResponse } from '../addresses.interface';
+import {
+  Address,
+  CreateAddressResponse,
+  GetAddressesResponse,
+} from '../addresses.interface';
 
 @Injectable()
 export class AddressesService {
@@ -87,13 +91,28 @@ export class AddressesService {
     }
   }
 
-  async findAddressesByEmail(email: string) {
+  async findAddressesByEmail(email: string): Promise<GetAddressesResponse> {
     try {
       const addresses = await this.addressModel.find({ email }).exec();
       if (!addresses || addresses.length === 0) {
-        throw new NotFoundException('No addresses found for this email');
+        throw new NotFoundException('No addresses found.');
       }
-      return addresses;
+
+      const npmVersion: string = this.configService.version!;
+      const addressesFormated = addresses.map((addr) => {
+        const addressObj: FlattenMaps<AddressDoc> = addr.toJSON();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _id, ...addressData } = addressObj;
+        return addressData;
+      });
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          addresses: addressesFormated,
+        },
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
