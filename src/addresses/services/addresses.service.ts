@@ -19,6 +19,26 @@ export class AddressesService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
+  async verifyAliasExists({
+    alias,
+    email,
+  }: {
+    alias: string;
+    email: string;
+  }): Promise<boolean> {
+    try {
+      const address = await this.addressModel.findOne({ alias, email }).exec();
+      return address !== null;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException(
+        'An unknown error occurred verifying alias',
+      );
+    }
+  }
+
   async createAddress({
     payload,
     email,
@@ -29,6 +49,14 @@ export class AddressesService {
     try {
       if (!email) {
         throw new BadRequestException('Email missing from token');
+      }
+
+      const aliasExists = await this.verifyAliasExists({
+        alias: payload.alias,
+        email,
+      });
+      if (aliasExists) {
+        throw new BadRequestException('This alias already exists.');
       }
 
       const npmVersion: string = this.configService.version!;
