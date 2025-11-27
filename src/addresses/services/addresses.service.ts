@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FlattenMaps, Model } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
@@ -74,6 +79,21 @@ export class AddressesService {
           address: addressData,
         },
       };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async findAddressesByEmail(email: string) {
+    try {
+      const addresses = await this.addressModel.find({ email }).exec();
+      if (!addresses || addresses.length === 0) {
+        throw new NotFoundException('No addresses found for this email');
+      }
+      return addresses;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
