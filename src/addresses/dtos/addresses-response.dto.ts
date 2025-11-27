@@ -52,3 +52,24 @@ export class CreateAddressResponseDto {
   error: null;
 }
 //#endregion
+
+//#region Get addresses
+export class GetAddressesDataWrapperDto {
+  @ApiProperty({ type: [CreateAddressDataDto], isArray: true })
+  addresses: CreateAddressDataDto[];
+}
+
+export class GetAddressesResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: string | null;
+
+  @ApiProperty({ type: GetAddressesDataWrapperDto })
+  data: GetAddressesDataWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}
+//#endregion

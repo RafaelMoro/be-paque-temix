@@ -12,7 +12,10 @@ import { Request as ExpressRequest } from 'express';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { AddressesService } from '../services/addresses.service';
 import { CreateAddressDtoPayload } from '../dtos/addresses.dto';
-import { CreateAddressResponseDto } from '../dtos/addresses-response.dto';
+import {
+  CreateAddressResponseDto,
+  GetAddressesResponseDto,
+} from '../dtos/addresses-response.dto';
 
 @UseGuards(JwtGuard)
 @Controller('addresses')
@@ -41,6 +44,11 @@ export class AddressesController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get all addresses for the authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: GetAddressesResponseDto,
+    description: 'Addresses retrieved successfully.',
   })
   getAddresses(@Request() req: ExpressRequest) {
     const email = req.user?.email as string;
