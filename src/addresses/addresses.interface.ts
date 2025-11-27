@@ -9,6 +9,6 @@ export interface CreateAddressResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {
-    address: Address;
+    address: Omit<AddressDoc, '_id'>;
   };
 }

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { FlattenMaps, Model } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
 
 import config from '@/config';
@@ -35,12 +35,15 @@ export class AddressesService {
       const updatedPayload: CreateAddressDto = { ...payload, email };
       const newAddress = new this.addressModel(updatedPayload);
       const model: Address = await newAddress.save();
+      const addressSaved: FlattenMaps<AddressDoc> = model.toJSON();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...addressData } = addressSaved;
       return {
         version: npmVersion,
         message: null,
         error: null,
         data: {
-          address: model,
+          address: addressData,
         },
       };
     } catch (error) {
