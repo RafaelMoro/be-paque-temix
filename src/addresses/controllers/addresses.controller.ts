@@ -39,6 +39,9 @@ export class AddressesController {
 
   @Get()
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get all addresses for the authenticated user.',
+  })
   getAddresses(@Request() req: ExpressRequest) {
     const email = req.user?.email as string;
     return this.addressesService.findAddressesByEmail(email);
