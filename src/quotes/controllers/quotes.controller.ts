@@ -6,7 +6,7 @@ import { CreateAddressDto, GetQuoteDto } from '../dtos/quotes.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import {
   GetAddressInfoResponseDto,
-  CreateAddressDataDto,
+  CreateAddressDataGEDto,
 } from '@/guia-envia/dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
@@ -49,7 +49,7 @@ export class QuotesController {
   })
   @ApiResponse({
     status: 201,
-    type: CreateAddressDataDto,
+    type: CreateAddressDataGEDto,
     description: 'Address created successfully.',
   })
   async createAddress(@Body() payload: CreateAddressDto) {

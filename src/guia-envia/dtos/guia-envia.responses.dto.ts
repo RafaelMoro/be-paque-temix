@@ -41,7 +41,7 @@ export class GetAddressInfoResponseDto {
   error: null;
 }
 
-export class CreateAddressDataDto {
+export class CreateAddressDataGEDto {
   @ApiProperty({ example: '72000' })
   zipcode: string;
 
