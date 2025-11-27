@@ -13,23 +13,23 @@ import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 export class CreateAddressDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'Home' })
   readonly addressName: string;
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: '123' })
   readonly externalNumber: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ default: '102', required: false })
+  @ApiProperty({ example: '4B', required: false })
   readonly internalNumber: string;
 
   @IsString()
   @IsOptional()
   @ApiProperty({
-    default: 'Casa a pie de calle con zaguan rojo',
+    example: 'Near the park',
     required: false,
   })
   readonly reference: string;
@@ -38,35 +38,35 @@ export class CreateAddressDto {
   @IsNotEmpty()
   @MinLength(5)
   @MaxLength(5)
-  @ApiProperty()
+  @ApiProperty({ example: '12345' })
   readonly postalCode: string;
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'California' })
   readonly state: string;
 
   @IsArray()
   @ArrayMinSize(1)
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'Los Angeles', isArray: true })
   readonly city: string[];
 
   @IsArray()
   @ArrayMinSize(1)
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'Downtown', isArray: true })
   readonly town: string[];
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'My Home Address' })
   readonly alias: string;
 
   @IsString()
   @IsEmail()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'john.doe@mail.com' })
   readonly email: string;
 }
 
