@@ -27,6 +27,10 @@ export class AddressesService {
     email: string;
   }): Promise<CreateAddressResponse> {
     try {
+      if (!email) {
+        throw new BadRequestException('Email missing from token');
+      }
+
       const npmVersion: string = this.configService.version!;
       const updatedPayload: CreateAddressDto = { ...payload, email };
       const newAddress = new this.addressModel(updatedPayload);
