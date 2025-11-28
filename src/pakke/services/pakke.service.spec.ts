@@ -278,7 +278,7 @@ describe('PakkeService', () => {
     guideLink: null,
     labelUrl: 'https://example.com/label.pdf',
     file: 'https://example.com/label.pdf',
-    source: 'PAKKE',
+    source: 'Pkk',
   };
 
   const mockCreateGuideResponse: CreateGuidePkkDataResponse = {
