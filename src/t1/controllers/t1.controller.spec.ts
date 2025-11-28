@@ -99,6 +99,7 @@ describe('T1Controller', () => {
             guideLink: 'https://example.com/guide/123456',
             labelUrl: 'https://example.com/label.pdf',
             file: null,
+            source: 'TONE',
           },
         },
       };
@@ -200,6 +201,7 @@ describe('T1Controller', () => {
             guideLink: 'https://example.com/guide/987654',
             labelUrl: 'https://example.com/label2.pdf',
             file: 'base64encodedfile',
+            source: 'TONE',
           },
         },
       };

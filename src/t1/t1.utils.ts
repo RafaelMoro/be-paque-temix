@@ -162,6 +162,7 @@ export const formatT1CreateGuideResponse = (
     price: t1Response.detail.costo.toString(),
     guideLink: t1Response.detail.link_guia,
     labelUrl: t1Response.detail.link_guia, // Using the same link for both guide and label
+    source: 'TONE',
     file: t1Response.detail.file,
   };
 };

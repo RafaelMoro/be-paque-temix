@@ -23,6 +23,7 @@ describe('Manuable Utils', () => {
         carrier: 'FEDEX',
         price: '250.50',
         guideLink: null,
+        source: 'Mn',
         labelUrl: 'https://manuable.com/labels/MN789012345.pdf',
         file: null,
       };

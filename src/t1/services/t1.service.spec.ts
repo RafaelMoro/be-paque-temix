@@ -664,6 +664,7 @@ describe('T1Service', () => {
       guideLink: 'https://example.com/guide/123456',
       labelUrl: 'https://example.com/guide/123456',
       file: 'test-file.pdf',
+      source: 'TONE',
     };
 
     it('should successfully create guide using TokenManagerService', async () => {

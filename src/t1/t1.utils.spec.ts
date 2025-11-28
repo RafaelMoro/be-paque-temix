@@ -25,6 +25,7 @@ describe('T1 Utils', () => {
       const expectedGlobalResponse: GlobalCreateGuideResponse = {
         trackingNumber: 'TRACK-789012',
         carrier: 'T1Express',
+        source: 'TONE',
         price: '150.75',
         guideLink: 'https://t1.com/track/TRACK-789012',
         labelUrl: 'https://t1.com/track/TRACK-789012',

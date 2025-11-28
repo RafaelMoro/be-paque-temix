@@ -1,7 +1,7 @@
 import { GeneralResponse } from '@/global.interface';
 import { QUOTE_COURIER, QUOTE_SOURCE } from './quotes.constants';
 
-export type QuoteSource = (typeof QUOTE_SOURCE)[number];
+export type ProviderSource = (typeof QUOTE_SOURCE)[number];
 
 export type QuoteTypeSevice = 'standard' | 'nextDay';
 
@@ -29,7 +29,7 @@ export interface GetQuoteData {
   qAdjSrcRef?: QuoteAdjustmentSourceReference;
   typeService: QuoteTypeSevice | null;
   courier: QuoteCourier | null;
-  source: QuoteSource;
+  source: ProviderSource;
 }
 
 export interface GetQuoteDataResponse

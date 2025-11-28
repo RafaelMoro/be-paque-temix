@@ -722,6 +722,7 @@ describe('ManuableService', () => {
             trackingNumber: 'TRK123',
             carrier: 'DHL',
             price: '100.00',
+            source: 'Mn',
             guideLink: null,
             labelUrl: 'http://example.com/label',
             file: null,

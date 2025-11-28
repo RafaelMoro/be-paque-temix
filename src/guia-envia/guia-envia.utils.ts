@@ -139,6 +139,7 @@ export const formatCreateGuideResponseGE = (
     price: firstShipment?.costo || '0',
     guideLink: null,
     labelUrl: firstGuide?.url || null, // Using the same URL for label
+    source: 'GE',
     file: null, // GE doesn't provide file, set to null
   };
 };

@@ -137,6 +137,7 @@ export const formatManuableCreateGuideResponse = (
     price: manuableGuide.price,
     guideLink: null,
     labelUrl: manuableGuide.label_url,
+    source: 'Mn',
     file: null, // Manuable doesn't provide a file field, only label_url
   };
 };

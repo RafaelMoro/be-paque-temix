@@ -104,9 +104,7 @@ export class PakkeService {
         });
       messages.push('Pkk Guide created successfully');
       const data = response?.data;
-      console.log('data', data);
       const formattedData = formatPakkeCreateGuideResponse(data);
-      console.log('formattedData', formattedData);
       const npmVersion: string = this.configService.version!;
       return {
         version: npmVersion,
