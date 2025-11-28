@@ -21,6 +21,12 @@ import {
   AddressesByAliasResponse,
   GetAddressesResponse,
 } from '../addresses.interface';
+import {
+  ADDRESS_NOT_FOUND_ERROR,
+  ALIAS_EXISTS_ERROR,
+  EMAIL_MISSING_ERROR,
+  MISSING_ALIAS_ERROR,
+} from '../addresses.constants';
 
 @Injectable()
 export class AddressesService {
@@ -59,7 +65,7 @@ export class AddressesService {
   }): Promise<CreateAddressResponse> {
     try {
       if (!email) {
-        throw new BadRequestException('Email missing from token');
+        throw new BadRequestException(EMAIL_MISSING_ERROR);
       }
 
       const aliasExists = await this.verifyAliasExists({
@@ -67,7 +73,7 @@ export class AddressesService {
         email,
       });
       if (aliasExists) {
-        throw new BadRequestException('This alias already exists.');
+        throw new BadRequestException(ALIAS_EXISTS_ERROR);
       }
 
       const npmVersion: string = this.configService.version!;
@@ -97,7 +103,7 @@ export class AddressesService {
     try {
       const addresses = await this.addressModel.find({ email }).exec();
       if (!addresses || addresses.length === 0) {
-        throw new NotFoundException('No addresses found.');
+        throw new NotFoundException(ADDRESS_NOT_FOUND_ERROR);
       }
 
       const npmVersion: string = this.configService.version!;
@@ -136,7 +142,7 @@ export class AddressesService {
         .findOneAndDelete({ alias, email })
         .exec();
       if (!address) {
-        throw new NotFoundException('Address not found by that alias.');
+        throw new NotFoundException(ADDRESS_NOT_FOUND_ERROR);
       }
 
       return {
@@ -167,14 +173,14 @@ export class AddressesService {
     try {
       const alias = payload.alias;
       if (!alias) {
-        throw new BadRequestException('Alias is required to update address.');
+        throw new BadRequestException(MISSING_ALIAS_ERROR);
       }
       const npmVersion: string = this.configService.version!;
       const addressToEdit = await this.addressModel
         .findOneAndUpdate({ email, alias }, { $set: payload }, { new: true })
         .exec();
       if (!addressToEdit) {
-        throw new NotFoundException('Address not found by that alias.');
+        throw new NotFoundException(ADDRESS_NOT_FOUND_ERROR);
       }
 
       return {
