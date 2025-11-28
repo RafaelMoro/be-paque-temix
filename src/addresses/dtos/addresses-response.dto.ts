@@ -20,10 +20,10 @@ class CreateAddressDataDto {
   @ApiProperty({ example: 'California' })
   state: string;
 
-  @ApiProperty({ example: ['Los Angeles'], isArray: true })
+  @ApiProperty({ example: 'Los Angeles', isArray: true })
   city: string[];
 
-  @ApiProperty({ example: ['Downtown'], isArray: true })
+  @ApiProperty({ example: 'Downtown', isArray: true })
   town: string[];
 
   @ApiProperty({ example: 'My Home Address' })
