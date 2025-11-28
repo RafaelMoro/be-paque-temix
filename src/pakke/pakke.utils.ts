@@ -137,7 +137,8 @@ export const formatPakkeCreateGuideResponse = (
     carrier: response.CourierName,
     price: response.TotalAmount.toString(),
     guideLink: null,
-    labelUrl: response.Label || null,
-    file: null,
+    labelUrl: null,
+    source: 'Pkk',
+    file: response.Label || null,
   };
 };
