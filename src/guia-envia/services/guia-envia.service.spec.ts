@@ -1815,6 +1815,7 @@ describe('GuiaEnviaService', () => {
       guideLink: 'https://app.guiaenvia.com/guia/EST123456789',
       labelUrl: 'https://app.guiaenvia.com/guia/EST123456789',
       file: null,
+      source: 'GUIA_ENVIA',
     };
 
     const mockConfigWithVersion = {
@@ -2163,6 +2164,7 @@ describe('GuiaEnviaService', () => {
         guideLink: 'https://app.guiaenvia.com/guia/EST987654321',
         labelUrl: 'https://app.guiaenvia.com/label/EST987654321.pdf',
         file: 'base64-encoded-file-content',
+        source: 'GUIA_ENVIA',
       };
 
       jest.spyOn(utils, 'formatCreateGuidePayloadGE').mockReturnValue({

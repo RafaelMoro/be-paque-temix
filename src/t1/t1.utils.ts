@@ -160,7 +160,7 @@ export const formatT1CreateGuideResponse = (
     trackingNumber: t1Response.detail.guia,
     carrier: t1Response.detail.paqueteria,
     price: t1Response.detail.costo.toString(),
-    guideLink: null,
+    guideLink: t1Response.detail.link_guia,
     labelUrl: t1Response.detail.link_guia, // Using the same link for both guide and label
     source: 'TONE',
     file: t1Response.detail.file,
