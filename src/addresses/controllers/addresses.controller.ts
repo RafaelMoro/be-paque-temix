@@ -20,6 +20,7 @@ import {
 } from '../dtos/addresses.dto';
 import {
   CreateAddressResponseDto,
+  DeleteAddressByAliasResponseDto,
   GetAddressesResponseDto,
 } from '../dtos/addresses-response.dto';
 
@@ -65,6 +66,11 @@ export class AddressesController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Delete an address by alias for the authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: DeleteAddressByAliasResponseDto,
+    description: 'Address deleted successfully.',
   })
   deleteAddress(@Param('alias') alias: string, @Request() req: ExpressRequest) {
     const email = req.user?.email as string;

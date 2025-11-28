@@ -73,3 +73,29 @@ export class GetAddressesResponseDto {
   error: null;
 }
 //#endregion
+
+//#region Delete address by alias
+class DeleteAddressDataDto {
+  @ApiProperty({ example: 'My Home Address' })
+  alias: string;
+}
+
+export class DeleteAddressDataWrapperDto {
+  @ApiProperty({ type: DeleteAddressDataDto })
+  address: DeleteAddressDataDto;
+}
+
+export class DeleteAddressByAliasResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: string | null;
+
+  @ApiProperty({ type: DeleteAddressDataWrapperDto })
+  data: DeleteAddressDataWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}
+//#endregion
