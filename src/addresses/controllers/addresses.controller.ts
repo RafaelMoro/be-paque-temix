@@ -59,6 +59,11 @@ export class AddressesController {
     type: GetAddressesResponseDto,
     description: 'Addresses retrieved successfully.',
   })
+  @ApiResponse({
+    status: 404,
+    type: ErrorResponseDto,
+    description: 'Address not found.',
+  })
   getAddresses(@Request() req: ExpressRequest) {
     const email = req.user?.email as string;
     return this.addressesService.findAddressesByEmail(email);
