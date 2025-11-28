@@ -21,7 +21,7 @@ export interface GetAddressesResponse
   };
 }
 
-export interface DeleteAddressesResponse
+export interface AddressesByAliasResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {

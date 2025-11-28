@@ -13,11 +13,12 @@ import { AddressDoc } from '../entities/addresses.entity';
 import {
   CreateAddressDto,
   CreateAddressDtoPayload,
+  UpdateAddressDto,
 } from '../dtos/addresses.dto';
 import {
   Address,
   CreateAddressResponse,
-  DeleteAddressesResponse,
+  AddressesByAliasResponse,
   GetAddressesResponse,
 } from '../addresses.interface';
 
@@ -128,14 +129,14 @@ export class AddressesService {
   }: {
     alias: string;
     email: string;
-  }): Promise<DeleteAddressesResponse> {
+  }): Promise<AddressesByAliasResponse> {
     try {
       const npmVersion: string = this.configService.version!;
       const address = await this.addressModel
         .findOneAndDelete({ alias, email })
         .exec();
       if (!address) {
-        throw new NotFoundException('Address not found.');
+        throw new NotFoundException('Address not found by that alias.');
       }
 
       return {
@@ -145,6 +146,44 @@ export class AddressesService {
         data: {
           address: {
             alias: address.alias,
+          },
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async updateAddress({
+    payload,
+    email,
+  }: {
+    payload: UpdateAddressDto;
+    email: string;
+  }): Promise<AddressesByAliasResponse> {
+    try {
+      const alias = payload.alias;
+      if (!alias) {
+        throw new BadRequestException('Alias is required to update address.');
+      }
+      const npmVersion: string = this.configService.version!;
+      const addressToEdit = await this.addressModel
+        .findOneAndUpdate({ email, alias }, { $set: payload }, { new: true })
+        .exec();
+      if (!addressToEdit) {
+        throw new NotFoundException('Address not found by that alias.');
+      }
+
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          address: {
+            alias: addressToEdit.alias,
           },
         },
       };
