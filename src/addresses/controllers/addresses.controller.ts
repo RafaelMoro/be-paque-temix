@@ -21,6 +21,7 @@ import {
 import {
   CreateAddressResponseDto,
   DeleteAddressByAliasResponseDto,
+  ErrorResponseDto,
   GetAddressesResponseDto,
 } from '../dtos/addresses-response.dto';
 
@@ -71,6 +72,11 @@ export class AddressesController {
     status: 200,
     type: DeleteAddressByAliasResponseDto,
     description: 'Address deleted successfully.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: ErrorResponseDto,
+    description: 'Address not found.',
   })
   deleteAddress(@Param('alias') alias: string, @Request() req: ExpressRequest) {
     const email = req.user?.email as string;

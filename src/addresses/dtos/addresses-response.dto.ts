@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ADDRESS_NOT_FOUND_ERROR } from '../addresses.constants';
 
 //#region Create address
 class CreateAddressDataDto {
@@ -97,5 +98,32 @@ export class DeleteAddressByAliasResponseDto {
 
   @ApiProperty({ type: 'null', nullable: true, example: null })
   error: null;
+}
+//#endregion
+
+//#region Error responses
+class ErrorDetailDto {
+  @ApiProperty({ example: ADDRESS_NOT_FOUND_ERROR })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ example: 400 })
+  statusCode: number;
+}
+
+export class ErrorResponseDto {
+  @ApiProperty({ example: '0.25.4' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: ErrorDetailDto })
+  error: ErrorDetailDto;
 }
 //#endregion
