@@ -23,7 +23,7 @@ import {
   ProfitMarginResponse,
   TypeProfitMargin,
 } from '../global-configs.interface';
-import { QuoteCourier, QuoteSource } from '@/quotes/quotes.interface';
+import { QuoteCourier, ProviderSource } from '@/quotes/quotes.interface';
 import { QUOTE_COURIER, QUOTE_SOURCE } from '@/quotes/quotes.constants';
 import { PROFIT_MARGIN_TYPE } from '../global-configs.constants';
 
@@ -146,8 +146,8 @@ export class GlobalConfigsService implements OnModuleInit {
   }
 
   validateProvider(provider: string): void {
-    const validProviders: QuoteSource[] = [...QUOTE_SOURCE];
-    if (!validProviders.includes(provider as QuoteSource)) {
+    const validProviders: ProviderSource[] = [...QUOTE_SOURCE];
+    if (!validProviders.includes(provider as ProviderSource)) {
       throw new BadRequestException(
         `Invalid provider: ${provider}. Provider must be one of: ${validProviders.join(', ')}`,
       );
