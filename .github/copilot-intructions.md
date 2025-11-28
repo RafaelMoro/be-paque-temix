@@ -148,3 +148,33 @@ Focus primarily on functionality and type safety rather than minor ESLint format
 - **Faster development**: Focus on what matters most
 - **Better prioritization**: Address issues that impact functionality and maintainability first
 - **Reduced noise**: Avoid getting distracted by minor formatting issues
+
+## Test Execution Guidelines
+
+When working with tests, avoid unnecessary test runs to save time and resources.
+
+### ✅ When to Run Tests:
+
+- After making code changes that could affect test outcomes
+- When explicitly asked to verify test results
+- When debugging failing tests
+- After fixing test files
+
+### ❌ When NOT to Run Tests:
+
+- If tests are already confirmed to be passing
+- Multiple times in succession without code changes
+- After every minor change when no test-affecting modifications were made
+
+### Guidelines:
+
+1. **Trust previous test results**: If tests just passed, don't re-run them
+2. **Batch your changes**: Make related changes together, then test once
+3. **Targeted testing**: Run specific test files (`npm test -- <file>`) instead of the entire suite when possible
+4. **Confirmation-based execution**: Only run tests when explicitly asked or when code changes warrant verification
+
+### Benefits:
+
+- **Faster workflow**: Reduce unnecessary waiting time
+- **Resource efficiency**: Save CPU and time resources
+- **Better focus**: Spend time on development rather than redundant verification
