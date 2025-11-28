@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Request,
   UseGuards,
@@ -53,5 +55,15 @@ export class AddressesController {
   getAddresses(@Request() req: ExpressRequest) {
     const email = req.user?.email as string;
     return this.addressesService.findAddressesByEmail(email);
+  }
+
+  @Delete(':alias')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete an address by alias for the authenticated user.',
+  })
+  deleteAddress(@Param('alias') alias: string, @Request() req: ExpressRequest) {
+    const email = req.user?.email as string;
+    return this.addressesService.deleteAddressByAliasAndEmail({ alias, email });
   }
 }

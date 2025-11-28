@@ -17,6 +17,7 @@ import {
 import {
   Address,
   CreateAddressResponse,
+  DeleteAddressesResponse,
   GetAddressesResponse,
 } from '../addresses.interface';
 
@@ -111,6 +112,40 @@ export class AddressesService {
         error: null,
         data: {
           addresses: addressesFormated,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteAddressByAliasAndEmail({
+    alias,
+    email,
+  }: {
+    alias: string;
+    email: string;
+  }): Promise<DeleteAddressesResponse> {
+    try {
+      const npmVersion: string = this.configService.version!;
+      const address = await this.addressModel
+        .findOneAndDelete({ alias, email })
+        .exec();
+      if (!address) {
+        throw new NotFoundException('Address not found.');
+      }
+
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          address: {
+            alias: address.alias,
+          },
         },
       };
     } catch (error) {

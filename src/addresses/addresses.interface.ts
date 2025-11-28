@@ -20,3 +20,13 @@ export interface GetAddressesResponse
     addresses: Omit<AddressDoc, '_id'>[];
   };
 }
+
+export interface DeleteAddressesResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  data: {
+    address: {
+      alias: string;
+    };
+  };
+}
