@@ -18,6 +18,7 @@ import { GeneralInfoDbModule } from './general-info-db/general-info-db.module';
 import { QuotesModule } from './quotes/quotes.module';
 import { GlobalConfigsModule } from './global-configs/global-configs.module';
 import { TokenManagerModule } from './token-manager/token-manager.module';
+import { AddressesModule } from './addresses/addresses.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { TokenManagerModule } from './token-manager/token-manager.module';
     QuotesModule,
     GlobalConfigsModule,
     TokenManagerModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
