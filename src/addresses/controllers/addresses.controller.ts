@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -13,7 +14,10 @@ import { Request as ExpressRequest } from 'express';
 
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import { AddressesService } from '../services/addresses.service';
-import { CreateAddressDtoPayload } from '../dtos/addresses.dto';
+import {
+  CreateAddressDtoPayload,
+  UpdateAddressDto,
+} from '../dtos/addresses.dto';
 import {
   CreateAddressResponseDto,
   GetAddressesResponseDto,
@@ -65,5 +69,18 @@ export class AddressesController {
   deleteAddress(@Param('alias') alias: string, @Request() req: ExpressRequest) {
     const email = req.user?.email as string;
     return this.addressesService.deleteAddressByAliasAndEmail({ alias, email });
+  }
+
+  @Put()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update an address by alias for the authenticated user.',
+  })
+  updateAddress(
+    @Body() payload: UpdateAddressDto,
+    @Request() req: ExpressRequest,
+  ) {
+    const email = req.user?.email as string;
+    return this.addressesService.updateAddress({ payload, email });
   }
 }
