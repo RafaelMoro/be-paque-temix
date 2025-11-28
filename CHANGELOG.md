@@ -1,3 +1,9 @@
+## v0.26.1 (2025-11-28)
+
+### Pull Requests
+[#54](https://github.com/RafaelMoro/be-paque-temix/pull/54) | Add source prop to create guide 
+
+
 ## v0.26.0 (2025-11-28)
 
 ### Pull Requests
