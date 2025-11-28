@@ -21,6 +21,7 @@ import {
 import {
   CreateAddressResponseDto,
   DeleteAddressByAliasResponseDto,
+  EmailMissingErrorResponseDto,
   ErrorResponseDto,
   GetAddressesResponseDto,
   MissingAliasErrorResponseDto,
@@ -40,6 +41,11 @@ export class AddressesController {
     status: 201,
     type: CreateAddressResponseDto,
     description: 'Address created successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    type: EmailMissingErrorResponseDto,
+    description: 'Email missing from token.',
   })
   createAddress(
     @Request() req: ExpressRequest,
