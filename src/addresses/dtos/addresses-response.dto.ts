@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ADDRESS_NOT_FOUND_ERROR } from '../addresses.constants';
+import {
+  ADDRESS_NOT_FOUND_ERROR,
+  MISSING_ALIAS_ERROR,
+} from '../addresses.constants';
 
 //#region Create address
 class CreateAddressDataDto {
@@ -125,5 +128,30 @@ export class ErrorResponseDto {
 
   @ApiProperty({ type: ErrorDetailDto })
   error: ErrorDetailDto;
+}
+
+class MissingAliasErrorDetailDto {
+  @ApiProperty({ example: MISSING_ALIAS_ERROR })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ example: 400 })
+  statusCode: number;
+}
+
+export class MissingAliasErrorResponseDto {
+  @ApiProperty({ example: '0.25.4' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: MissingAliasErrorDetailDto })
+  error: MissingAliasErrorDetailDto;
 }
 //#endregion

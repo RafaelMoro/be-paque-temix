@@ -23,6 +23,7 @@ import {
   DeleteAddressByAliasResponseDto,
   ErrorResponseDto,
   GetAddressesResponseDto,
+  MissingAliasErrorResponseDto,
 } from '../dtos/addresses-response.dto';
 
 @UseGuards(JwtGuard)
@@ -92,6 +93,16 @@ export class AddressesController {
     status: 200,
     type: DeleteAddressByAliasResponseDto,
     description: 'Address updated successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    type: MissingAliasErrorResponseDto,
+    description: 'Alias is missing. Please provide it.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: ErrorResponseDto,
+    description: 'Address not found.',
   })
   updateAddress(
     @Body() payload: UpdateAddressDto,
