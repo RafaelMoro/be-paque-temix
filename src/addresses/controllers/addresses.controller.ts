@@ -82,6 +82,11 @@ export class AddressesController {
   @ApiOperation({
     summary: 'Update an address by alias for the authenticated user.',
   })
+  @ApiResponse({
+    status: 200,
+    type: DeleteAddressByAliasResponseDto,
+    description: 'Address updated successfully.',
+  })
   updateAddress(
     @Body() payload: UpdateAddressDto,
     @Request() req: ExpressRequest,
