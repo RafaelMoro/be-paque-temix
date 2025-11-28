@@ -55,7 +55,7 @@ export class CreateAddressResponseDto {
 
 //#region Get addresses
 export class GetAddressesDataWrapperDto {
-  @ApiProperty({ type: [CreateAddressDataDto], isArray: true })
+  @ApiProperty({ type: CreateAddressDataDto, isArray: true })
   addresses: CreateAddressDataDto[];
 }
 
