@@ -105,6 +105,7 @@ describe('ManuableController', () => {
             guideLink: null,
             labelUrl: 'https://example.com/label.pdf',
             file: null,
+            source: 'Mn',
           },
         },
       };
@@ -222,6 +223,7 @@ describe('ManuableController', () => {
             guideLink: null,
             labelUrl: 'http://example.com/label',
             file: null,
+            source: 'Mn',
           },
         },
       };

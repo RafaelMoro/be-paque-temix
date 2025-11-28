@@ -2,7 +2,7 @@ import { ProfitMargin } from '@/global-configs/global-configs.interface';
 import {
   CalculateTotalQuotesResponse,
   GetQuoteData,
-  QuoteSource,
+  ProviderSource,
 } from './quotes.interface';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
@@ -109,7 +109,7 @@ export const calculateTotalQuotes = ({
 }: {
   quotes: GetQuoteData[];
   config: GlobalConfigsDoc;
-  provider: QuoteSource;
+  provider: ProviderSource;
   providerNotFoundMessage: string;
   messages: string[];
 }): CalculateTotalQuotesResponse => {
