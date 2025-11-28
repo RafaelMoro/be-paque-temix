@@ -1,3 +1,9 @@
+## v0.26.0 (2025-11-28)
+
+### Pull Requests
+[#52](https://github.com/RafaelMoro/be-paque-temix/pull/52) | Add addresses module, services, endpoints
+
+
 ## v0.25.4 (2025-11-26)
 
 ### Pull Requests
