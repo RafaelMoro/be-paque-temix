@@ -19,9 +19,9 @@ import {
   UpdateAddressDto,
 } from '../dtos/addresses.dto';
 import {
+  AliasExistsErrorResponseDto,
   CreateAddressResponseDto,
   DeleteAddressByAliasResponseDto,
-  EmailMissingErrorResponseDto,
   ErrorResponseDto,
   GetAddressesResponseDto,
   MissingAliasErrorResponseDto,
@@ -44,8 +44,8 @@ export class AddressesController {
   })
   @ApiResponse({
     status: 400,
-    type: EmailMissingErrorResponseDto,
-    description: 'Email missing from token.',
+    type: AliasExistsErrorResponseDto,
+    description: 'An address with that alias already exists.',
   })
   createAddress(
     @Request() req: ExpressRequest,

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ADDRESS_NOT_FOUND_ERROR,
+  ALIAS_EXISTS_ERROR,
   EMAIL_MISSING_ERROR,
   MISSING_ALIAS_ERROR,
 } from '../addresses.constants';
@@ -179,5 +180,30 @@ export class EmailMissingErrorResponseDto {
 
   @ApiProperty({ type: EmailMissingErrorDetailDto })
   error: EmailMissingErrorDetailDto;
+}
+
+class AliasExistsErrorDetailDto {
+  @ApiProperty({ example: ALIAS_EXISTS_ERROR })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ example: 400 })
+  statusCode: number;
+}
+
+export class AliasExistsErrorResponseDto {
+  @ApiProperty({ example: '0.25.4' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: AliasExistsErrorDetailDto })
+  error: AliasExistsErrorDetailDto;
 }
 //#endregion
