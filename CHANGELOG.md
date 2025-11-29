@@ -1,3 +1,9 @@
+## v0.26.2 (2025-11-29)
+
+### Pull Requests
+[#56](https://github.com/RafaelMoro/be-paque-temix/pull/56) | Change props in Create address
+
+
 ## v0.26.1 (2025-11-28)
 
 ### Pull Requests
