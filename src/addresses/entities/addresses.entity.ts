@@ -16,7 +16,10 @@ export class AddressDoc extends Document {
   reference: string;
 
   @Prop({ required: true })
-  postalCode: string;
+  zipcode: string;
+
+  @Prop({ required: true })
+  neighborhood: string;
 
   @Prop({ required: true })
   state: string;

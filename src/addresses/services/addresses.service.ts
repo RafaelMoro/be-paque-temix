@@ -82,7 +82,7 @@ export class AddressesService {
       const model: Address = await newAddress.save();
       const addressSaved: FlattenMaps<AddressDoc> = model.toJSON();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id, ...addressData } = addressSaved;
+      const { _id, email: emailProp, ...addressData } = addressSaved;
       return {
         version: npmVersion,
         message: null,
@@ -110,7 +110,7 @@ export class AddressesService {
       const addressesFormated = addresses.map((addr) => {
         const addressObj: FlattenMaps<AddressDoc> = addr.toJSON();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _id, ...addressData } = addressObj;
+        const { _id, email: emailProp, ...addressData } = addressObj;
         return addressData;
       });
       return {
