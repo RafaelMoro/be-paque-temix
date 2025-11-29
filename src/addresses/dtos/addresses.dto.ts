@@ -39,7 +39,12 @@ export class CreateAddressDto {
   @MinLength(5)
   @MaxLength(5)
   @ApiProperty({ example: '12345' })
-  readonly postalCode: string;
+  readonly zipcode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({ example: 'Downtown' })
+  readonly neighborhood: string;
 
   @IsString()
   @IsNotEmpty()
