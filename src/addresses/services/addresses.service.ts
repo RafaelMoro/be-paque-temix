@@ -110,7 +110,7 @@ export class AddressesService {
       const addressesFormated = addresses.map((addr) => {
         const addressObj: FlattenMaps<AddressDoc> = addr.toJSON();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _id, ...addressData } = addressObj;
+        const { _id, email: emailProp, ...addressData } = addressObj;
         return addressData;
       });
       return {

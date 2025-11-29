@@ -17,7 +17,7 @@ export interface GetAddressesResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {
-    addresses: Omit<AddressDoc, '_id'>[];
+    addresses: Omit<AddressDoc, '_id' | 'email'>[];
   };
 }
 
