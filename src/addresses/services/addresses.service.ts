@@ -101,12 +101,19 @@ export class AddressesService {
 
   async findAddressesByEmail(email: string): Promise<GetAddressesResponse> {
     try {
+      const npmVersion: string = this.configService.version!;
       const addresses = await this.addressModel.find({ email }).exec();
       if (!addresses || addresses.length === 0) {
-        throw new NotFoundException(ADDRESS_NOT_FOUND_ERROR);
+        return {
+          version: npmVersion,
+          message: null,
+          error: null,
+          data: {
+            addresses: [],
+          },
+        };
       }
 
-      const npmVersion: string = this.configService.version!;
       const addressesFormated = addresses.map((addr) => {
         const addressObj: FlattenMaps<AddressDoc> = addr.toJSON();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
