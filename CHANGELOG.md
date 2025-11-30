@@ -1,3 +1,9 @@
+## v0.26.3 (2025-11-30)
+
+### Pull Requests
+[#58](https://github.com/RafaelMoro/be-paque-temix/pull/58) | Fix no addresses found response returning an empty array
+
+
 ## v0.26.2 (2025-11-29)
 
 ### Pull Requests
