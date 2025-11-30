@@ -230,22 +230,36 @@ describe('AddressesService', () => {
       });
     });
 
-    it('should throw NotFoundException if no addresses found', async () => {
+    it('should return empty array if no addresses found', async () => {
       const execMock = jest.fn().mockResolvedValue([]);
       model.find.mockReturnValue({ exec: execMock });
 
-      await expect(
-        service.findAddressesByEmail('test@example.com'),
-      ).rejects.toThrow(new NotFoundException(ADDRESS_NOT_FOUND_ERROR));
+      const result = await service.findAddressesByEmail('test@example.com');
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          addresses: [],
+        },
+      });
     });
 
-    it('should throw NotFoundException if addresses is null', async () => {
+    it('should return empty array if addresses is null', async () => {
       const execMock = jest.fn().mockResolvedValue(null);
       model.find.mockReturnValue({ exec: execMock });
 
-      await expect(
-        service.findAddressesByEmail('test@example.com'),
-      ).rejects.toThrow(new NotFoundException(ADDRESS_NOT_FOUND_ERROR));
+      const result = await service.findAddressesByEmail('test@example.com');
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          addresses: [],
+        },
+      });
     });
   });
 
