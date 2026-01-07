@@ -213,6 +213,8 @@ export class GuiaEnviaService {
         error: null,
         data: {
           aliases,
+          pages: data?.meta?.pages ?? 1,
+          page: data?.meta?.page ?? 1,
         },
       };
     } catch (error) {
