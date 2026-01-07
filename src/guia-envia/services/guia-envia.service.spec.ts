@@ -1361,7 +1361,7 @@ describe('GuiaEnviaService', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
       const [url, config] = mockedAxios.get.mock.calls[0];
-      expect(url).toBe('https://test-guia-envia.com/direcciones');
+      expect(url).toBe('https://test-guia-envia.com/direcciones?limit=100');
       expect(config).toMatchObject({
         headers: {
           Authorization: 'test-ge-api-key',
@@ -1374,6 +1374,8 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Casa Principal', 'Oficina Centro'],
+          page: 1,
+          pages: 1,
         },
       });
     });
@@ -1513,6 +1515,8 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          page: 1,
+          pages: 0,
         },
       });
     });
@@ -1534,6 +1538,8 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          page: 1,
+          pages: 1,
         },
       });
     });
@@ -1559,6 +1565,8 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          page: 1,
+          pages: 1,
         },
       });
     });
@@ -1612,6 +1620,8 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Single Address'],
+          page: 1,
+          pages: 1,
         },
       });
       expect(result.data.aliases).toHaveLength(1);
@@ -1630,7 +1640,7 @@ describe('GuiaEnviaService', () => {
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://test-guia-envia.com/direcciones',
+        'https://test-guia-envia.com/direcciones?limit=100',
         {
           headers: {
             Authorization: 'test-ge-api-key',
@@ -1725,8 +1735,141 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Valid Alias', undefined],
+          page: 1,
+          pages: 1,
         },
       });
+    });
+
+    it('should construct correct URL with page parameter when provided', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesGEResponse,
+      });
+
+      await serviceWithVersion.getAddressesSavedGe('2');
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://test-guia-envia.com/direcciones?limit=100&page=2',
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should construct correct URL without page parameter when not provided', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesGEResponse,
+      });
+
+      await serviceWithVersion.getAddressesSavedGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://test-guia-envia.com/direcciones?limit=100',
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should successfully get address aliases with specific page number', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const page2Response: ExtGetAllAddressesGEResponse = {
+        data: [
+          {
+            id: 'address-3',
+            cp: '03100',
+            colonia: 'Del Valle',
+            ciudad: 'Ciudad de México',
+            estado: 'CDMX',
+            nombre: 'Pedro López',
+            email: 'pedro.lopez@example.com',
+            telefono: '+52 555 123 4567',
+            empresa: 'Tech Corp',
+            rfc: 'LOPE010101000',
+            calle: 'Avenida Insurgentes',
+            numero: '789',
+            referencia: 'Torre empresarial',
+            alias: 'Oficina CDMX',
+            users: 'user789',
+            createdAt: '2023-10-22T14:00:00Z',
+            updatedAt: '2023-10-22T14:00:00Z',
+          },
+        ],
+        meta: {
+          page: 2,
+          limit: 10,
+          total: 3,
+          pages: 2,
+          hasNext: false,
+          hasPrev: true,
+        },
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: page2Response,
+      });
+
+      const result = await serviceWithVersion.getAddressesSavedGe('2');
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        error: null,
+        data: {
+          aliases: ['Oficina CDMX'],
+          page: 2,
+          pages: 2,
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://test-guia-envia.com/direcciones?limit=100&page=2',
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
+    });
+
+    it('should handle page parameter with undefined value', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesGEResponse,
+      });
+
+      await serviceWithVersion.getAddressesSavedGe(undefined);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://test-guia-envia.com/direcciones?limit=100',
+        {
+          headers: {
+            Authorization: 'test-ge-api-key',
+          },
+        },
+      );
     });
   });
 
