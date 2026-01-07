@@ -1,3 +1,9 @@
+## v0.26.4 (2026-01-07)
+
+### Pull Requests
+[#60](https://github.com/RafaelMoro/be-paque-temix/pull/60) | Change GE addresses endpoint to show pages and increase limit
+
+
 ## v0.26.3 (2025-11-30)
 
 ### Pull Requests
