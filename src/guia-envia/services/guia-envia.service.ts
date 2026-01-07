@@ -198,7 +198,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=20${page ? `&page=${page}` : ''}`;
+      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100${page ? `&page=${page}` : ''}`;
       const response: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
         await axios.get(url, {
           headers: {
@@ -213,8 +213,8 @@ export class GuiaEnviaService {
         error: null,
         data: {
           aliases,
-          pages: data?.meta?.pages ?? 1,
           page: data?.meta?.page ?? 1,
+          pages: data?.meta?.pages ?? 1,
         },
       };
     } catch (error) {
