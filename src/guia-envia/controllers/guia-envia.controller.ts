@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
@@ -39,8 +39,8 @@ export class GuiaEnviaController {
     type: GetAliasesGEResponseDto,
     description: 'Address aliases retrieved successfully.',
   })
-  async getAddressesSavedGe() {
-    return this.guiaEnviaService.getAddressesSavedGe();
+  async getAddressesSavedGe(@Query('page') page?: string) {
+    return this.guiaEnviaService.getAddressesSavedGe(page);
   }
 
   @Post('create-guide')

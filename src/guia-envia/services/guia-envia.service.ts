@@ -186,7 +186,7 @@ export class GuiaEnviaService {
     }
   }
 
-  async getAddressesSavedGe(): Promise<GetAliasesGEDataResponse> {
+  async getAddressesSavedGe(page?: string): Promise<GetAliasesGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -198,7 +198,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
+      const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100${page ? `&page=${page}` : ''}`;
       const response: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
         await axios.get(url, {
           headers: {
@@ -213,6 +213,8 @@ export class GuiaEnviaService {
         error: null,
         data: {
           aliases,
+          page: data?.meta?.page ?? 1,
+          pages: data?.meta?.pages ?? 1,
         },
       };
     } catch (error) {

@@ -129,6 +129,8 @@ export interface GetAliasesGEDataResponse
   error: null;
   data: {
     aliases: string[];
+    pages: number;
+    page: number;
   };
 }
 
