@@ -213,15 +213,12 @@ export class GuiaEnviaService {
       }
 
       const deleteUrl = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToDelete.id}`;
-      const responseDelete: AxiosResponse<
-        ExtGetAllAddressesGEResponse,
-        unknown
-      > = await axios.delete(deleteUrl, {
+      await axios.delete(deleteUrl, {
         headers: {
           Authorization: apiKey,
         },
       });
-      return responseDelete?.data;
+      return { message: 'Address deleted successfully' };
     } catch (error) {
       console.log('error deleting address ge', error);
       if (axios.isAxiosError(error)) {
