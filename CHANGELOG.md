@@ -1,3 +1,9 @@
+## v0.27.0 (2026-01-14)
+
+### Pull Requests
+[#62](https://github.com/RafaelMoro/be-paque-temix/pull/62) | Add GE delete address endpoint
+
+
 ## v0.26.4 (2026-01-07)
 
 ### Pull Requests
