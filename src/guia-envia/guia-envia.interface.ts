@@ -136,6 +136,13 @@ export interface GetAliasesGEDataResponse
 
 //#endregion
 
+export interface DeleteAddressGEDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error' | 'message'> {
+  error: null;
+  data: null;
+  message: string;
+}
+
 //#region Create guide
 
 export interface ExtCreateGuideGEPayload {

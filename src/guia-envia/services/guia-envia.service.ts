@@ -28,6 +28,7 @@ import {
   CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
   GetAliasesGEDataResponse,
+  DeleteAddressGEDataResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -185,7 +186,7 @@ export class GuiaEnviaService {
     }
   }
 
-  async deleteGEAddress(alias: string) {
+  async deleteGEAddress(alias: string): Promise<DeleteAddressGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -218,15 +219,24 @@ export class GuiaEnviaService {
           Authorization: apiKey,
         },
       });
-      return { message: 'Address deleted successfully' };
+
+      return {
+        version: npmVersion,
+        message: 'Address deleted successfully',
+        error: null,
+        data: null,
+      };
     } catch (error) {
-      console.log('error deleting address ge', error);
       if (axios.isAxiosError(error)) {
+        const newError = error?.response?.data || error.message;
+        console.log('axios error deleting address ge', newError);
         throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
+        console.log('error deleting address ge inst error', error);
         throw new BadRequestException(error.message);
       }
+      console.log('error deleting address ge unknown error', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }
