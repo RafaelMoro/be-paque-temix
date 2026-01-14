@@ -18,6 +18,7 @@ import {
   GetCourierServicesResponseDto,
   GetAliasesGEResponseDto,
   DeleteAddressGEResponseDto,
+  ErrorResponseDeleteGEAddressDto,
 } from '../dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
@@ -62,6 +63,11 @@ export class GuiaEnviaController {
     status: 200,
     type: DeleteAddressGEResponseDto,
     description: 'Address deleted successfully.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: ErrorResponseDeleteGEAddressDto,
+    description: 'Address not found.',
   })
   async deleteGEAddress(@Param('alias') alias: string) {
     return this.guiaEnviaService.deleteGEAddress(alias);
