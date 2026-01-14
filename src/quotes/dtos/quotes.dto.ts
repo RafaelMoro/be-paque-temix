@@ -95,7 +95,7 @@ export class GetNeighborhoodInfoDto {
   readonly zipcode: string;
 }
 
-export class CreateAddressDto {
+export class CreateGEAddressDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(5, {

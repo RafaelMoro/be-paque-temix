@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { QuotesService } from '../services/quotes.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetQuoteResponseDto } from '../dtos/quotes-responses.dto';
-import { CreateAddressDto, GetQuoteDto } from '../dtos/quotes.dto';
+import { CreateGEAddressDto, GetQuoteDto } from '../dtos/quotes.dto';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 import {
   GetAddressInfoResponseDto,
@@ -42,6 +42,7 @@ export class QuotesController {
     return this.quotesService.getAddressInfo({ zipcode });
   }
 
+  // TODO: Remove this and pass it to GE
   @Post('create-address')
   @ApiBearerAuth()
   @ApiOperation({
@@ -52,7 +53,7 @@ export class QuotesController {
     type: CreateAddressDataGEDto,
     description: 'Address created successfully.',
   })
-  async createAddress(@Body() payload: CreateAddressDto) {
+  async createAddress(@Body() payload: CreateGEAddressDto) {
     return this.quotesService.createAddress(payload);
   }
 }

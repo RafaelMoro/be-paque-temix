@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import {
   DeleteAddressGEResponseDto,
   ErrorResponseDeleteGEAddressDto,
 } from '../dtos/guia-envia.responses.dto';
+import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 
 @UseGuards(JwtGuard)
 @Controller('ge')
@@ -71,6 +73,18 @@ export class GuiaEnviaController {
   })
   async deleteGEAddress(@Param('alias') alias: string) {
     return this.guiaEnviaService.deleteGEAddress(alias);
+  }
+
+  @Put('address')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Edit an address by alias from GE.',
+  })
+  async editGEAddress(@Body() payload: CreateGEAddressDto) {
+    return this.guiaEnviaService.editGEAddress({
+      alias: payload.alias,
+      payload,
+    });
   }
 
   @Post('create-guide')

@@ -106,6 +106,7 @@ export class QuotesService {
     return this.guiaEnviaService.getAddressInfo(payload);
   }
 
+  // TODO: Remove this and pass it to GE
   async createAddress(payload: CreateAddressPayload) {
     return this.guiaEnviaService.createAddress(payload);
   }
