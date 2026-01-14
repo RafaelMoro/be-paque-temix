@@ -203,6 +203,7 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
 
       const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
       const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
@@ -219,9 +220,14 @@ export class GuiaEnviaService {
       if (!addressToEdit) {
         throw new BadRequestException(`Address with alias ${alias} not found`);
       }
+      if (addressToEdit.alias !== transformedPayload.alias) {
+        throw new BadRequestException(
+          'Cannot change alias of an existing address',
+        );
+      }
 
       const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToEdit.id}`;
-      await axios.put(editUri, {
+      await axios.put(editUri, transformedPayload, {
         headers: {
           Authorization: apiKey,
         },
