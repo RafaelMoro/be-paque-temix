@@ -188,3 +188,56 @@ export class GetCourierServicesResponseDto {
   })
   data: CourierServiceDto[];
 }
+
+export class DeleteAddressGEResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'string',
+    example: 'Address deleted successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Data information',
+  })
+  data: null;
+}
+
+class ErrorDetailDeleteAddressDto {
+  @ApiProperty({ example: 'Address with alias example-alias not found' })
+  message: string;
+
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ example: 400 })
+  statusCode: number;
+}
+
+export class ErrorResponseDeleteGEAddressDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  data: null;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: null;
+
+  @ApiProperty({ type: ErrorDetailDeleteAddressDto })
+  error: ErrorDetailDeleteAddressDto;
+}

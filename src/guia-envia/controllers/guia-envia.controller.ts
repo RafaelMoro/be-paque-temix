@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
@@ -8,6 +17,8 @@ import {
   CreateGuideGEResponseDto,
   GetCourierServicesResponseDto,
   GetAliasesGEResponseDto,
+  DeleteAddressGEResponseDto,
+  ErrorResponseDeleteGEAddressDto,
 } from '../dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
@@ -41,6 +52,25 @@ export class GuiaEnviaController {
   })
   async getAddressesSavedGe(@Query('page') page?: string) {
     return this.guiaEnviaService.getAddressesSavedGe(page);
+  }
+
+  @Delete('address/:alias')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete an address by alias from GE.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: DeleteAddressGEResponseDto,
+    description: 'Address deleted successfully.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: ErrorResponseDeleteGEAddressDto,
+    description: 'Address not found.',
+  })
+  async deleteGEAddress(@Param('alias') alias: string) {
+    return this.guiaEnviaService.deleteGEAddress(alias);
   }
 
   @Post('create-guide')
