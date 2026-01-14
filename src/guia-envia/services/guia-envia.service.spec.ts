@@ -1005,7 +1005,7 @@ describe('GuiaEnviaService', () => {
       await expect(
         service.createAddress(mockCreateAddressPayload),
       ).rejects.toThrow(
-        new BadRequestException('Request failed with status code 400'),
+        new BadRequestException({ error: 'Invalid address data' }),
       );
     });
 
