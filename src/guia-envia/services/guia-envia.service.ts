@@ -176,8 +176,56 @@ export class GuiaEnviaService {
     } catch (error) {
       console.log('error creating address ge', error);
       if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
         throw new BadRequestException(error.message);
-        // throw new BadRequestException(error?.response?.data || error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteGEAddress(alias: string) {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
+      const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
+        await axios.get(getUri, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = responseGet?.data;
+      const addressToDelete = (data?.data ?? []).find(
+        (address) => address.alias === alias,
+      );
+      if (!addressToDelete) {
+        throw new BadRequestException(`Address with alias ${alias} not found`);
+      }
+
+      const deleteUrl = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToDelete.id}`;
+      const responseDelete: AxiosResponse<
+        ExtGetAllAddressesGEResponse,
+        unknown
+      > = await axios.delete(deleteUrl, {
+        headers: {
+          Authorization: apiKey,
+        },
+      });
+      return responseDelete?.data;
+    } catch (error) {
+      console.log('error deleting address ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
