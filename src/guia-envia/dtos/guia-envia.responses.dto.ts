@@ -188,3 +188,31 @@ export class GetCourierServicesResponseDto {
   })
   data: CourierServiceDto[];
 }
+
+export class DeleteAddressGEResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'string',
+    example: 'Address deleted successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Data information',
+  })
+  data: null;
+}

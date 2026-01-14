@@ -17,6 +17,7 @@ import {
   CreateGuideGEResponseDto,
   GetCourierServicesResponseDto,
   GetAliasesGEResponseDto,
+  DeleteAddressGEResponseDto,
 } from '../dtos/guia-envia.responses.dto';
 
 @UseGuards(JwtGuard)
@@ -56,6 +57,11 @@ export class GuiaEnviaController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Delete an address by alias from GE.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: DeleteAddressGEResponseDto,
+    description: 'Address deleted successfully.',
   })
   async deleteGEAddress(@Param('alias') alias: string) {
     return this.guiaEnviaService.deleteGEAddress(alias);
