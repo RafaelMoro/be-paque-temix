@@ -186,6 +186,58 @@ export class GuiaEnviaService {
     }
   }
 
+  async editGEAddress({
+    alias,
+    payload,
+  }: {
+    alias: string;
+    payload: CreateAddressPayload;
+  }) {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
+      const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
+        await axios.get(getUri, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = responseGet?.data;
+
+      const addressToEdit = (data?.data ?? []).find(
+        (address) => address.alias === alias,
+      );
+      if (!addressToEdit) {
+        throw new BadRequestException(`Address with alias ${alias} not found`);
+      }
+
+      const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToEdit.id}`;
+      await axios.put(editUri, {
+        headers: {
+          Authorization: apiKey,
+        },
+      });
+    } catch (error) {
+      console.log('error get addresses ge', error);
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(error?.response?.data);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
   async deleteGEAddress(alias: string): Promise<DeleteAddressGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
