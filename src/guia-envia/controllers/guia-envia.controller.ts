@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
@@ -41,6 +50,15 @@ export class GuiaEnviaController {
   })
   async getAddressesSavedGe(@Query('page') page?: string) {
     return this.guiaEnviaService.getAddressesSavedGe(page);
+  }
+
+  @Delete('address/:alias')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete an address by alias from GE.',
+  })
+  async deleteGEAddress(@Param('alias') alias: string) {
+    return this.guiaEnviaService.deleteGEAddress(alias);
   }
 
   @Post('create-guide')
