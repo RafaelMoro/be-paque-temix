@@ -29,6 +29,7 @@ import {
   ExtGetAllAddressesGEResponse,
   GetAliasesGEDataResponse,
   DeleteAddressGEDataResponse,
+  EditAddressGEDataResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -192,7 +193,7 @@ export class GuiaEnviaService {
   }: {
     alias: string;
     payload: CreateAddressPayload;
-  }) {
+  }): Promise<EditAddressGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -232,14 +233,24 @@ export class GuiaEnviaService {
           Authorization: apiKey,
         },
       });
+
+      return {
+        version: npmVersion,
+        message: 'Address edited successfully',
+        error: null,
+        data: null,
+      };
     } catch (error) {
-      console.log('error get addresses ge', error);
       if (axios.isAxiosError(error)) {
-        throw new BadRequestException(error?.response?.data);
+        const newError = error?.response?.data || error.message;
+        console.log('axios error editing address ge', newError);
+        throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
+        console.log('error editing address ge inst error', error);
         throw new BadRequestException(error.message);
       }
+      console.log('error editing address ge unknown error', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }

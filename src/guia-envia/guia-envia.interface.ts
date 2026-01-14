@@ -143,6 +143,13 @@ export interface DeleteAddressGEDataResponse
   message: string;
 }
 
+export interface EditAddressGEDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error' | 'message'> {
+  error: null;
+  data: null;
+  message: string;
+}
+
 //#region Create guide
 
 export interface ExtCreateGuideGEPayload {
