@@ -10,6 +10,7 @@ import {
   CreateGuideGeRequest,
   ExtCreateGuideGEPayload,
   ExtCreateGuideGEResponse,
+  AddressGE,
 } from './guia-envia.interface';
 import { GlobalCreateGuideResponse } from '@/global.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
@@ -142,4 +143,25 @@ export const formatCreateGuideResponseGE = (
     source: 'GE',
     file: null, // GE doesn't provide file, set to null
   };
+};
+
+export const formatAddressesGE = (
+  addresses: ExtAddressGEResponse[],
+): AddressGE[] => {
+  return addresses.map((address) => ({
+    zipcode: address.cp,
+    city: address.ciudad,
+    state: address.estado,
+    neighborhood: address.colonia,
+    name: address.nombre,
+    email: address.email,
+    phone: address.telefono,
+    company: address.empresa,
+    rfc: address.rfc,
+    addressName: address.calle,
+    externalNumber: address.numero,
+    reference: address.referencia,
+    alias: address.alias,
+    id: address.id,
+  }));
 };
