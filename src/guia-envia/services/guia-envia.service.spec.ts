@@ -33,6 +33,7 @@ import {
   ExtCreateGuideGEResponse,
   CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
+  AddressGE,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -1863,7 +1864,9 @@ describe('GuiaEnviaService', () => {
         data: mockGetAllAddressesGEResponse,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
@@ -1881,6 +1884,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Casa Principal', 'Oficina Centro'],
+          addresses: [],
           page: 1,
           pages: 1,
         },
@@ -1896,9 +1900,9 @@ describe('GuiaEnviaService', () => {
         version: '1.0.0',
       } as any);
 
-      await expect(serviceWithoutApiKey.getAddressesSavedGe()).rejects.toThrow(
-        new BadRequestException(GE_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithoutApiKey.getAddressesSavedGe({}),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
     });
 
     it('should throw BadRequestException when URI is missing', async () => {
@@ -1910,7 +1914,7 @@ describe('GuiaEnviaService', () => {
         version: '1.0.0',
       } as any);
 
-      await expect(serviceWithoutUri.getAddressesSavedGe()).rejects.toThrow(
+      await expect(serviceWithoutUri.getAddressesSavedGe({})).rejects.toThrow(
         new BadRequestException(GE_MISSING_URI_ERROR),
       );
     });
@@ -1924,9 +1928,9 @@ describe('GuiaEnviaService', () => {
         version: '1.0.0',
       } as any);
 
-      await expect(serviceWithNullApiKey.getAddressesSavedGe()).rejects.toThrow(
-        new BadRequestException(GE_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithNullApiKey.getAddressesSavedGe({}),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
     });
 
     it('should throw BadRequestException when URI is null', async () => {
@@ -1938,7 +1942,7 @@ describe('GuiaEnviaService', () => {
         version: '1.0.0',
       } as any);
 
-      await expect(serviceWithNullUri.getAddressesSavedGe()).rejects.toThrow(
+      await expect(serviceWithNullUri.getAddressesSavedGe({})).rejects.toThrow(
         new BadRequestException(GE_MISSING_URI_ERROR),
       );
     });
@@ -1951,7 +1955,7 @@ describe('GuiaEnviaService', () => {
       const errorMessage = 'Service unavailable';
       mockedAxios.get.mockRejectedValue(new Error(errorMessage));
 
-      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+      await expect(serviceWithVersion.getAddressesSavedGe({})).rejects.toThrow(
         new BadRequestException(errorMessage),
       );
     });
@@ -1971,7 +1975,7 @@ describe('GuiaEnviaService', () => {
       mockedAxios.get.mockRejectedValue(axiosError);
       jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
 
-      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+      await expect(serviceWithVersion.getAddressesSavedGe({})).rejects.toThrow(
         new BadRequestException('API Error Response'),
       );
     });
@@ -1988,7 +1992,7 @@ describe('GuiaEnviaService', () => {
         message: 'Internal server error',
       });
 
-      await expect(serviceWithVersion.getAddressesSavedGe()).rejects.toThrow(
+      await expect(serviceWithVersion.getAddressesSavedGe({})).rejects.toThrow(
         new BadRequestException('An unknown error occurred'),
       );
     });
@@ -2014,7 +2018,9 @@ describe('GuiaEnviaService', () => {
         data: emptyResponse,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2022,6 +2028,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          addresses: [],
           page: 1,
           pages: 0,
         },
@@ -2037,7 +2044,9 @@ describe('GuiaEnviaService', () => {
         data: undefined,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2045,6 +2054,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          addresses: [],
           page: 1,
           pages: 1,
         },
@@ -2064,7 +2074,9 @@ describe('GuiaEnviaService', () => {
         data: responseWithNullData,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2072,6 +2084,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: [],
+          addresses: [],
           page: 1,
           pages: 1,
         },
@@ -2119,7 +2132,9 @@ describe('GuiaEnviaService', () => {
         data: singleAddressResponse,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2127,6 +2142,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Single Address'],
+          addresses: [],
           page: 1,
           pages: 1,
         },
@@ -2143,7 +2159,7 @@ describe('GuiaEnviaService', () => {
         data: mockGetAllAddressesGEResponse,
       });
 
-      await serviceWithVersion.getAddressesSavedGe();
+      await serviceWithVersion.getAddressesSavedGe({});
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith(
@@ -2165,9 +2181,9 @@ describe('GuiaEnviaService', () => {
         version: '1.0.0',
       } as any);
 
-      await expect(serviceWithoutApiKey.getAddressesSavedGe()).rejects.toThrow(
-        new BadRequestException(GE_MISSING_API_KEY_ERROR),
-      );
+      await expect(
+        serviceWithoutApiKey.getAddressesSavedGe({}),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
 
       // Verify that validation happens before API call
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -2234,7 +2250,9 @@ describe('GuiaEnviaService', () => {
         data: responseWithMissingAlias,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe();
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2242,6 +2260,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Valid Alias', undefined],
+          addresses: [],
           page: 1,
           pages: 1,
         },
@@ -2257,7 +2276,7 @@ describe('GuiaEnviaService', () => {
         data: mockGetAllAddressesGEResponse,
       });
 
-      await serviceWithVersion.getAddressesSavedGe('2');
+      await serviceWithVersion.getAddressesSavedGe({ page: '2' });
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith(
@@ -2279,7 +2298,7 @@ describe('GuiaEnviaService', () => {
         data: mockGetAllAddressesGEResponse,
       });
 
-      await serviceWithVersion.getAddressesSavedGe();
+      await serviceWithVersion.getAddressesSavedGe({});
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith(
@@ -2333,7 +2352,10 @@ describe('GuiaEnviaService', () => {
         data: page2Response,
       });
 
-      const result = await serviceWithVersion.getAddressesSavedGe('2');
+      const result = await serviceWithVersion.getAddressesSavedGe({
+        page: '2',
+        aliasesOnly: true,
+      });
 
       expect(result).toEqual({
         version: '1.0.0',
@@ -2341,6 +2363,7 @@ describe('GuiaEnviaService', () => {
         error: null,
         data: {
           aliases: ['Oficina CDMX'],
+          addresses: [],
           page: 2,
           pages: 2,
         },
@@ -2366,7 +2389,7 @@ describe('GuiaEnviaService', () => {
         data: mockGetAllAddressesGEResponse,
       });
 
-      await serviceWithVersion.getAddressesSavedGe(undefined);
+      await serviceWithVersion.getAddressesSavedGe({});
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith(
