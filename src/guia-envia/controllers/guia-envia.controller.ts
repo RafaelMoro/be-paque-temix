@@ -57,10 +57,10 @@ export class GuiaEnviaController {
     return this.guiaEnviaService.getAddressesSavedGe({ page, aliasesOnly });
   }
 
-  @Delete('address/:alias')
+  @Delete('address/:id')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Delete an address by alias from GE.',
+    summary: 'Delete an address by id from GE.',
   })
   @ApiResponse({
     status: 200,
@@ -72,8 +72,8 @@ export class GuiaEnviaController {
     type: ErrorResponseDeleteGEAddressDto,
     description: 'Address not found.',
   })
-  async deleteGEAddress(@Param('alias') alias: string) {
-    return this.guiaEnviaService.deleteGEAddress(alias);
+  async deleteGEAddress(@Param('id') id: string) {
+    return this.guiaEnviaService.deleteGEAddress(id);
   }
 
   @Post('create-guide')

@@ -187,7 +187,7 @@ export class GuiaEnviaService {
     }
   }
 
-  async deleteGEAddress(alias: string): Promise<DeleteAddressGEDataResponse> {
+  async deleteGEAddress(id: string): Promise<DeleteAddressGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -199,22 +199,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
-      const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
-        await axios.get(getUri, {
-          headers: {
-            Authorization: apiKey,
-          },
-        });
-      const data = responseGet?.data;
-      const addressToDelete = (data?.data ?? []).find(
-        (address) => address.alias === alias,
-      );
-      if (!addressToDelete) {
-        throw new BadRequestException(`Address with alias ${alias} not found`);
-      }
-
-      const deleteUrl = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToDelete.id}`;
+      const deleteUrl = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${id}`;
       await axios.delete(deleteUrl, {
         headers: {
           Authorization: apiKey,
@@ -229,6 +214,7 @@ export class GuiaEnviaService {
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const newError = error?.response?.data || error.message;
         console.log('axios error deleting address ge', newError);
         throw new BadRequestException(error?.response?.data || error.message);
