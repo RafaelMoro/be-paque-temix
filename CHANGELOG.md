@@ -1,3 +1,9 @@
+## v0.27.1 (2026-01-15)
+
+### Pull Requests
+[#63](https://github.com/RafaelMoro/be-paque-temix/pull/63) | Add address ge created prop into address
+
+
 ## v0.27.0 (2026-01-14)
 
 ### Pull Requests
