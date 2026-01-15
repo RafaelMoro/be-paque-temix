@@ -31,6 +31,7 @@ import {
   DeleteAddressGEDataResponse,
 } from '../guia-envia.interface';
 import {
+  formatAddressesGE,
   formatCreateAddressPayloadGE,
   formatCreateAddressResponseGE,
   formatCreateGuidePayloadGE,
@@ -282,13 +283,14 @@ export class GuiaEnviaService {
         };
       }
 
+      const addressesTransformed = formatAddressesGE(data?.data ?? []);
       return {
         version: npmVersion,
         message: null,
         error: null,
         data: {
           aliases: [],
-          addresses: [],
+          addresses: addressesTransformed,
           page: data?.meta?.page ?? 1,
           pages: data?.meta?.pages ?? 1,
         },
