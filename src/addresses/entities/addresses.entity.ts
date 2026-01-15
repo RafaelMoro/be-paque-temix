@@ -35,6 +35,9 @@ export class AddressDoc extends Document {
 
   @Prop({ required: true })
   email: string;
+
+  @Prop()
+  isGEAddress: boolean;
 }
 
 export const AddressSchema = SchemaFactory.createForClass(AddressDoc);
