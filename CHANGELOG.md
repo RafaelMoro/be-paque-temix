@@ -1,3 +1,9 @@
+## v0.28.0 (2026-01-15)
+
+### Pull Requests
+[#65](https://github.com/RafaelMoro/be-paque-temix/pull/65) | Refactor addresses ge
+
+
 ## v0.27.1 (2026-01-15)
 
 ### Pull Requests
