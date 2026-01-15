@@ -45,6 +45,7 @@ describe('AddressesController', () => {
     city: ['Los Angeles'],
     town: ['Downtown'],
     alias: 'home-address',
+    isGEAddress: false,
   };
 
   const mockResponse = {

@@ -28,6 +28,7 @@ import {
   CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
   GetAliasesGEDataResponse,
+  DeleteAddressGEDataResponse,
 } from '../guia-envia.interface';
 import {
   formatCreateAddressPayloadGE,
@@ -176,12 +177,66 @@ export class GuiaEnviaService {
     } catch (error) {
       console.log('error creating address ge', error);
       if (axios.isAxiosError(error)) {
-        throw new BadRequestException(error.message);
-        // throw new BadRequestException(error?.response?.data || error.message);
+        throw new BadRequestException(error?.response?.data || error.message);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async deleteGEAddress(alias: string): Promise<DeleteAddressGEDataResponse> {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
+      const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
+        await axios.get(getUri, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = responseGet?.data;
+      const addressToDelete = (data?.data ?? []).find(
+        (address) => address.alias === alias,
+      );
+      if (!addressToDelete) {
+        throw new BadRequestException(`Address with alias ${alias} not found`);
+      }
+
+      const deleteUrl = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToDelete.id}`;
+      await axios.delete(deleteUrl, {
+        headers: {
+          Authorization: apiKey,
+        },
+      });
+
+      return {
+        version: npmVersion,
+        message: 'Address deleted successfully',
+        error: null,
+        data: null,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const newError = error?.response?.data || error.message;
+        console.log('axios error deleting address ge', newError);
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        console.log('error deleting address ge inst error', error);
+        throw new BadRequestException(error.message);
+      }
+      console.log('error deleting address ge unknown error', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }

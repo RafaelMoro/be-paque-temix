@@ -1005,7 +1005,7 @@ describe('GuiaEnviaService', () => {
       await expect(
         service.createAddress(mockCreateAddressPayload),
       ).rejects.toThrow(
-        new BadRequestException('Request failed with status code 400'),
+        new BadRequestException({ error: 'Invalid address data' }),
       );
     });
 
@@ -1058,6 +1058,513 @@ describe('GuiaEnviaService', () => {
       expect(formatSpy).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteGEAddress', () => {
+    const mockAlias = 'Casa Principal';
+    const mockGetAllAddressesResponse: ExtGetAllAddressesGEResponse = {
+      data: [
+        {
+          id: 'address-1',
+          cp: '72000',
+          colonia: 'Centro',
+          ciudad: 'Heroica Puebla de Zaragoza',
+          estado: 'Puebla',
+          nombre: 'Juan Pérez',
+          email: 'juan.perez@example.com',
+          telefono: '+52 222 123 4567',
+          empresa: 'Empresa SA de CV',
+          rfc: 'XAXX010101000',
+          calle: 'Avenida Juárez',
+          numero: '123',
+          referencia: 'Entre calle A y calle B, edificio azul',
+          alias: 'Casa Principal',
+          users: 'user123',
+          createdAt: '2023-10-22T12:00:00Z',
+          updatedAt: '2023-10-22T12:00:00Z',
+        },
+        {
+          id: 'address-2',
+          cp: '94298',
+          colonia: 'Las Flores',
+          ciudad: 'Boca del Río',
+          estado: 'Veracruz',
+          nombre: 'María García',
+          email: 'maria.garcia@example.com',
+          telefono: '+52 229 987 6543',
+          empresa: 'Corporativo XYZ',
+          rfc: 'MARY010101000',
+          calle: 'Calle Principal',
+          numero: '456',
+          referencia: 'Casa azul',
+          alias: 'Oficina Centro',
+          users: 'user456',
+          createdAt: '2023-10-22T13:00:00Z',
+          updatedAt: '2023-10-22T13:00:00Z',
+        },
+      ],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 2,
+        pages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully delete address by alias from Guia Envia', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock axios GET response to find the address
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      // Mock axios DELETE response
+      mockedAxios.delete.mockResolvedValue({
+        status: 204,
+        data: null,
+      });
+
+      const result = await serviceWithVersion.deleteGEAddress(mockAlias);
+
+      // Verify GET was called with correct URL
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [getUrl, getConfig] = mockedAxios.get.mock.calls[0];
+      expect(getUrl).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`,
+      );
+      expect(getConfig).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+
+      // Verify DELETE was called with correct URL
+      expect(mockedAxios.delete).toHaveBeenCalledTimes(1);
+      const [deleteUrl, deleteConfig] = mockedAxios.delete.mock.calls[0];
+      expect(deleteUrl).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?id=address-1`,
+      );
+      expect(deleteConfig).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: 'Address deleted successfully',
+        error: null,
+        data: null,
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when address with alias is not found', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const nonExistentAlias = 'Non Existent Alias';
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(nonExistentAlias),
+      ).rejects.toThrow(
+        new BadRequestException(
+          `Address with alias ${nonExistentAlias} not found`,
+        ),
+      );
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios GET throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error during GET';
+
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios DELETE throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const errorMessage = 'Network error during DELETE';
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      mockedAxios.delete.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle axios error correctly during GET', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: { message: 'Unauthorized' },
+        },
+        message: 'Request failed with status code 401',
+      };
+
+      mockedAxios.isAxiosError.mockReturnValue(true);
+      mockedAxios.get.mockRejectedValue(axiosError);
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException({ message: 'Unauthorized' }));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle axios error correctly during DELETE', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: { message: 'Forbidden' },
+        },
+        message: 'Request failed with status code 403',
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      mockedAxios.isAxiosError.mockReturnValue(true);
+      mockedAxios.delete.mockRejectedValue(axiosError);
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException({ message: 'Forbidden' }));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      // Reject with non-Error object
+      mockedAxios.isAxiosError.mockReturnValue(false);
+      mockedAxios.delete.mockRejectedValue({
+        response: { status: 500 },
+      });
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle response with empty addresses array', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: {
+          data: [],
+          meta: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            pages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      });
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(
+        new BadRequestException(`Address with alias ${mockAlias} not found`),
+      );
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle response with null data property', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: {
+          data: null,
+          meta: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            pages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      });
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(
+        new BadRequestException(`Address with alias ${mockAlias} not found`),
+      );
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle response with undefined data', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      await expect(
+        serviceWithVersion.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(
+        new BadRequestException(`Address with alias ${mockAlias} not found`),
+      );
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should delete correct address when multiple addresses with different aliases exist', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const aliasToDelete = 'Oficina Centro';
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      mockedAxios.delete.mockResolvedValue({
+        status: 204,
+        data: null,
+      });
+
+      const result = await serviceWithVersion.deleteGEAddress(aliasToDelete);
+
+      // Verify DELETE was called with the correct address ID
+      const [deleteUrl] = mockedAxios.delete.mock.calls[0];
+      expect(deleteUrl).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?id=address-2`,
+      );
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: 'Address deleted successfully',
+        error: null,
+        data: null,
+      });
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.deleteGEAddress(mockAlias),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before making any API calls
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
+    });
+
+    it('should construct correct GET URL with limit parameter', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      mockedAxios.delete.mockResolvedValue({
+        status: 204,
+        data: null,
+      });
+
+      await serviceWithVersion.deleteGEAddress(mockAlias);
+
+      const [getUrl] = mockedAxios.get.mock.calls[0];
+      expect(getUrl).toContain('?limit=100');
+      expect(getUrl).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`,
+      );
+    });
+
+    it('should construct correct DELETE URL with id parameter', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      mockedAxios.delete.mockResolvedValue({
+        status: 204,
+        data: null,
+      });
+
+      await serviceWithVersion.deleteGEAddress(mockAlias);
+
+      const [deleteUrl] = mockedAxios.delete.mock.calls[0];
+      expect(deleteUrl).toContain('?id=address-1');
+      expect(deleteUrl).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?id=address-1`,
+      );
+    });
+
+    it('should handle case-sensitive alias matching', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+      const differentCaseAlias = 'casa principal'; // lowercase
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockGetAllAddressesResponse,
+      });
+
+      // Should not find the address because alias is case-sensitive
+      await expect(
+        serviceWithVersion.deleteGEAddress(differentCaseAlias),
+      ).rejects.toThrow(
+        new BadRequestException(
+          `Address with alias ${differentCaseAlias} not found`,
+        ),
+      );
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
     });
   });
 
