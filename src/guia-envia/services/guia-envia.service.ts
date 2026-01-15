@@ -241,7 +241,13 @@ export class GuiaEnviaService {
     }
   }
 
-  async getAddressesSavedGe(page?: string): Promise<GetAliasesGEDataResponse> {
+  async getAddressesSavedGe({
+    page,
+    aliasesOnly,
+  }: {
+    page?: string;
+    aliasesOnly?: boolean;
+  }): Promise<GetAliasesGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
@@ -261,13 +267,28 @@ export class GuiaEnviaService {
           },
         });
       const data = response?.data;
-      const aliases = (data?.data ?? []).map((address) => address.alias);
+      if (aliasesOnly) {
+        const aliases = (data?.data ?? []).map((address) => address.alias);
+        return {
+          version: npmVersion,
+          message: null,
+          error: null,
+          data: {
+            aliases,
+            addresses: [],
+            page: data?.meta?.page ?? 1,
+            pages: data?.meta?.pages ?? 1,
+          },
+        };
+      }
+
       return {
         version: npmVersion,
         message: null,
         error: null,
         data: {
-          aliases,
+          aliases: [],
+          addresses: [],
           page: data?.meta?.page ?? 1,
           pages: data?.meta?.pages ?? 1,
         },
