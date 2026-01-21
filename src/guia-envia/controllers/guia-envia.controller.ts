@@ -21,6 +21,7 @@ import {
   DeleteAddressGEResponseDto,
   ErrorResponseDeleteGEAddressDto,
   CreateAddressDataGEDto,
+  EditAddressGEResponseDto,
 } from '../dtos/guia-envia.responses.dto';
 import { CreateGEAddressDto } from '../../quotes/dtos/quotes.dto';
 
@@ -83,6 +84,11 @@ export class GuiaEnviaController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Edit an address by alias from GE.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: EditAddressGEResponseDto,
+    description: 'Address updated successfully.',
   })
   async editGEAddress(
     @Body() payload: CreateGEAddressDto,

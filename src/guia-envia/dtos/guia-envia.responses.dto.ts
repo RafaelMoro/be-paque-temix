@@ -241,3 +241,26 @@ export class ErrorResponseDeleteGEAddressDto {
   @ApiProperty({ type: ErrorDetailDeleteAddressDto })
   error: ErrorDetailDeleteAddressDto;
 }
+
+export class EditAddressGEResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({
+    type: 'string',
+    example: 'Address updated successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({
+    type: 'null',
+    nullable: true,
+    example: null,
+    description: 'Error information if any',
+  })
+  error: null;
+
+  @ApiProperty({ type: CreateAddressDataGEDto })
+  data: CreateAddressDataGEDto;
+}
