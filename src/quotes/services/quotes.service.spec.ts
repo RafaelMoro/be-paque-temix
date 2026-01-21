@@ -138,6 +138,7 @@ describe('QuotesService', () => {
   beforeEach(async () => {
     const mockGuiaEnviaService = {
       getQuote: jest.fn(),
+      getAddressInfo: jest.fn(),
     };
 
     const mockManuableService = {
@@ -734,6 +735,173 @@ describe('QuotesService', () => {
       expect(result.messages).toContain('T1 message');
       expect(result.messages).toContain('Pakke warning');
       expect(result.messages).toContain('Manuable service response');
+    });
+  });
+
+  describe('getAddressInfo', () => {
+    const mockNeighborhoodPayload = {
+      zipcode: '72000',
+    };
+
+    const mockAddressInfoResponse = {
+      version: '1.0.0',
+      message: null,
+      messages: ['Address information fetched successfully'],
+      error: null,
+      data: {
+        neighborhoods: [
+          {
+            neighborhood: 'Centro',
+            zipcode: '72000',
+            state: 'Puebla',
+            city: 'Heroica Puebla de Zaragoza',
+          },
+          {
+            neighborhood: 'El Carmen',
+            zipcode: '72000',
+            state: 'Puebla',
+            city: 'Heroica Puebla de Zaragoza',
+          },
+        ],
+      },
+    };
+
+    it('should return address info from GuiaEnvia service', async () => {
+      guiaEnviaService.getAddressInfo.mockResolvedValue(
+        mockAddressInfoResponse,
+      );
+
+      const result = await service.getAddressInfo(mockNeighborhoodPayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledWith(
+        mockNeighborhoodPayload,
+      );
+      expect(result).toEqual(mockAddressInfoResponse);
+    });
+
+    it('should pass the correct zipcode to GuiaEnvia service', async () => {
+      const specificPayload = { zipcode: '94298' };
+      guiaEnviaService.getAddressInfo.mockResolvedValue(
+        mockAddressInfoResponse,
+      );
+
+      await service.getAddressInfo(specificPayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledWith(
+        specificPayload,
+      );
+    });
+
+    it('should propagate errors from GuiaEnvia service', async () => {
+      const errorMessage = 'Invalid zipcode';
+      guiaEnviaService.getAddressInfo.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(
+        service.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(errorMessage);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledWith(
+        mockNeighborhoodPayload,
+      );
+    });
+
+    it('should handle BadRequestException from GuiaEnvia service', async () => {
+      const badRequestError = new BadRequestException(
+        'Zipcode not found in database',
+      );
+      guiaEnviaService.getAddressInfo.mockRejectedValue(badRequestError);
+
+      await expect(
+        service.getAddressInfo(mockNeighborhoodPayload),
+      ).rejects.toThrow(BadRequestException);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledWith(
+        mockNeighborhoodPayload,
+      );
+    });
+
+    it('should handle empty neighborhoods array', async () => {
+      const emptyResponse = {
+        ...mockAddressInfoResponse,
+        data: {
+          neighborhoods: [],
+        },
+      };
+
+      guiaEnviaService.getAddressInfo.mockResolvedValue(emptyResponse);
+
+      const result = await service.getAddressInfo(mockNeighborhoodPayload);
+
+      expect(result.data.neighborhoods).toEqual([]);
+      expect(result).toEqual(emptyResponse);
+    });
+
+    it('should handle single neighborhood in response', async () => {
+      const singleNeighborhoodResponse = {
+        ...mockAddressInfoResponse,
+        data: {
+          neighborhoods: [
+            {
+              neighborhood: 'Centro',
+              zipcode: '72000',
+              state: 'Puebla',
+              city: 'Heroica Puebla de Zaragoza',
+            },
+          ],
+        },
+      };
+
+      guiaEnviaService.getAddressInfo.mockResolvedValue(
+        singleNeighborhoodResponse,
+      );
+
+      const result = await service.getAddressInfo(mockNeighborhoodPayload);
+
+      expect(result.data.neighborhoods).toHaveLength(1);
+      expect(result.data.neighborhoods[0].neighborhood).toBe('Centro');
+    });
+
+    it('should directly return GuiaEnvia service response without modification', async () => {
+      guiaEnviaService.getAddressInfo.mockResolvedValue(
+        mockAddressInfoResponse,
+      );
+
+      const result = await service.getAddressInfo(mockNeighborhoodPayload);
+
+      // Verify the response is passed through unchanged
+      expect(result).toBe(mockAddressInfoResponse);
+    });
+
+    it('should handle different zipcode formats', async () => {
+      const zipcodeVariations = [
+        { zipcode: '01000' },
+        { zipcode: '99999' },
+        { zipcode: '12345' },
+      ];
+
+      for (const payload of zipcodeVariations) {
+        guiaEnviaService.getAddressInfo.mockResolvedValue(
+          mockAddressInfoResponse,
+        );
+
+        await service.getAddressInfo(payload);
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledWith(payload);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(guiaEnviaService.getAddressInfo).toHaveBeenCalledTimes(
+        zipcodeVariations.length,
+      );
     });
   });
 });
