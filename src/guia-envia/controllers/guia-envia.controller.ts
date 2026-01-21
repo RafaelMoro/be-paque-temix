@@ -78,14 +78,17 @@ export class GuiaEnviaController {
     return this.guiaEnviaService.deleteGEAddress(id);
   }
 
-  @Put('address')
+  @Put('address/:id ')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Edit an address by alias from GE.',
   })
-  async editGEAddress(@Body() payload: CreateGEAddressDto) {
+  async editGEAddress(
+    @Body() payload: CreateGEAddressDto,
+    @Param('id') id: string,
+  ) {
     return this.guiaEnviaService.editGEAddress({
-      alias: payload.alias,
+      id,
       payload,
     });
   }
