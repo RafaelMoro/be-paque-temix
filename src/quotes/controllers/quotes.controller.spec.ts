@@ -253,7 +253,9 @@ describe('QuotesController', () => {
       const zipcodes = ['01000', '99999', '12345'];
 
       for (const zipcode of zipcodes) {
-        quotesService.getAddressInfo.mockResolvedValue(await controller.getAddressInfo(zipcode);
+        quotesService.getAddressInfo.mockResolvedValue(
+          await controller.getAddressInfo(zipcode),
+        );
 
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(quotesService.getAddressInfo).toHaveBeenCalledWith({ zipcode });
