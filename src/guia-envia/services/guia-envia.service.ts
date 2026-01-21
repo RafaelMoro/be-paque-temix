@@ -189,10 +189,10 @@ export class GuiaEnviaService {
   }
 
   async editGEAddress({
-    alias,
+    id,
     payload,
   }: {
-    alias: string;
+    id: string;
     payload: CreateAddressPayload;
   }): Promise<EditAddressGEDataResponse> {
     try {
@@ -206,29 +206,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
       const transformedPayload = formatCreateAddressPayloadGE(payload);
-
-      const getUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?limit=100`;
-      const responseGet: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
-        await axios.get(getUri, {
-          headers: {
-            Authorization: apiKey,
-          },
-        });
-      const data = responseGet?.data;
-
-      const addressToEdit = (data?.data ?? []).find(
-        (address) => address.alias === alias,
-      );
-      if (!addressToEdit) {
-        throw new BadRequestException(`Address with alias ${alias} not found`);
-      }
-      if (addressToEdit.alias !== transformedPayload.alias) {
-        throw new BadRequestException(
-          'Cannot change alias of an existing address',
-        );
-      }
-
-      const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}?id=${addressToEdit.id}`;
+      const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
       await axios.put(editUri, transformedPayload, {
         headers: {
           Authorization: apiKey,
@@ -243,6 +221,7 @@ export class GuiaEnviaService {
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const newError = error?.response?.data || error.message;
         console.log('axios error editing address ge', newError);
         throw new BadRequestException(error?.response?.data || error.message);
