@@ -22,7 +22,7 @@ import {
   ErrorResponseDeleteGEAddressDto,
   CreateAddressDataGEDto,
 } from '../dtos/guia-envia.responses.dto';
-import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
+import { CreateGEAddressDto } from '../../quotes/dtos/quotes.dto';
 
 @UseGuards(JwtGuard)
 @Controller('ge')

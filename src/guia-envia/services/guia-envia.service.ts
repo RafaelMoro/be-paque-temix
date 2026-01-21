@@ -31,6 +31,7 @@ import {
   DeleteAddressGEDataResponse,
   EditAddressGEDataResponse,
 } from '../guia-envia.interface';
+import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 import {
   formatAddressesGE,
   formatCreateAddressPayloadGE,
@@ -152,7 +153,7 @@ export class GuiaEnviaService {
   }
 
   async createAddress(
-    payload: CreateAddressPayload,
+    payload: CreateGEAddressDto,
   ): Promise<CreateAddressResponseGE> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
@@ -165,7 +166,9 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const transformedPayload = formatCreateAddressPayloadGE(payload);
+      const transformedPayload = formatCreateAddressPayloadGE(
+        payload as CreateAddressPayload,
+      );
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.post(url, transformedPayload, {
@@ -193,7 +196,7 @@ export class GuiaEnviaService {
     payload,
   }: {
     id: string;
-    payload: CreateAddressPayload;
+    payload: CreateGEAddressDto;
   }): Promise<EditAddressGEDataResponse> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
@@ -205,7 +208,9 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
-      const transformedPayload = formatCreateAddressPayloadGE(payload);
+      const transformedPayload = formatCreateAddressPayloadGE(
+        payload as CreateAddressPayload,
+      );
       const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
       await axios.put(editUri, transformedPayload, {
         headers: {
