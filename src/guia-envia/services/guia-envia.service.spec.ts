@@ -34,6 +34,7 @@ import {
   CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
   AddressGE,
+  EditAddressGEDataResponse,
 } from '../guia-envia.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
@@ -1387,6 +1388,380 @@ describe('GuiaEnviaService', () => {
       expect(deleteUrl).toContain('?id=address-1');
       expect(deleteUrl).toBe(
         `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}?id=address-1`,
+      );
+    });
+  });
+
+  describe('editGEAddress', () => {
+    const mockAddressId = 'address-123';
+    const mockEditAddressPayload: CreateAddressPayload = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      name: 'Juan Pérez Updated',
+      email: 'juan.updated@example.com',
+      phone: '+52 222 999 8888',
+      company: 'Empresa Updated SA de CV',
+      rfc: 'XAXX010101000',
+      street: 'Avenida Juárez Updated',
+      number: '456',
+      reference: 'Updated reference',
+      alias: 'Casa Principal Updated',
+    };
+
+    const mockExtEditAddressResponse: ExtAddressGEResponse = {
+      cp: '72000',
+      colonia: 'Centro',
+      ciudad: 'Heroica Puebla de Zaragoza',
+      estado: 'Puebla',
+      nombre: 'Juan Pérez Updated',
+      email: 'juan.updated@example.com',
+      telefono: '+52 222 999 8888',
+      empresa: 'Empresa Updated SA de CV',
+      rfc: 'XAXX010101000',
+      calle: 'Avenida Juárez Updated',
+      numero: '456',
+      referencia: 'Updated reference',
+      alias: 'Casa Principal Updated',
+      users: 'user123',
+      createdAt: '2023-10-22T12:00:00Z',
+      updatedAt: '2023-10-22T14:00:00Z',
+      id: mockAddressId,
+    };
+
+    const mockFormattedEditAddressResponse: CreateAddressResponseGE = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      street: 'Avenida Juárez Updated',
+      number: '456',
+      reference: 'Updated reference',
+      alias: 'Casa Principal Updated',
+    };
+
+    const mockConfigWithVersion = {
+      ...mockConfig,
+      version: '1.0.0',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully edit address by ID in Guia Envia', async () => {
+      // Create service with version in config
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      // Mock formatCreateAddressPayloadGE utility
+      const mockTransformedPayload = {
+        cp: '72000',
+        colonia: 'Centro',
+        ciudad: 'Heroica Puebla de Zaragoza',
+        estado: 'Puebla',
+        nombre: 'Juan Pérez Updated',
+        email: 'juan.updated@example.com',
+        telefono: '+52 222 999 8888',
+        empresa: 'Empresa Updated SA de CV',
+        rfc: 'XAXX010101000',
+        calle: 'Avenida Juárez Updated',
+        numero: '456',
+        referencia: 'Updated reference',
+        alias: 'Casa Principal Updated',
+      };
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue(mockTransformedPayload);
+      jest
+        .spyOn(utils, 'formatCreateAddressResponseGE')
+        .mockReturnValue(mockFormattedEditAddressResponse);
+
+      // Mock axios response
+      mockedAxios.put.mockResolvedValue({
+        data: mockExtEditAddressResponse,
+      });
+
+      const result = await serviceWithVersion.editGEAddress({
+        id: mockAddressId,
+        payload: mockEditAddressPayload as any,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).toHaveBeenCalledTimes(1);
+      const [url, payload, config] = mockedAxios.put.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}/${mockAddressId}`,
+      );
+      expect(payload).toEqual(mockTransformedPayload);
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-ge-api-key',
+        },
+      });
+      expect(utils.formatCreateAddressPayloadGE).toHaveBeenCalledWith(
+        mockEditAddressPayload,
+      );
+      expect(utils.formatCreateAddressResponseGE).toHaveBeenCalledWith(
+        mockExtEditAddressResponse,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: 'Address edited successfully',
+        error: null,
+        data: mockFormattedEditAddressResponse,
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithoutApiKey.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      });
+
+      await expect(
+        serviceWithoutUri.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      await expect(
+        serviceWithNullApiKey.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const serviceWithNullUri = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null as unknown as string,
+        },
+      });
+
+      await expect(
+        serviceWithNullUri.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_URI_ERROR));
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue({} as any);
+
+      const errorMessage = 'Address not found';
+      mockedAxios.put.mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        serviceWithVersion.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(errorMessage));
+    });
+
+    it('should handle axios error correctly', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue({} as any);
+
+      const errorResponse = {
+        message: 'Address with id address-123 not found',
+        error: 'Not Found',
+        statusCode: 404,
+      };
+
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: errorResponse,
+        },
+      };
+      mockedAxios.put.mockRejectedValue(axiosError);
+      mockedAxios.isAxiosError.mockReturnValue(true);
+
+      await expect(
+        serviceWithVersion.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(errorResponse));
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue({} as any);
+
+      // Reject with non-Error object
+      mockedAxios.put.mockRejectedValue({
+        response: { status: 500 },
+      });
+      mockedAxios.isAxiosError.mockReturnValue(false);
+
+      await expect(
+        serviceWithVersion.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException('An unknown error occurred'));
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const serviceWithNullApiKey = await createServiceWithConfig({
+        ...mockConfigWithVersion,
+        guiaEnvia: {
+          apiKey: null as unknown as string,
+          uri: 'https://test-guia-envia.com',
+        },
+      });
+
+      const formatSpy = jest.spyOn(utils, 'formatCreateAddressPayloadGE');
+
+      await expect(
+        serviceWithNullApiKey.editGEAddress({
+          id: mockAddressId,
+          payload: mockEditAddressPayload as any,
+        }),
+      ).rejects.toThrow(new BadRequestException(GE_MISSING_API_KEY_ERROR));
+
+      // Verify that validation happens before payload transformation
+      expect(formatSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockedAxios.put).not.toHaveBeenCalled();
+    });
+
+    it('should construct correct PUT URL with address ID', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue({} as any);
+      jest
+        .spyOn(utils, 'formatCreateAddressResponseGE')
+        .mockReturnValue(mockFormattedEditAddressResponse);
+
+      mockedAxios.put.mockResolvedValue({
+        data: mockExtEditAddressResponse,
+      });
+
+      await serviceWithVersion.editGEAddress({
+        id: 'specific-address-id-789',
+        payload: mockEditAddressPayload as any,
+      });
+
+      const [url] = mockedAxios.put.mock.calls[0];
+      expect(url).toBe(
+        `https://test-guia-envia.com${CREATE_ADDRESS_ENDPOINT_GE}/specific-address-id-789`,
+      );
+    });
+
+    it('should handle successful edit with all response fields', async () => {
+      const serviceWithVersion = await createServiceWithConfig(
+        mockConfigWithVersion,
+      );
+
+      const completeResponse: ExtAddressGEResponse = {
+        ...mockExtEditAddressResponse,
+        nombre: 'Complete Name',
+        empresa: 'Complete Company',
+      };
+
+      jest
+        .spyOn(utils, 'formatCreateAddressPayloadGE')
+        .mockReturnValue({} as any);
+      jest.spyOn(utils, 'formatCreateAddressResponseGE').mockReturnValue({
+        zipcode: '72000',
+        neighborhood: 'Centro',
+        city: 'Heroica Puebla de Zaragoza',
+        state: 'Puebla',
+        street: 'Avenida Juárez Updated',
+        number: '456',
+        reference: 'Updated reference',
+        alias: 'Casa Principal Updated',
+      });
+
+      mockedAxios.put.mockResolvedValue({
+        data: completeResponse,
+      });
+
+      const result = await serviceWithVersion.editGEAddress({
+        id: mockAddressId,
+        payload: mockEditAddressPayload as any,
+      });
+
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBe('Address edited successfully');
+      expect(result.error).toBeNull();
+      expect(result.data).toBeDefined();
+      expect(utils.formatCreateAddressResponseGE).toHaveBeenCalledWith(
+        completeResponse,
       );
     });
   });
