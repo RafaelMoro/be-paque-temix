@@ -7,6 +7,7 @@ import {
   IsOptional,
   ArrayMinSize,
   IsEmail,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 
@@ -73,6 +74,11 @@ export class CreateAddressDto {
   @IsNotEmpty()
   @ApiProperty({ example: 'john.doe@mail.com' })
   readonly email: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ example: true, required: false })
+  readonly isGEAddress: boolean;
 }
 
 export class CreateAddressDtoPayload extends OmitType(CreateAddressDto, [

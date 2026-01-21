@@ -101,6 +101,23 @@ export interface ExtAddressGEResponse {
   id: string;
 }
 
+export interface AddressGE {
+  zipcode: string;
+  city: string;
+  state: string;
+  neighborhood: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  rfc: string;
+  addressName: string;
+  externalNumber: string;
+  reference: string;
+  alias: string;
+  id: string;
+}
+
 export interface ExtGetAllAddressesGEResponse {
   data: ExtAddressGEResponse[];
   meta: {
@@ -129,6 +146,7 @@ export interface GetAliasesGEDataResponse
   error: null;
   data: {
     aliases: string[];
+    addresses: AddressGE[];
     pages: number;
     page: number;
   };

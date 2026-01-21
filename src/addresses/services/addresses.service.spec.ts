@@ -52,6 +52,7 @@ describe('AddressesService', () => {
     city: ['Los Angeles'],
     town: ['Downtown'],
     alias: 'home-address',
+    isGEAddress: false,
   };
 
   beforeEach(async () => {
