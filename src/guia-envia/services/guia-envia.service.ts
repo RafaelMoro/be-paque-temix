@@ -212,17 +212,20 @@ export class GuiaEnviaService {
         payload as CreateAddressPayload,
       );
       const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
-      await axios.put(editUri, transformedPayload, {
-        headers: {
-          Authorization: apiKey,
-        },
-      });
+      const response: AxiosResponse<ExtAddressGEResponse, unknown> =
+        await axios.put(editUri, transformedPayload, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const formattedData = formatCreateAddressResponseGE(data);
 
       return {
         version: npmVersion,
         message: 'Address edited successfully',
         error: null,
-        data: null,
+        data: formattedData,
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {

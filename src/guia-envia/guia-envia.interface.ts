@@ -164,7 +164,7 @@ export interface DeleteAddressGEDataResponse
 export interface EditAddressGEDataResponse
   extends Omit<GeneralResponse, 'data' | 'error' | 'message'> {
   error: null;
-  data: null;
+  data: CreateAddressResponseGE;
   message: string;
 }
 
