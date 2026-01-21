@@ -362,7 +362,9 @@ describe('GuiaEnviaController', () => {
     };
 
     it('should create address successfully', async () => {
-      mockGuiaEnviaService.createAddress.mockResolvedValue(const result = await controller.createAddress(mockPayload);
+      mockGuiaEnviaService.createAddress.mockResolvedValue(mockCreateResponse);
+
+      const result = await controller.createAddress(mockPayload);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.createAddress).toHaveBeenCalledTimes(1);
@@ -374,7 +376,9 @@ describe('GuiaEnviaController', () => {
     it('should pass the exact payload to service', async () => {
       mockGuiaEnviaService.createAddress.mockResolvedValue(mockCreateResponse);
 
-      await controller.createAddress(mockPayload);// eslint-disable-next-line @typescript-eslint/unbound-method
+      await controller.createAddress(mockPayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.createAddress).toHaveBeenCalledWith(mockPayload);
 
       // Verify payload structure is preserved
