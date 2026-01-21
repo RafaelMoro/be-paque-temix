@@ -79,7 +79,7 @@ export class GuiaEnviaController {
     return this.guiaEnviaService.deleteGEAddress(id);
   }
 
-  @Put('address/:id ')
+  @Put('address/:id')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Edit an address by alias from GE.',
