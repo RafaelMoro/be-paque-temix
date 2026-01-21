@@ -12,6 +12,10 @@ describe('GuiaEnviaController', () => {
   const mockGuiaEnviaService = {
     listServicesGe: jest.fn(),
     createGuideGe: jest.fn(),
+    getAddressesSavedGe: jest.fn(),
+    deleteGEAddress: jest.fn(),
+    editGEAddress: jest.fn(),
+    createAddress: jest.fn(),
   };
 
   const mockJwtGuard = {
@@ -102,6 +106,319 @@ describe('GuiaEnviaController', () => {
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.listServicesGe).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('getAddressesSavedGe', () => {
+    const mockAddressesResponse = {
+      version: '1.0.0',
+      message: null,
+      error: null,
+      data: {
+        aliases: ['Casa Principal', 'Oficina Centro'],
+        addresses: [],
+        page: 1,
+        pages: 1,
+      },
+    };
+
+    it('should return addresses successfully without parameters', async () => {
+      mockGuiaEnviaService.getAddressesSavedGe.mockResolvedValue(
+        mockAddressesResponse,
+      );
+
+      const result = await controller.getAddressesSavedGe();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAddressesSavedGe).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAddressesSavedGe).toHaveBeenCalledWith({
+        page: undefined,
+        aliasesOnly: undefined,
+      });
+      expect(result).toEqual(mockAddressesResponse);
+    });
+
+    it('should pass page parameter to service', async () => {
+      mockGuiaEnviaService.getAddressesSavedGe.mockResolvedValue(
+        mockAddressesResponse,
+      );
+
+      await controller.getAddressesSavedGe('2');
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAddressesSavedGe).toHaveBeenCalledWith({
+        page: '2',
+        aliasesOnly: undefined,
+      });
+    });
+
+    it('should pass aliasesOnly parameter to service', async () => {
+      mockGuiaEnviaService.getAddressesSavedGe.mockResolvedValue(
+        mockAddressesResponse,
+      );
+
+      await controller.getAddressesSavedGe(undefined, true);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAddressesSavedGe).toHaveBeenCalledWith({
+        page: undefined,
+        aliasesOnly: true,
+      });
+    });
+
+    it('should pass both parameters to service', async () => {
+      mockGuiaEnviaService.getAddressesSavedGe.mockResolvedValue(
+        mockAddressesResponse,
+      );
+
+      await controller.getAddressesSavedGe('3', false);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.getAddressesSavedGe).toHaveBeenCalledWith({
+        page: '3',
+        aliasesOnly: false,
+      });
+    });
+
+    it('should propagate service errors', async () => {
+      const errorMessage = 'Failed to fetch addresses';
+      mockGuiaEnviaService.getAddressesSavedGe.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(controller.getAddressesSavedGe()).rejects.toThrow(
+        errorMessage,
+      );
+    });
+  });
+
+  describe('deleteGEAddress', () => {
+    const mockDeleteResponse = {
+      version: '1.0.0',
+      message: 'Address deleted successfully',
+      error: null,
+      data: null,
+    };
+
+    it('should delete address successfully', async () => {
+      const addressId = 'address-123';
+      mockGuiaEnviaService.deleteGEAddress.mockResolvedValue(
+        mockDeleteResponse,
+      );
+
+      const result = await controller.deleteGEAddress(addressId);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.deleteGEAddress).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.deleteGEAddress).toHaveBeenCalledWith(addressId);
+      expect(result).toEqual(mockDeleteResponse);
+    });
+
+    it('should pass the correct id parameter', async () => {
+      const addressId = 'specific-id-456';
+      mockGuiaEnviaService.deleteGEAddress.mockResolvedValue(
+        mockDeleteResponse,
+      );
+
+      await controller.deleteGEAddress(addressId);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.deleteGEAddress).toHaveBeenCalledWith(addressId);
+    });
+
+    it('should propagate service errors', async () => {
+      const errorMessage = 'Address not found';
+      mockGuiaEnviaService.deleteGEAddress.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(controller.deleteGEAddress('invalid-id')).rejects.toThrow(
+        errorMessage,
+      );
+    });
+  });
+
+  describe('editGEAddress', () => {
+    const mockPayload = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      name: 'Juan Pérez',
+      email: 'juan@example.com',
+      phone: '+52 222 123 4567',
+      company: 'Empresa SA',
+      rfc: 'XAXX010101000',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    const mockEditResponse = {
+      version: '1.0.0',
+      message: 'Address edited successfully',
+      error: null,
+      data: {
+        zipcode: '72000',
+        neighborhood: 'Centro',
+        city: 'Heroica Puebla de Zaragoza',
+        state: 'Puebla',
+        street: 'Avenida Juárez',
+        number: '123',
+        reference: 'Edificio azul',
+        alias: 'Casa Principal',
+      },
+    };
+
+    it('should edit address successfully', async () => {
+      const addressId = 'address-789';
+      mockGuiaEnviaService.editGEAddress.mockResolvedValue(mockEditResponse);
+
+      const result = await controller.editGEAddress(mockPayload, addressId);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.editGEAddress).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.editGEAddress).toHaveBeenCalledWith({
+        id: addressId,
+        payload: mockPayload,
+      });
+      expect(result).toEqual(mockEditResponse);
+    });
+
+    it('should pass correct parameters to service', async () => {
+      const addressId = 'specific-address-id';
+      mockGuiaEnviaService.editGEAddress.mockResolvedValue(mockEditResponse);
+
+      await controller.editGEAddress(mockPayload, addressId);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.editGEAddress).toHaveBeenCalledWith({
+        id: addressId,
+        payload: mockPayload,
+      });
+    });
+
+    it('should propagate service errors', async () => {
+      const errorMessage = 'Failed to update address';
+      mockGuiaEnviaService.editGEAddress.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(
+        controller.editGEAddress(mockPayload, 'some-id'),
+      ).rejects.toThrow(errorMessage);
+    });
+
+    it('should handle different payload variations', async () => {
+      const alternativePayload = {
+        ...mockPayload,
+        name: 'María García',
+        alias: 'Oficina',
+      };
+      const alternativeId = 'alt-address-id';
+
+      mockGuiaEnviaService.editGEAddress.mockResolvedValue(mockEditResponse);
+
+      await controller.editGEAddress(alternativePayload, alternativeId);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.editGEAddress).toHaveBeenCalledWith({
+        id: alternativeId,
+        payload: alternativePayload,
+      });
+    });
+  });
+
+  describe('createAddress', () => {
+    const mockPayload = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      name: 'Juan Pérez',
+      email: 'juan@example.com',
+      phone: '+52 222 123 4567',
+      company: 'Empresa SA',
+      rfc: 'XAXX010101000',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    const mockCreateResponse = {
+      zipcode: '72000',
+      neighborhood: 'Centro',
+      city: 'Heroica Puebla de Zaragoza',
+      state: 'Puebla',
+      street: 'Avenida Juárez',
+      number: '123',
+      reference: 'Edificio azul',
+      alias: 'Casa Principal',
+    };
+
+    it('should create address successfully', async () => {
+      mockGuiaEnviaService.createAddress.mockResolvedValue(const result = await controller.createAddress(mockPayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.createAddress).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.createAddress).toHaveBeenCalledWith(mockPayload);
+      expect(result).toEqual(mockCreateResponse);
+    });
+
+    it('should pass the exact payload to service', async () => {
+      mockGuiaEnviaService.createAddress.mockResolvedValue(mockCreateResponse);
+
+      await controller.createAddress(mockPayload);// eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.createAddress).toHaveBeenCalledWith(mockPayload);
+
+      // Verify payload structure is preserved
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const calledPayload = mockGuiaEnviaService.createAddress.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(calledPayload.zipcode).toBe(mockPayload.zipcode);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(calledPayload.name).toBe(mockPayload.name);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(calledPayload.alias).toBe(mockPayload.alias);
+    });
+
+    it('should propagate service errors', async () => {
+      const errorMessage = 'Invalid address data';
+      mockGuiaEnviaService.createAddress.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(controller.createAddress(mockPayload)).rejects.toThrow(
+        errorMessage,
+      );
+    });
+
+    it('should handle different payload variations', async () => {
+      const alternativePayload = {
+        ...mockPayload,
+        name: 'Carlos López',
+        alias: 'Sucursal Norte',
+        zipcode: '94298',
+      };
+
+      mockGuiaEnviaService.createAddress.mockResolvedValue({
+        ...mockCreateResponse,
+        alias: 'Sucursal Norte',
+        zipcode: '94298',
+      });
+
+      const result = await controller.createAddress(alternativePayload);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.createAddress).toHaveBeenCalledWith(alternativePayload);
+      expect(result.alias).toBe('Sucursal Norte');
+      expect(result.zipcode).toBe('94298');
     });
   });
 
@@ -248,8 +565,16 @@ describe('GuiaEnviaController', () => {
       // Test basic controller setup
       expect(controller).toHaveProperty('getCourierServices');
       expect(controller).toHaveProperty('createGuide');
+      expect(controller).toHaveProperty('getAddressesSavedGe');
+      expect(controller).toHaveProperty('deleteGEAddress');
+      expect(controller).toHaveProperty('editGEAddress');
+      expect(controller).toHaveProperty('createAddress');
       expect(typeof controller.getCourierServices).toBe('function');
       expect(typeof controller.createGuide).toBe('function');
+      expect(typeof controller.getAddressesSavedGe).toBe('function');
+      expect(typeof controller.deleteGEAddress).toBe('function');
+      expect(typeof controller.editGEAddress).toBe('function');
+      expect(typeof controller.createAddress).toBe('function');
     });
 
     it('should have service dependency injected', () => {
