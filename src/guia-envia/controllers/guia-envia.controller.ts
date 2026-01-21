@@ -20,6 +20,7 @@ import {
   GetAliasesGEResponseDto,
   DeleteAddressGEResponseDto,
   ErrorResponseDeleteGEAddressDto,
+  CreateAddressDataGEDto,
 } from '../dtos/guia-envia.responses.dto';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 
@@ -91,6 +92,20 @@ export class GuiaEnviaController {
       id,
       payload,
     });
+  }
+
+  @Post('address')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create a new address in GE.',
+  })
+  @ApiResponse({
+    status: 201,
+    type: CreateAddressDataGEDto,
+    description: 'Address created successfully.',
+  })
+  async createAddress(@Body() payload: CreateGEAddressDto) {
+    return this.guiaEnviaService.createAddress(payload);
   }
 
   @Post('create-guide')
