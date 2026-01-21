@@ -10,7 +10,6 @@ import { GetQuoteDataResponse } from '../quotes.interface';
 import config from '@/config';
 import { orderQuotesByPrice } from '../quotes.utils';
 import { GlobalConfigsService } from '@/global-configs/services/global-configs.service';
-import { CreateAddressPayload } from '@/guia-envia/guia-envia.interface';
 
 @Injectable()
 export class QuotesService {
@@ -104,9 +103,5 @@ export class QuotesService {
 
   async getAddressInfo(payload: GetNeighborhoodInfoDto) {
     return this.guiaEnviaService.getAddressInfo(payload);
-  }
-
-  async createAddress(payload: CreateAddressPayload) {
-    return this.guiaEnviaService.createAddress(payload);
   }
 }
