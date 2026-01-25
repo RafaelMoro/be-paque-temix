@@ -1,3 +1,9 @@
+## v0.29.0 (2026-01-21)
+
+### Pull Requests
+[#67](https://github.com/RafaelMoro/be-paque-temix/pull/67) | Add endpoint to ge edit address
+
+
 ## v0.28.0 (2026-01-15)
 
 ### Pull Requests

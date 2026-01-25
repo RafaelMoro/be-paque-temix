@@ -29,7 +29,9 @@ import {
   ExtGetAllAddressesGEResponse,
   GetAliasesGEDataResponse,
   DeleteAddressGEDataResponse,
+  EditAddressGEDataResponse,
 } from '../guia-envia.interface';
+import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 import {
   formatAddressesGE,
   formatCreateAddressPayloadGE,
@@ -151,7 +153,7 @@ export class GuiaEnviaService {
   }
 
   async createAddress(
-    payload: CreateAddressPayload,
+    payload: CreateGEAddressDto,
   ): Promise<CreateAddressResponseGE> {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
@@ -164,7 +166,9 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const transformedPayload = formatCreateAddressPayloadGE(payload);
+      const transformedPayload = formatCreateAddressPayloadGE(
+        payload as CreateAddressPayload,
+      );
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.post(url, transformedPayload, {
@@ -183,6 +187,58 @@ export class GuiaEnviaService {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async editGEAddress({
+    id,
+    payload,
+  }: {
+    id: string;
+    payload: CreateGEAddressDto;
+  }): Promise<EditAddressGEDataResponse> {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      const npmVersion: string = this.configService.version!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+      const transformedPayload = formatCreateAddressPayloadGE(
+        payload as CreateAddressPayload,
+      );
+      const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
+      const response: AxiosResponse<ExtAddressGEResponse, unknown> =
+        await axios.put(editUri, transformedPayload, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const formattedData = formatCreateAddressResponseGE(data);
+
+      return {
+        version: npmVersion,
+        message: 'Address edited successfully',
+        error: null,
+        data: formattedData,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const newError = error?.response?.data || error.message;
+        console.log('axios error editing address ge', newError);
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        console.log('error editing address ge inst error', error);
+        throw new BadRequestException(error.message);
+      }
+      console.log('error editing address ge unknown error', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }
