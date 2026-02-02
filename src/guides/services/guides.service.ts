@@ -5,7 +5,10 @@ import { Injectable } from '@nestjs/common';
 export class GuidesService {
   constructor(private guiaEnviaService: GuiaEnviaService) {}
 
-  getGuides() {
+  async getGuides() {
+    const [GEGuide] = await Promise.allSettled([
+      this.guiaEnviaService.getGuides(),
+    ]);
     return {
       guide: 'Sample guide',
     };
