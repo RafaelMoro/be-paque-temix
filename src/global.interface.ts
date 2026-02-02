@@ -9,6 +9,7 @@ export interface GeneralResponse {
 
 export interface GlobalCreateGuideResponse {
   trackingNumber: string;
+  shipmentNumber?: string | null;
   source: ProviderSource;
   carrier: string;
   price: string;

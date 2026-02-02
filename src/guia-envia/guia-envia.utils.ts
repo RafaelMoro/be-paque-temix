@@ -136,6 +136,8 @@ export const formatCreateGuideResponseGE = (
 
   return {
     trackingNumber: firstGuide?.numero_guia || '',
+    // This is the id used for the endpoint of getting the shipment info
+    shipmentNumber: firstShipment?.envio_id || null,
     carrier: firstShipment.servicio,
     price: firstShipment?.costo || '0',
     guideLink: null,
