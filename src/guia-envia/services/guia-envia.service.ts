@@ -13,6 +13,7 @@ import {
   CREATE_ADDRESS_ENDPOINT_GE,
   GET_SERVICES_ENDPOINT_GE,
   CREATE_GUIDE_ENDPOINT_GE,
+  GET_GUIDES_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   NeighborhoodGE,
@@ -30,6 +31,7 @@ import {
   GetAliasesGEDataResponse,
   DeleteAddressGEDataResponse,
   EditAddressGEDataResponse,
+  ExtGetGuidesGEResponse,
 } from '../guia-envia.interface';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 import {
@@ -438,8 +440,8 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const url = `${uri}${CREATE_GUIDE_ENDPOINT_GE}`;
-      const response: AxiosResponse<ExtGetAllAddressesGEResponse, unknown> =
+      const url = `${uri}${GET_GUIDES_ENDPOINT_GE}`;
+      const response: AxiosResponse<ExtGetGuidesGEResponse, unknown> =
         await axios.get(url, {
           headers: {
             Authorization: apiKey,
@@ -449,13 +451,14 @@ export class GuiaEnviaService {
       console.log('data', data);
       return data;
     } catch (error) {
-      console.log('error get guides ge', error);
       if (axios.isAxiosError(error)) {
+        console.log(error?.response?.data);
         throw new BadRequestException(error?.response?.data);
       }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
+      console.log('error get guides ge', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }
