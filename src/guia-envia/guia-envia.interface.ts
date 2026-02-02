@@ -81,7 +81,7 @@ export interface CreateAddressPayload {
   alias: string;
 }
 
-export interface ExtAddressGEResponse {
+export interface ExtAddressGE {
   cp: string;
   ciudad: string;
   estado: string;
@@ -95,6 +95,9 @@ export interface ExtAddressGEResponse {
   numero: string;
   referencia: string;
   alias: string;
+}
+
+export interface ExtAddressGEResponse extends ExtAddressGE {
   users: string;
   createdAt: string;
   updatedAt: string;
@@ -225,6 +228,43 @@ export interface ExtCreateGuideGEResponse {
   destino: ExtAddressGEResponse;
   envio: ExtGEShipment[];
   guias: ExtGEGuide[];
+}
+
+export interface ExtGetGuideGE {
+  id: string;
+  origen: ExtAddressGE;
+  destino: ExtAddressGE;
+  estado: string; // "completo"
+  resumen: {
+    total_solicitadas: number; // 1
+    exitosas: number; // 1
+    fallidas: number; // 0
+    costo_total: number; // 156.13
+    fecha_procesamiento: string; // 2026-02-02T17:49:03.813Z
+    tiempo_procesamiento: number; // 19573
+  };
+  createdAt: string;
+  updatedAt: string;
+  guias: {
+    numero_guia: string;
+    url: string;
+    shipment_id: string;
+    parcel_id: string;
+  }[];
+  envio: {
+    indice: number;
+    envio_id: string;
+    servicio: string;
+    costo: string;
+    guia: string;
+    estado: string;
+    url_etiqueta: string;
+    fecha_generacion: string;
+  }[];
+}
+
+export interface ExtGetGuidesGEResponse {
+  data: ExtGetGuideGE[];
 }
 
 export interface CreateGuideGEDataResponse
