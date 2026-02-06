@@ -1,99 +1,211 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Kraft Envios API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A robust NestJS-based REST API for managing multi-carrier shipping operations. This API provides comprehensive shipping quote comparison, label generation, and logistics management by integrating with multiple Mexican shipping carriers.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- 🔐 **Authentication & Authorization**: JWT-based authentication with role-based access control
+- 📦 **Multi-Carrier Integration**: Connect with 4 major shipping providers
+- 💰 **Rate Comparison**: Get real-time shipping quotes from multiple carriers
+- 🏷️ **Label Generation**: Create shipping labels across different carriers
+- 📍 **Address Management**: Store and manage shipping addresses
+- 👥 **User Management**: Complete user registration and profile management
+- ⚙️ **Global Configuration**: Centralized settings management
+- 📧 **Email Notifications**: Automated email system for password resets and notifications
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: [NestJS](https://nestjs.com/) (Node.js)
+- **Language**: TypeScript
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens)
+- **Deployment**: AWS Lambda via Serverless Framework
+- **Email**: React Email with Resend API
+- **Testing**: Jest
+- **Package Manager**: Bun
+
+## Prerequisites
+
+- Node.js (v22.x or higher)
+- Bun (recommended) or npm
+- MongoDB Atlas account
+- AWS account (for deployment)
+- API keys for shipping providers
+
+## Installation
 
 ```bash
-$ npm install
+# Install dependencies
+bun install
+# or
+npm install
 ```
 
-## Compile and run the project
+## Environment Configuration
+
+Create a `.env` file in the root directory based on `.env-example`:
 
 ```bash
-# development
-$ npm run start
+# Database
+CLUSTER=your-cluster-name
+MONGO_CLUSTER_SUFFIX=.xxxxx.mongodb.net
+MONGO_USER=your-username
+MONGO_PWD=your-password
+MONGO_DB_NAME=your-database
+MONGO_CONNECTION=mongodb+srv
 
-# watch mode
-$ npm run start:dev
+# Authentication
+JWT_KEY=your-jwt-secret
+ONE_TIME_JWT_KEY=your-one-time-jwt-secret
+PUBLIC_KEY=your-public-key
+ROLE_KEY=your-role-key
 
-# production mode
-$ npm run start:prod
+# Frontend
+FRONTEND_URI=http://localhost:3000
+FRONTEND_PORT=3000
+
+# Email
+RESEND_API_KEY=your-resend-api-key
+MAILER_MAIL=noreply@yourdomain.com
+
+# Shipping Provider APIs
+GUIA_ENVIA_KEY=your-guia-envia-key
+GUIA_ENVIA_URI=https://api.guiaenvia.com
+
+T1_URI=https://api.t1.com
+T1_CLIENT_ID=your-t1-client-id
+T1_CLIENT_SECRET=your-t1-client-secret
+T1_USERNAME=your-t1-username
+T1_PASSWORD=your-t1-password
+T1_STORE_ID=your-store-id
+
+PAKKE_KEY=your-pakke-key
+PAKKE_URI=https://api.pakke.mx
+
+MANUABLE_EM=your-manuable-email
+MANUABLE_PSS=your-manuable-password
+MANUABLE_URI=https://api.manuable.com
+
+NODE_ENV=development
 ```
 
-## Run tests
+## Running the Application
 
 ```bash
-# unit tests
-$ npm run test
+# Development mode
+bun run watch
+# or
+npm run watch
 
-# e2e tests
-$ npm run test:e2e
+# Development with Serverless offline
+bun run dev:sls
 
-# test coverage
-$ npm run test:cov
+# Production mode
+bun run start:prod
+```
+
+## API Endpoints
+
+### Authentication
+
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login
+- `POST /auth/reset-password` - Request password reset
+
+### Users
+
+- `GET /users` - Get all users (admin)
+- `GET /users/:id` - Get user by ID
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Quotes
+
+- `POST /quotes` - Get shipping quotes from multiple carriers
+- `GET /quotes/:id` - Get quote details
+
+### Addresses
+
+- `GET /addresses` - List user addresses
+- `POST /addresses` - Create new address
+- `PUT /addresses/:id` - Update address
+- `DELETE /addresses/:id` - Delete address
+
+### Shipping Providers
+
+- `POST /ge/*` - Guía Envía endpoints
+- `POST /tone/*` - T1 endpoints
+- `POST /pkk/*` - Pakke endpoints
+- `POST /mn/*` - Manuable endpoints
+
+### Configuration
+
+- `GET /global-configs` - Get global configurations
+- `PUT /global-configs` - Update configurations
+
+## Testing
+
+```bash
+# Unit tests
+bun run test
+
+# E2E tests
+bun run test:e2e
+
+# Test coverage
+bun run test:cov
+
+# Watch mode
+bun run test:watch
 ```
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Deploy to AWS Lambda using Serverless Framework:
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+# Build and deploy
+bun run deploy
+
+# Or step by step
+bun run build
+serverless deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API will be deployed to AWS Lambda in the `us-east-1` region with API Gateway.
 
-## Resources
+## Project Structure
 
-Check out a few resources that may come in handy when working with NestJS:
+```
+src/
+├── addresses/         # Address management module
+├── auth/             # Authentication & authorization
+├── database/         # MongoDB configuration
+├── exceptions/       # Global exception filters
+├── general-info-db/  # General information storage
+├── global-configs/   # Application configuration
+├── guia-envia/       # Guía Envía integration
+├── mail/             # Email service
+├── manuable/         # Manuable integration
+├── middlewares/      # Custom middlewares
+├── pakke/            # Pakke integration
+├── quotes/           # Quote management
+├── t1/               # T1 integration
+├── token-manager/    # Token management
+├── users/            # User management
+├── app.module.ts     # Main application module
+├── config.ts         # Configuration loader
+└── main.ts           # Application entry point
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Security
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- All sensitive credentials are stored in environment variables
+- JWT-based authentication with role-based access control
+- Password hashing with bcrypt
+- Input validation using class-validator
+- MongoDB connection with authentication
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Proprietary** - This software is private and for internal use only. All rights reserved.
