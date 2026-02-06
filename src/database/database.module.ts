@@ -7,10 +7,16 @@ import config from '../config';
   imports: [
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigType<typeof config>) => {
-        const { connection, user, password, cluster, mongoDbName } =
-          configService.database;
+        const {
+          connection,
+          user,
+          password,
+          cluster,
+          clusterSuffix,
+          mongoDbName,
+        } = configService.database;
         return {
-          uri: `${connection}://${user}:${password}@${cluster}.pn7vylk.mongodb.net/?retryWrites=true&w=majority`,
+          uri: `${connection}://${user}:${password}@${cluster}${clusterSuffix}/?retryWrites=true&w=majority`,
           user,
           pass: password,
           dbName: mongoDbName,
