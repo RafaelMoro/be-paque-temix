@@ -3,6 +3,7 @@ import { registerAs } from '@nestjs/config';
 export default registerAs('config', () => {
   const {
     CLUSTER,
+    MONGO_CLUSTER_SUFFIX,
     MONGO_DB_NAME,
     MONGO_USER,
     MONGO_PWD,
@@ -36,6 +37,7 @@ export default registerAs('config', () => {
   return {
     database: {
       cluster: CLUSTER,
+      clusterSuffix: MONGO_CLUSTER_SUFFIX,
       mongoDbName: MONGO_DB_NAME,
       user: MONGO_USER,
       password: MONGO_PWD,

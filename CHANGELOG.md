@@ -1,3 +1,15 @@
+## v0.30.1 (2026-02-06)
+
+### Pull Requests
+[#71](https://github.com/RafaelMoro/be-paque-temix/pull/71) | Update readme
+
+
+## v0.30.0 (2026-02-06)
+
+### Pull Requests
+[#69](https://github.com/RafaelMoro/be-paque-temix/pull/69) | Address security concerns that may expose sensitive data
+
+
 ## v0.29.0 (2026-01-21)
 
 ### Pull Requests

@@ -29,6 +29,7 @@ import { GuidesModule } from './guides/guides.module';
       isGlobal: true,
       validationSchema: Joi.object({
         CLUSTER: Joi.string().required(),
+        MONGO_CLUSTER_SUFFIX: Joi.string().required(),
         MONGO_USER: Joi.string().required(),
         MONGO_PWD: Joi.string().required(),
         MONGO_DB_NAME: Joi.string().required(),
