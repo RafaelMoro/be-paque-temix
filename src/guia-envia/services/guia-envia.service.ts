@@ -40,6 +40,7 @@ import {
   formatCreateAddressResponseGE,
   formatCreateGuidePayloadGE,
   formatCreateGuideResponseGE,
+  formatGetGuidesResponseGE,
   formatNeighborhoodGE,
   formatPayloadGE,
   formatQuotesGE,
@@ -432,7 +433,6 @@ export class GuiaEnviaService {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
-      const npmVersion: string = this.configService.version!;
       if (!apiKey) {
         throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
       }
@@ -447,9 +447,9 @@ export class GuiaEnviaService {
             Authorization: apiKey,
           },
         });
-      const data = response?.data;
-      console.log('data', data);
-      return data;
+      const data = response?.data?.data;
+      const formattedData = formatGetGuidesResponseGE(data);
+      return formattedData;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log(error?.response?.data);
