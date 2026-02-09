@@ -10,6 +10,7 @@ import {
   CreateGuideGeRequest,
   ExtCreateGuideGEPayload,
   ExtCreateGuideGEResponse,
+  ExtGetGuideGE,
   AddressGE,
 } from './guia-envia.interface';
 import { GlobalCreateGuideResponse } from '@/global.interface';
@@ -146,6 +147,28 @@ export const formatCreateGuideResponseGE = (
     file: null, // GE doesn't provide file, set to null
   };
 };
+
+export const formatGetGuideResponseGE = (
+  response: ExtGetGuideGE,
+): GlobalCreateGuideResponse => {
+  const firstGuide = response.guias?.[0];
+  const firstShipment = response.envio?.[0];
+
+  return {
+    trackingNumber: firstGuide?.numero_guia || firstShipment?.guia || '',
+    shipmentNumber: firstGuide?.shipment_id || firstShipment?.envio_id || null,
+    source: 'GE',
+    carrier: firstShipment?.servicio || '',
+    price: firstShipment?.costo || '0',
+    guideLink: null,
+    labelUrl: firstGuide?.url || firstShipment?.url_etiqueta || null,
+    file: null,
+  };
+};
+
+export const formatGetGuidesResponseGE = (
+  responses: ExtGetGuideGE[],
+): GlobalCreateGuideResponse[] => responses.map(formatGetGuideResponseGE);
 
 export const formatAddressesGE = (
   addresses: ExtAddressGEResponse[],
