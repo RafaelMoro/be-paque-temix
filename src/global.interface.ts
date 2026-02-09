@@ -17,3 +17,7 @@ export interface GlobalCreateGuideResponse {
   labelUrl: string | null;
   file: string | null;
 }
+
+export interface GetGuideResponse extends GlobalCreateGuideResponse {
+  status: string;
+}

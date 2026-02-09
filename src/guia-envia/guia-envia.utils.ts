@@ -13,7 +13,10 @@ import {
   ExtGetGuideGE,
   AddressGE,
 } from './guia-envia.interface';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GetGuideResponse,
+  GlobalCreateGuideResponse,
+} from '@/global.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -150,7 +153,7 @@ export const formatCreateGuideResponseGE = (
 
 export const formatGetGuideResponseGE = (
   response: ExtGetGuideGE,
-): GlobalCreateGuideResponse => {
+): GetGuideResponse => {
   const firstGuide = response.guias?.[0];
   const firstShipment = response.envio?.[0];
 
@@ -158,6 +161,7 @@ export const formatGetGuideResponseGE = (
     trackingNumber: firstGuide?.numero_guia || firstShipment?.guia || '',
     shipmentNumber: firstGuide?.shipment_id || firstShipment?.envio_id || null,
     source: 'GE',
+    status: firstShipment?.estado || 'unknown',
     carrier: firstShipment?.servicio || '',
     price: firstShipment?.costo || '0',
     guideLink: null,
@@ -168,7 +172,7 @@ export const formatGetGuideResponseGE = (
 
 export const formatGetGuidesResponseGE = (
   responses: ExtGetGuideGE[],
-): GlobalCreateGuideResponse[] => responses.map(formatGetGuideResponseGE);
+): GetGuideResponse[] => responses.map(formatGetGuideResponseGE);
 
 export const formatAddressesGE = (
   addresses: ExtAddressGEResponse[],
