@@ -18,6 +18,18 @@ export interface GlobalCreateGuideResponse {
   file: string | null;
 }
 
+export interface AddressGuide {
+  name: string;
+  alias: string;
+  street: string;
+  streetNumber: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
 export interface GetGuideResponse extends GlobalCreateGuideResponse {
   status: string;
+  origin: AddressGuide;
+  destination: AddressGuide;
 }
