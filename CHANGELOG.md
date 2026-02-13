@@ -1,3 +1,9 @@
+## v0.31.1 (2026-02-13)
+
+### Pull Requests
+[#75](https://github.com/RafaelMoro/be-paque-temix/pull/75) | Add origin and destination info to get guides
+
+
 ## v0.31.0 (2026-02-13)
 
 ### Pull Requests
