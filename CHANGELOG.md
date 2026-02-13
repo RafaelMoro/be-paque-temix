@@ -1,3 +1,9 @@
+## v0.31.2 (2026-02-13)
+
+### Pull Requests
+[#76](https://github.com/RafaelMoro/be-paque-temix/pull/76) | Add courier prop get guides
+
+
 ## v0.31.1 (2026-02-13)
 
 ### Pull Requests
