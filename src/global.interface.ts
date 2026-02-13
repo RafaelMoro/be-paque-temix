@@ -9,10 +9,15 @@ export interface GeneralResponse {
 
 export interface GlobalCreateGuideResponse {
   trackingNumber: string;
+  shipmentNumber?: string | null;
   source: ProviderSource;
   carrier: string;
   price: string;
   guideLink: string | null;
   labelUrl: string | null;
   file: string | null;
+}
+
+export interface GetGuideResponse extends GlobalCreateGuideResponse {
+  status: string;
 }

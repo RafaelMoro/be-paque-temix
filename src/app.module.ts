@@ -19,6 +19,7 @@ import { QuotesModule } from './quotes/quotes.module';
 import { GlobalConfigsModule } from './global-configs/global-configs.module';
 import { TokenManagerModule } from './token-manager/token-manager.module';
 import { AddressesModule } from './addresses/addresses.module';
+import { GuidesModule } from './guides/guides.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { AddressesModule } from './addresses/addresses.module';
     GlobalConfigsModule,
     TokenManagerModule,
     AddressesModule,
+    GuidesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
