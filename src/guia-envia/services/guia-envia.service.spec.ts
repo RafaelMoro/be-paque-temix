@@ -19,6 +19,7 @@ import {
   CREATE_ADDRESS_ENDPOINT_GE,
   GET_SERVICES_ENDPOINT_GE,
   CREATE_GUIDE_ENDPOINT_GE,
+  GET_GUIDES_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   GEQuote,
@@ -35,7 +36,10 @@ import {
   ExtGetAllAddressesGEResponse,
   AddressGE,
   EditAddressGEDataResponse,
+  ExtGetGuidesGEResponse,
+  ExtGetGuideGE,
 } from '../guia-envia.interface';
+import { GetGuideResponse } from '@/global.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
 
 // Mock axios
@@ -3072,6 +3076,495 @@ describe('GuiaEnviaService', () => {
         'https://app.guiaenvia.com/label/EST987654321.pdf',
       );
       expect(result.data.guide!.file).toBe('base64-encoded-file-content');
+    });
+  });
+
+  describe('getGuides', () => {
+    const mockExtGetGuidesGEResponse: ExtGetGuidesGEResponse = {
+      data: [
+        {
+          id: 'guide-1',
+          origen: {
+            cp: '72000',
+            colonia: 'Centro',
+            ciudad: 'Heroica Puebla de Zaragoza',
+            estado: 'Puebla',
+            nombre: 'Juan Pérez',
+            email: 'juan.perez@example.com',
+            telefono: '+52 222 123 4567',
+            empresa: 'Empresa SA de CV',
+            rfc: 'XAXX010101000',
+            calle: 'Avenida Juárez',
+            numero: '123',
+            referencia: 'Entre calle A y calle B',
+            alias: 'Casa Principal',
+          },
+          destino: {
+            cp: '94298',
+            colonia: 'Las Flores',
+            ciudad: 'Boca del Río',
+            estado: 'Veracruz',
+            nombre: 'María García',
+            email: 'maria.garcia@example.com',
+            telefono: '+52 229 987 6543',
+            empresa: 'Corporativo XYZ',
+            rfc: 'MARY010101000',
+            calle: 'Calle Principal',
+            numero: '456',
+            referencia: 'Casa azul',
+            alias: 'Oficina Centro',
+          },
+          estado: 'completo',
+          resumen: {
+            total_solicitadas: 1,
+            exitosas: 1,
+            fallidas: 0,
+            costo_total: 156.13,
+            fecha_procesamiento: '2026-02-02T17:49:03.813Z',
+            tiempo_procesamiento: 19573,
+          },
+          createdAt: '2026-02-02T17:49:03.813Z',
+          updatedAt: '2026-02-02T17:49:03.813Z',
+          guias: [
+            {
+              numero_guia: 'GE123456789',
+              url: 'https://app.guiaenvia.com/label/GE123456789.pdf',
+              shipment_id: 'shipment-001',
+              parcel_id: 'parcel-001',
+            },
+          ],
+          envio: [
+            {
+              indice: 0,
+              envio_id: 'shipment-001',
+              servicio: 'Estafeta Express',
+              costo: '156.13',
+              guia: 'GE123456789',
+              estado: 'generado',
+              url_etiqueta: 'https://app.guiaenvia.com/label/GE123456789.pdf',
+              fecha_generacion: '2026-02-02T17:49:03.813Z',
+            },
+          ],
+        },
+        {
+          id: 'guide-2',
+          origen: {
+            cp: '72000',
+            colonia: 'Centro',
+            ciudad: 'Heroica Puebla de Zaragoza',
+            estado: 'Puebla',
+            nombre: 'Juan Pérez',
+            email: 'juan.perez@example.com',
+            telefono: '+52 222 123 4567',
+            empresa: 'Empresa SA de CV',
+            rfc: 'XAXX010101000',
+            calle: 'Avenida Juárez',
+            numero: '123',
+            referencia: 'Entre calle A y calle B',
+            alias: 'Casa Principal',
+          },
+          destino: {
+            cp: '03100',
+            colonia: 'Del Valle',
+            ciudad: 'Ciudad de México',
+            estado: 'CDMX',
+            nombre: 'Carlos López',
+            email: 'carlos.lopez@example.com',
+            telefono: '+52 55 1234 5678',
+            empresa: 'Tech Corp',
+            rfc: 'CARL010101000',
+            calle: 'Av. Universidad',
+            numero: '789',
+            referencia: 'Edificio moderno',
+            alias: 'Oficina CDMX',
+          },
+          estado: 'completo',
+          resumen: {
+            total_solicitadas: 1,
+            exitosas: 1,
+            fallidas: 0,
+            costo_total: 120.5,
+            fecha_procesamiento: '2026-02-03T10:30:00.000Z',
+            tiempo_procesamiento: 15000,
+          },
+          createdAt: '2026-02-03T10:30:00.000Z',
+          updatedAt: '2026-02-03T10:30:00.000Z',
+          guias: [
+            {
+              numero_guia: 'DHL987654321',
+              url: 'https://app.guiaenvia.com/label/DHL987654321.pdf',
+              shipment_id: 'shipment-002',
+              parcel_id: 'parcel-002',
+            },
+          ],
+          envio: [
+            {
+              indice: 0,
+              envio_id: 'shipment-002',
+              servicio: 'DHL Terrestre',
+              costo: '120.5',
+              guia: 'DHL987654321',
+              estado: 'generado',
+              url_etiqueta: 'https://app.guiaenvia.com/label/DHL987654321.pdf',
+              fecha_generacion: '2026-02-03T10:30:00.000Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    const mockFormattedGuides: GetGuideResponse[] = [
+      {
+        trackingNumber: 'GE123456789',
+        shipmentNumber: 'shipment-001',
+        source: 'GE',
+        status: 'generado',
+        carrier: 'Estafeta Express',
+        price: '156.13',
+        guideLink: null,
+        labelUrl: 'https://app.guiaenvia.com/label/GE123456789.pdf',
+        file: null,
+      },
+      {
+        trackingNumber: 'DHL987654321',
+        shipmentNumber: 'shipment-002',
+        source: 'GE',
+        status: 'generado',
+        carrier: 'DHL Terrestre',
+        price: '120.5',
+        guideLink: null,
+        labelUrl: 'https://app.guiaenvia.com/label/DHL987654321.pdf',
+        file: null,
+      },
+    ];
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully get guides from Guia Envia', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockExtGetGuidesGEResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await service.getGuides();
+
+      expect(result).toEqual(mockFormattedGuides);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `${mockConfig.guiaEnvia.uri}${GET_GUIDES_ENDPOINT_GE}`,
+        {
+          headers: {
+            Authorization: mockConfig.guiaEnvia.apiKey,
+          },
+        },
+      );
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const configWithoutApiKey = {
+        guiaEnvia: {
+          apiKey: '',
+          uri: 'https://test-guia-envia.com',
+        },
+      };
+      service = await createServiceWithConfig(configWithoutApiKey);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(
+        GE_MISSING_API_KEY_ERROR,
+      );
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const configWithoutUri = {
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: '',
+        },
+      };
+      service = await createServiceWithConfig(configWithoutUri);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(GE_MISSING_URI_ERROR);
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when API key is null', async () => {
+      const configWithNullApiKey = {
+        guiaEnvia: {
+          apiKey: null,
+          uri: 'https://test-guia-envia.com',
+        },
+      };
+      service = await createServiceWithConfig(configWithNullApiKey as any);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(
+        GE_MISSING_API_KEY_ERROR,
+      );
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when URI is null', async () => {
+      const configWithNullUri = {
+        guiaEnvia: {
+          apiKey: 'test-ge-api-key',
+          uri: null,
+        },
+      };
+      service = await createServiceWithConfig(configWithNullUri as any);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(GE_MISSING_URI_ERROR);
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: { error: 'API Error', message: 'Invalid request' },
+        },
+      };
+      mockedAxios.isAxiosError.mockReturnValue(true);
+      mockedAxios.get.mockRejectedValue(axiosError);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw BadRequestException when axios throws axios error', async () => {
+      const axiosError = {
+        isAxiosError: true,
+        response: {
+          data: { error: 'Unauthorized', message: 'Invalid API key' },
+        },
+      };
+      mockedAxios.isAxiosError.mockReturnValue(true);
+      mockedAxios.get.mockRejectedValue(axiosError);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('Invalid API key'),
+        }),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      const unknownError = { some: 'unknown error' };
+      mockedAxios.isAxiosError.mockReturnValue(false);
+      mockedAxios.get.mockRejectedValue(unknownError);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(
+        'An unknown error occurred',
+      );
+    });
+
+    it('should handle response with empty guides array', async () => {
+      const emptyResponse: ExtGetGuidesGEResponse = {
+        data: [],
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: emptyResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await service.getGuides();
+
+      expect(result).toEqual([]);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle response with undefined data', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: { data: undefined },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      // When data is undefined, formatGetGuidesResponseGE will throw an error
+      await expect(service.getGuides()).rejects.toThrow();
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle single guide in response', async () => {
+      const singleGuideResponse: ExtGetGuidesGEResponse = {
+        data: [mockExtGetGuidesGEResponse.data[0]],
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: singleGuideResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await service.getGuides();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        trackingNumber: 'GE123456789',
+        shipmentNumber: 'shipment-001',
+        source: 'GE',
+        status: 'generado',
+        carrier: 'Estafeta Express',
+        price: '156.13',
+      });
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('should construct correct URL with guides endpoint', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockExtGetGuidesGEResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      await service.getGuides();
+
+      const expectedUrl = `${mockConfig.guiaEnvia.uri}${GET_GUIDES_ENDPOINT_GE}`;
+      expect(mockedAxios.get).toHaveBeenCalledWith(expectedUrl, {
+        headers: {
+          Authorization: mockConfig.guiaEnvia.apiKey,
+        },
+      });
+    });
+
+    it('should validate configuration before making API call', async () => {
+      const invalidConfig = {
+        guiaEnvia: {
+          apiKey: '',
+          uri: '',
+        },
+      };
+      service = await createServiceWithConfig(invalidConfig);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should handle Error instance correctly', async () => {
+      const error = new Error('Generic error message');
+      mockedAxios.isAxiosError.mockReturnValue(false);
+      mockedAxios.get.mockRejectedValue(error);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+      await expect(service.getGuides()).rejects.toThrow(
+        'Generic error message',
+      );
+    });
+
+    it('should handle guides with missing shipment data gracefully', async () => {
+      const guideWithMissingData: ExtGetGuidesGEResponse = {
+        data: [
+          {
+            id: 'guide-3',
+            origen: mockExtGetGuidesGEResponse.data[0].origen,
+            destino: mockExtGetGuidesGEResponse.data[0].destino,
+            estado: 'pendiente',
+            resumen: {
+              total_solicitadas: 1,
+              exitosas: 0,
+              fallidas: 1,
+              costo_total: 0,
+              fecha_procesamiento: '2026-02-04T12:00:00.000Z',
+              tiempo_procesamiento: 5000,
+            },
+            createdAt: '2026-02-04T12:00:00.000Z',
+            updatedAt: '2026-02-04T12:00:00.000Z',
+            guias: [],
+            envio: [],
+          },
+        ],
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: guideWithMissingData,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await service.getGuides();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        trackingNumber: '',
+        shipmentNumber: null,
+        source: 'GE',
+        status: 'unknown',
+        carrier: '',
+        price: '0',
+        guideLink: null,
+        labelUrl: null,
+        file: null,
+      });
+    });
+
+    it('should format multiple guides correctly', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockExtGetGuidesGEResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await service.getGuides();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].trackingNumber).toBe('GE123456789');
+      expect(result[0].carrier).toBe('Estafeta Express');
+      expect(result[1].trackingNumber).toBe('DHL987654321');
+      expect(result[1].carrier).toBe('DHL Terrestre');
+    });
+
+    it('should handle network errors from axios', async () => {
+      const networkError = {
+        isAxiosError: true,
+        message: 'Network Error',
+        response: undefined,
+      };
+      mockedAxios.isAxiosError.mockReturnValue(true);
+      mockedAxios.get.mockRejectedValue(networkError);
+
+      await expect(service.getGuides()).rejects.toThrow(BadRequestException);
+    });
+
+    it('should include correct authorization header in request', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: mockExtGetGuidesGEResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      await service.getGuides();
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(expect.any(String), {
+        headers: {
+          Authorization: mockConfig.guiaEnvia.apiKey,
+        },
+      });
     });
   });
 });

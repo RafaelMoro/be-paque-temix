@@ -10,9 +10,13 @@ import {
   CreateGuideGeRequest,
   ExtCreateGuideGEPayload,
   ExtCreateGuideGEResponse,
+  ExtGetGuideGE,
   AddressGE,
 } from './guia-envia.interface';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GetGuideResponse,
+  GlobalCreateGuideResponse,
+} from '@/global.interface';
 import { GetQuoteGEDto } from './dtos/guia-envia.dtos';
 import {
   GetQuoteData,
@@ -136,6 +140,8 @@ export const formatCreateGuideResponseGE = (
 
   return {
     trackingNumber: firstGuide?.numero_guia || '',
+    // This is the id used for the endpoint of getting the shipment info
+    shipmentNumber: firstShipment?.envio_id || null,
     carrier: firstShipment.servicio,
     price: firstShipment?.costo || '0',
     guideLink: null,
@@ -144,6 +150,29 @@ export const formatCreateGuideResponseGE = (
     file: null, // GE doesn't provide file, set to null
   };
 };
+
+export const formatGetGuideResponseGE = (
+  response: ExtGetGuideGE,
+): GetGuideResponse => {
+  const firstGuide = response.guias?.[0];
+  const firstShipment = response.envio?.[0];
+
+  return {
+    trackingNumber: firstGuide?.numero_guia || firstShipment?.guia || '',
+    shipmentNumber: firstGuide?.shipment_id || firstShipment?.envio_id || null,
+    source: 'GE',
+    status: firstShipment?.estado || 'unknown',
+    carrier: firstShipment?.servicio || '',
+    price: firstShipment?.costo || '0',
+    guideLink: null,
+    labelUrl: firstGuide?.url || firstShipment?.url_etiqueta || null,
+    file: null,
+  };
+};
+
+export const formatGetGuidesResponseGE = (
+  responses: ExtGetGuideGE[],
+): GetGuideResponse[] => responses.map(formatGetGuideResponseGE);
 
 export const formatAddressesGE = (
   addresses: ExtAddressGEResponse[],

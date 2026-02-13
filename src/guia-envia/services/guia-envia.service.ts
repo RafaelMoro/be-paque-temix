@@ -13,6 +13,7 @@ import {
   CREATE_ADDRESS_ENDPOINT_GE,
   GET_SERVICES_ENDPOINT_GE,
   CREATE_GUIDE_ENDPOINT_GE,
+  GET_GUIDES_ENDPOINT_GE,
 } from '../guia-envia.constants';
 import {
   NeighborhoodGE,
@@ -30,6 +31,7 @@ import {
   GetAliasesGEDataResponse,
   DeleteAddressGEDataResponse,
   EditAddressGEDataResponse,
+  ExtGetGuidesGEResponse,
 } from '../guia-envia.interface';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
 import {
@@ -38,6 +40,7 @@ import {
   formatCreateAddressResponseGE,
   formatCreateGuidePayloadGE,
   formatCreateGuideResponseGE,
+  formatGetGuidesResponseGE,
   formatNeighborhoodGE,
   formatPayloadGE,
   formatQuotesGE,
@@ -422,6 +425,40 @@ export class GuiaEnviaService {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getGuides() {
+    try {
+      const apiKey = this.configService.guiaEnvia.apiKey!;
+      const uri = this.configService.guiaEnvia.uri!;
+      if (!apiKey) {
+        throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(GE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_GUIDES_ENDPOINT_GE}`;
+      const response: AxiosResponse<ExtGetGuidesGEResponse, unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data?.data;
+      const formattedData = formatGetGuidesResponseGE(data);
+      return formattedData;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log(error?.response?.data);
+        throw new BadRequestException(error?.response?.data);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      console.log('error get guides ge', error);
       throw new BadRequestException('An unknown error occurred');
     }
   }
