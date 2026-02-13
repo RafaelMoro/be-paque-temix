@@ -32,12 +32,8 @@ import {
   GetServiceGEResponse,
   CreateGuideGeRequest,
   ExtCreateGuideGEResponse,
-  CreateGuideGEDataResponse,
   ExtGetAllAddressesGEResponse,
-  AddressGE,
-  EditAddressGEDataResponse,
   ExtGetGuidesGEResponse,
-  ExtGetGuideGE,
 } from '../guia-envia.interface';
 import { GetGuideResponse } from '@/global.interface';
 import { GetQuoteGEDto } from '../dtos/guia-envia.dtos';
@@ -1069,56 +1065,6 @@ describe('GuiaEnviaService', () => {
 
   describe('deleteGEAddress', () => {
     const mockAddressId = 'address-1';
-    const mockGetAllAddressesResponse: ExtGetAllAddressesGEResponse = {
-      data: [
-        {
-          id: 'address-1',
-          cp: '72000',
-          colonia: 'Centro',
-          ciudad: 'Heroica Puebla de Zaragoza',
-          estado: 'Puebla',
-          nombre: 'Juan Pérez',
-          email: 'juan.perez@example.com',
-          telefono: '+52 222 123 4567',
-          empresa: 'Empresa SA de CV',
-          rfc: 'XAXX010101000',
-          calle: 'Avenida Juárez',
-          numero: '123',
-          referencia: 'Entre calle A y calle B, edificio azul',
-          alias: 'Casa Principal',
-          users: 'user123',
-          createdAt: '2023-10-22T12:00:00Z',
-          updatedAt: '2023-10-22T12:00:00Z',
-        },
-        {
-          id: 'address-2',
-          cp: '94298',
-          colonia: 'Las Flores',
-          ciudad: 'Boca del Río',
-          estado: 'Veracruz',
-          nombre: 'María García',
-          email: 'maria.garcia@example.com',
-          telefono: '+52 229 987 6543',
-          empresa: 'Corporativo XYZ',
-          rfc: 'MARY010101000',
-          calle: 'Calle Principal',
-          numero: '456',
-          referencia: 'Casa azul',
-          alias: 'Oficina Centro',
-          users: 'user456',
-          createdAt: '2023-10-22T13:00:00Z',
-          updatedAt: '2023-10-22T13:00:00Z',
-        },
-      ],
-      meta: {
-        page: 1,
-        limit: 10,
-        total: 2,
-        pages: 1,
-        hasNext: false,
-        hasPrev: false,
-      },
-    };
 
     const mockConfigWithVersion = {
       ...mockConfig,
@@ -3224,6 +3170,24 @@ describe('GuiaEnviaService', () => {
         guideLink: null,
         labelUrl: 'https://app.guiaenvia.com/label/GE123456789.pdf',
         file: null,
+        origin: {
+          name: 'Juan Pérez',
+          alias: 'Casa Principal',
+          street: 'Avenida Juárez',
+          streetNumber: '123',
+          neighborhood: 'Centro',
+          city: 'Heroica Puebla de Zaragoza',
+          state: 'Puebla',
+        },
+        destination: {
+          name: 'María García',
+          alias: 'Oficina Centro',
+          street: 'Calle Principal',
+          streetNumber: '456',
+          neighborhood: 'Las Flores',
+          city: 'Boca del Río',
+          state: 'Veracruz',
+        },
       },
       {
         trackingNumber: 'DHL987654321',
@@ -3235,6 +3199,24 @@ describe('GuiaEnviaService', () => {
         guideLink: null,
         labelUrl: 'https://app.guiaenvia.com/label/DHL987654321.pdf',
         file: null,
+        origin: {
+          name: 'Juan Pérez',
+          alias: 'Casa Principal',
+          street: 'Avenida Juárez',
+          streetNumber: '123',
+          neighborhood: 'Centro',
+          city: 'Heroica Puebla de Zaragoza',
+          state: 'Puebla',
+        },
+        destination: {
+          name: 'Carlos López',
+          alias: 'Oficina CDMX',
+          street: 'Av. Universidad',
+          streetNumber: '789',
+          neighborhood: 'Del Valle',
+          city: 'Ciudad de México',
+          state: 'CDMX',
+        },
       },
     ];
 
