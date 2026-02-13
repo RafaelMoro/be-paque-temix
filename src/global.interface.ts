@@ -1,4 +1,4 @@
-import { ProviderSource } from './quotes/quotes.interface';
+import { ProviderSource, QuoteCourier } from './quotes/quotes.interface';
 
 export interface GeneralResponse {
   version: string;
@@ -30,6 +30,7 @@ export interface AddressGuide {
 
 export interface GetGuideResponse extends GlobalCreateGuideResponse {
   status: string;
+  courier: QuoteCourier | null;
   origin: AddressGuide;
   destination: AddressGuide;
 }

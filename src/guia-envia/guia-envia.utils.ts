@@ -167,6 +167,7 @@ export const formatGetGuideResponseGE = (
     guideLink: null,
     labelUrl: firstGuide?.url || firstShipment?.url_etiqueta || null,
     file: null,
+    courier: getGeCourier(firstShipment?.servicio || ''),
     origin: {
       name: response.origen?.nombre || '',
       alias: response.origen?.alias || '',
