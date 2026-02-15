@@ -167,6 +167,25 @@ export const formatGetGuideResponseGE = (
     guideLink: null,
     labelUrl: firstGuide?.url || firstShipment?.url_etiqueta || null,
     file: null,
+    courier: getGeCourier(firstShipment?.servicio || ''),
+    origin: {
+      name: response.origen?.nombre || '',
+      alias: response.origen?.alias || '',
+      street: response.origen?.calle || '',
+      streetNumber: response.origen?.numero || '',
+      neighborhood: response.origen?.colonia || '',
+      city: response.origen?.ciudad || '',
+      state: response.origen?.estado || '',
+    },
+    destination: {
+      name: response.destino?.nombre || '',
+      alias: response.destino?.alias || '',
+      street: response.destino?.calle || '',
+      streetNumber: response.destino?.numero || '',
+      neighborhood: response.destino?.colonia || '',
+      city: response.destino?.ciudad || '',
+      state: response.destino?.estado || '',
+    },
   };
 };
 
