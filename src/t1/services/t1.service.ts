@@ -18,6 +18,7 @@ import {
   T1CreateGuideRequest,
   T1ExternalCreateGuideResponse,
   CreateGuideToneDataResponse,
+  T1ExternalCreateGuideRequest,
 } from '../t1.interface';
 import {
   formatPayloadCreateGuideT1,
@@ -299,7 +300,7 @@ export class T1Service {
    * Private method to create guide in T1 API with a given token
    */
   private async createT1Guide(
-    payloadFormatted: any,
+    payloadFormatted: T1ExternalCreateGuideRequest,
     token: string,
   ): Promise<T1ExternalCreateGuideResponse> {
     try {
