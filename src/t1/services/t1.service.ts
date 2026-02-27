@@ -7,6 +7,7 @@ import {
   CREATE_GUIDE_T1_ENDPOINT,
   QUOTE_T1_ENDPOINT,
   T1_MISSING_ACCESS_TOKEN,
+  T1_MISSING_GUIDES_URI_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
@@ -296,6 +297,17 @@ export class T1Service {
     };
   }
 
+  async retrieveT1Guides() {
+    const { result, messages } = await this.executeWithT1Token(
+      (token) => this.getGuides(token),
+      'guides fetching',
+    );
+    return {
+      data: result,
+      messages,
+    };
+  }
+
   /**
    * Private method to create guide in T1 API with a given token
    */
@@ -304,15 +316,7 @@ export class T1Service {
     token: string,
   ): Promise<T1ExternalCreateGuideResponse> {
     try {
-      const uri = this.configService.t1.uri!;
-      const storeId = this.configService.t1.storeId!;
-
-      if (!uri) {
-        throw new BadRequestException(T1_MISSING_URI_ERROR);
-      }
-      if (!storeId) {
-        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
-      }
+      const { uri, storeId } = this.checkUriAndStoreId();
 
       const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
       const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
@@ -332,6 +336,54 @@ export class T1Service {
       }
       if (error instanceof Error) {
         console.log('Error in createT1Guide:', error.message);
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  private checkUriAndStoreId() {
+    const uri = this.configService.t1.uri!;
+    const guidesUri = this.configService.t1.guidesUri!;
+    const storeId = this.configService.t1.storeId!;
+
+    if (!uri) {
+      throw new BadRequestException(T1_MISSING_URI_ERROR);
+    }
+    if (!guidesUri) {
+      throw new BadRequestException(T1_MISSING_GUIDES_URI_ERROR);
+    }
+    if (!storeId) {
+      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+    }
+    return {
+      uri,
+      guidesUri,
+      storeId,
+    };
+  }
+
+  private async getGuides(token: string) {
+    try {
+      const { guidesUri, storeId } = this.checkUriAndStoreId();
+      const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/1/pag/1`;
+      const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 45000, // 45 seconds timeout
+        });
+      const data = response?.data;
+      console.log('T1 getGuides response data:', data);
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log('Error in getGuidesT1:', error?.response?.data);
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        console.log('Error in getGuidesT1:', error.message);
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('An unknown error occurred');

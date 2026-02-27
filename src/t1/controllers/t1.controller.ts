@@ -1,5 +1,5 @@
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { T1Service } from '../services/t1.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
@@ -24,5 +24,19 @@ export class T1Controller {
   })
   async createGuide(@Body() payload: CreateGuideToneRequestDto) {
     return this.t1Service.createGuide(payload);
+  }
+
+  @Get('get-guides')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get guides for T1.',
+  })
+  // @ApiResponse({
+  //   status: 200,
+  //   type: CreateGuideToneResponseDto,
+  //   description: 'Guides retrieved successfully.',
+  // })
+  async getGuides() {
+    return this.t1Service.retrieveT1Guides();
   }
 }
