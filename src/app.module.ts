@@ -52,6 +52,7 @@ import { GuidesModule } from './guides/guides.module';
         T1_USERNAME: Joi.string().email().required(),
         T1_PASSWORD: Joi.string().required(),
         T1_STORE_ID: Joi.string().required(),
+        T1_GUIDES_URI: Joi.string().uri().required(),
         PAKKE_KEY: Joi.string().required(),
         PAKKE_URI: Joi.string().uri().required(),
         MANUABLE_EM: Joi.string().email().required(),

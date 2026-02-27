@@ -26,6 +26,7 @@ export default registerAs('config', () => {
     T1_USERNAME,
     T1_PASSWORD,
     T1_STORE_ID,
+    T1_GUIDES_URI,
     PAKKE_KEY,
     PAKKE_URI,
     MANUABLE_EM,
@@ -63,6 +64,7 @@ export default registerAs('config', () => {
     },
     t1: {
       uri: T1_URI,
+      guidesUri: T1_GUIDES_URI,
       tkUri: T1_TK_URI,
       tkClientId: T1_CLIENT_ID,
       tkClientSecret: T1_CLIENT_SECRET,
