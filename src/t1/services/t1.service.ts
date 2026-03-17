@@ -32,7 +32,7 @@ import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entit
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { PROD_ENV } from '@/app.constant';
+import { DEV_ENV, PROD_ENV } from '@/app.constant';
 import {
   TokenManagerService,
   TokenOperations,
@@ -344,8 +344,10 @@ export class T1Service {
 
   private checkUriAndStoreId() {
     const uri = this.configService.t1.uri!;
+    const environment = this.configService.environment!;
     const guidesUri = this.configService.t1.guidesUri!;
     const storeId = this.configService.t1.storeId!;
+    const defaultStoreId = this.configService.t1.guidesDefaultStoreId!;
 
     if (!uri) {
       throw new BadRequestException(T1_MISSING_URI_ERROR);
@@ -353,20 +355,22 @@ export class T1Service {
     if (!guidesUri) {
       throw new BadRequestException(T1_MISSING_GUIDES_URI_ERROR);
     }
-    if (!storeId) {
+    if (!storeId || !defaultStoreId) {
       throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
     }
+    const currentStoreId = environment === DEV_ENV ? defaultStoreId : storeId;
+
     return {
       uri,
       guidesUri,
-      storeId,
+      storeId: currentStoreId,
     };
   }
 
   private async getGuides(token: string) {
     try {
       const { guidesUri, storeId } = this.checkUriAndStoreId();
-      const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/1/pag/1`;
+      const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/10/pag/1`;
       const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
         await axios.get(url, {
           headers: {
