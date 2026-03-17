@@ -20,6 +20,7 @@ import {
   T1ExternalCreateGuideResponse,
   CreateGuideToneDataResponse,
   T1ExternalCreateGuideRequest,
+  T1GetGuideResponse,
 } from '../t1.interface';
 import {
   formatPayloadCreateGuideT1,
@@ -371,7 +372,7 @@ export class T1Service {
     try {
       const { guidesUri, storeId } = this.checkUriAndStoreId();
       const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/10/pag/1`;
-      const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
+      const response: AxiosResponse<T1GetGuideResponse, unknown> =
         await axios.get(url, {
           headers: {
             Authorization: `Bearer ${token}`,
