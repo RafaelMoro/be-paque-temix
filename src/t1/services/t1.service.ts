@@ -40,6 +40,7 @@ import {
   TokenManagerService,
   TokenOperations,
 } from '@/token-manager/services/token-manager.service';
+import { GetGuideResponse } from '@/global.interface';
 
 @Injectable()
 export class T1Service {
@@ -370,7 +371,7 @@ export class T1Service {
     };
   }
 
-  private async getGuides(token: string) {
+  private async getGuides(token: string): Promise<GetGuideResponse[]> {
     try {
       const { guidesUri, storeId } = this.checkUriAndStoreId();
       const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/10/pag/1`;
