@@ -11,6 +11,7 @@ import {
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
+  T1_TOKEN_DECODE_ERROR,
 } from '../t1.constants';
 import {
   T1GetQuoteResponse,
@@ -381,6 +382,20 @@ export class T1Service {
         });
       const data = response?.data;
       console.log('T1 getGuides response data:', data);
+
+      // Check if response contains token validation error
+      const responseWithError = data as {
+        error?: { message?: string };
+      };
+      const errorMessage = responseWithError?.error?.message;
+      if (
+        typeof errorMessage === 'string' &&
+        errorMessage.includes(T1_TOKEN_DECODE_ERROR)
+      ) {
+        console.log('Token decode error detected in response');
+        throw new BadRequestException(T1_TOKEN_DECODE_ERROR);
+      }
+
       return data;
     } catch (error) {
       if (axios.isAxiosError(error)) {

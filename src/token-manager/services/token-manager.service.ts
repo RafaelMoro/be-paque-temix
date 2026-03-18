@@ -1,6 +1,7 @@
 import {
   T1_INVALID_TOKEN_ERROR,
   T1_USER_NOT_FOUND_ERROR,
+  T1_TOKEN_DECODE_ERROR,
 } from '@/t1/t1.constants';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -30,8 +31,10 @@ export class TokenManagerService {
 
     return (
       error.message === 'Request failed with status code 401' ||
-      error.message.includes(T1_INVALID_TOKEN_ERROR) ||
-      error.message.includes(T1_USER_NOT_FOUND_ERROR) ||
+      (typeof error.message === 'string' &&
+        (error.message.includes(T1_INVALID_TOKEN_ERROR) ||
+          error.message.includes(T1_USER_NOT_FOUND_ERROR) ||
+          error.message.includes(T1_TOKEN_DECODE_ERROR))) ||
       httpError.statusCode === 401 ||
       httpError.response?.status === 401
     );
