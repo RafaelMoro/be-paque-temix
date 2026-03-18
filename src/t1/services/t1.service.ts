@@ -28,6 +28,7 @@ import {
   formatPayloadT1,
   formatT1QuoteData,
   formatT1CreateGuideResponse,
+  formatT1GetGuideResponse,
 } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
@@ -381,7 +382,7 @@ export class T1Service {
           timeout: 45000, // 45 seconds timeout
         });
       const data = response?.data;
-      console.log('T1 getGuides response data:', data);
+      const transformedData = formatT1GetGuideResponse(data);
 
       // Check if response contains token validation error
       const responseWithError = data as {
@@ -396,7 +397,7 @@ export class T1Service {
         throw new BadRequestException(T1_TOKEN_DECODE_ERROR);
       }
 
-      return data;
+      return transformedData;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log('Error in getGuidesT1:', error?.response?.data);
