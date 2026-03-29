@@ -49,7 +49,7 @@ export class GuidesService {
     const allGuides = [...geQuotesData, ...t1QuotesData];
     return {
       version: npmVersion,
-      message: null,
+      message: messages.length > 0 ? messages[0] : null,
       messages: messages,
       error: null,
       data: {
