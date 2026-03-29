@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuidesService } from './guides.service';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
+import { T1Service } from '@/t1/services/t1.service';
 import config from '@/config';
 import { GetGuideResponse } from '@/global.interface';
 import { GetQuoteDataResponse } from '../guides.interface';
@@ -8,6 +9,7 @@ import { GetQuoteDataResponse } from '../guides.interface';
 describe('GuidesService', () => {
   let service: GuidesService;
   let guiaEnviaService: jest.Mocked<GuiaEnviaService>;
+  let t1Service: jest.Mocked<T1Service>;
 
   const mockConfig = {
     version: '1.0.0',
@@ -85,12 +87,20 @@ describe('GuidesService', () => {
       getGuides: jest.fn(),
     };
 
+    const mockT1Service = {
+      retrieveT1Guides: jest.fn().mockResolvedValue({ data: [], messages: [] }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GuidesService,
         {
           provide: GuiaEnviaService,
           useValue: mockGuiaEnviaService,
+        },
+        {
+          provide: T1Service,
+          useValue: mockT1Service,
         },
         {
           provide: config.KEY,
@@ -101,6 +111,7 @@ describe('GuidesService', () => {
 
     service = module.get<GuidesService>(GuidesService);
     guiaEnviaService = module.get(GuiaEnviaService);
+    t1Service = module.get(T1Service);
   });
 
   afterEach(() => {
@@ -136,8 +147,8 @@ describe('GuidesService', () => {
 
       expect(result).toEqual({
         version: '1.0.0',
-        message: null,
-        messages: [],
+        message: 'GE failed to get guides',
+        messages: ['GE failed to get guides', 'GE Error: API Error'],
         error: null,
         data: {
           guides: [],
@@ -226,6 +237,8 @@ describe('GuidesService', () => {
       const result = await service.getGuides();
 
       expect(result.data.guides).toEqual([]);
+      expect(result.messages).toContain('GE failed to get guides');
+      expect(result.messages).toContain('GE Error: Service unavailable');
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
     });
 
@@ -236,6 +249,8 @@ describe('GuidesService', () => {
 
       expect(result.data.guides).toEqual([]);
       expect(result.error).toBeNull();
+      expect(result.messages).toContain('GE failed to get guides');
+      expect(result.messages).toContain('GE Error: Network error');
     });
 
     it('should handle timeout errors gracefully', async () => {
@@ -247,6 +262,8 @@ describe('GuidesService', () => {
 
       expect(result.data.guides).toEqual([]);
       expect(result.error).toBeNull();
+      expect(result.messages).toContain('GE failed to get guides');
+      expect(result.messages).toContain('GE Error: Request timeout');
     });
 
     it('should maintain guide data integrity', async () => {

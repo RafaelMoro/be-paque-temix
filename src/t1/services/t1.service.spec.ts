@@ -25,7 +25,10 @@ import {
   T1CreateGuideRequest,
   T1ExternalCreateGuideResponse,
 } from '../t1.interface';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GlobalCreateGuideResponse,
+  GetGuideResponse,
+} from '@/global.interface';
 import { GetQuoteT1Dto } from '../dtos/t1.dtos';
 
 // Mock axios
@@ -45,6 +48,8 @@ describe('T1Service', () => {
       tkPassword: 'test-password',
       uri: 'https://test-t1.com',
       storeId: 'test-store-id',
+      guidesUri: 'https://test-t1-guides.com',
+      guidesDefaultStoreId: 'default-store-id',
     },
     environment: 'development',
     version: '1.0.0',
@@ -305,6 +310,8 @@ describe('T1Service', () => {
           tkPassword: 'test-password',
           uri: 'https://test-t1.com',
           storeId: 'test-store-id',
+          guidesUri: 'https://test-t1-guides.com',
+          guidesDefaultStoreId: 'default-store-id',
         },
         environment: 'development',
         version: '1.0.0',
@@ -334,6 +341,8 @@ describe('T1Service', () => {
           tkPassword: 'test-password',
           uri: '',
           storeId: 'test-store-id',
+          guidesUri: 'https://test-t1-guides.com',
+          guidesDefaultStoreId: 'default-store-id',
         },
         environment: 'development',
         version: '1.0.0',
@@ -361,6 +370,8 @@ describe('T1Service', () => {
           tkPassword: 'test-password',
           uri: 'https://test-t1.com',
           storeId: '',
+          guidesUri: 'https://test-t1-guides.com',
+          guidesDefaultStoreId: 'default-store-id',
         },
         environment: 'development',
         version: '1.0.0',
@@ -753,6 +764,230 @@ describe('T1Service', () => {
       await expect(service.createGuide(mockCreateGuidePayload)).rejects.toThrow(
         new BadRequestException('T1: Failed to create guide'),
       );
+    });
+  });
+
+  describe('retrieveT1Guides', () => {
+    const mockGuides: GetGuideResponse[] = [
+      {
+        trackingNumber: 'GUIDE123456',
+        shipmentNumber: 'SHIP123456',
+        source: 'TONE',
+        status: 'delivered',
+        carrier: 'T1 Express',
+        courier: 'NextDay',
+        price: '150.50',
+        guideLink: 'https://example.com/guide/123456',
+        labelUrl: 'https://example.com/label/123456.pdf',
+        file: null,
+        order: 'ORD123456',
+        guide: 'GUIDE123456',
+        trackingLink: 'https://example.com/tracking/123456',
+        shippingLink: 'https://example.com/shipping/123456',
+        origin: null,
+        destination: {
+          name: 'John Doe',
+          alias: 'Home',
+          street: 'Main Street',
+          streetNumber: '123',
+          neighborhood: 'Downtown',
+          city: 'Test City',
+          state: 'Test State',
+        },
+      },
+      {
+        trackingNumber: 'GUIDE789012',
+        shipmentNumber: 'SHIP789012',
+        source: 'TONE',
+        status: 'in_transit',
+        carrier: 'T1 Standard',
+        courier: 'NextDay',
+        price: '85.75',
+        guideLink: 'https://example.com/guide/789012',
+        labelUrl: 'https://example.com/label/789012.pdf',
+        file: null,
+        order: 'ORD789012',
+        guide: 'GUIDE789012',
+        trackingLink: 'https://example.com/tracking/789012',
+        shippingLink: 'https://example.com/shipping/789012',
+        origin: null,
+        destination: {
+          name: 'Jane Smith',
+          alias: 'Office',
+          street: 'Business Blvd',
+          streetNumber: '456',
+          neighborhood: 'Business District',
+          city: 'Commerce City',
+          state: 'Commerce State',
+        },
+      },
+    ];
+
+    it('should successfully retrieve guides using TokenManagerService', async () => {
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: mockGuides,
+        messages: [
+          'T1: Token valid',
+          'T1: guides fetching completed successfully',
+        ],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.retrieveT1Guides();
+
+      expect(mockExecuteWithToken).toHaveBeenCalledWith(
+        expect.any(Function),
+        'guides fetching',
+        false,
+        expect.any(Object),
+        'T1',
+      );
+      expect(result).toEqual({
+        data: mockGuides,
+        messages: [
+          'T1: Token valid',
+          'T1: guides fetching completed successfully',
+        ],
+      });
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].trackingNumber).toBe('GUIDE123456');
+      expect(result.data[1].trackingNumber).toBe('GUIDE789012');
+    });
+
+    it('should return empty array when no guides are found', async () => {
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: [],
+        messages: [
+          'T1: Token valid',
+          'T1: guides fetching completed successfully',
+        ],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.retrieveT1Guides();
+
+      expect(result).toEqual({
+        data: [],
+        messages: [
+          'T1: Token valid',
+          'T1: guides fetching completed successfully',
+        ],
+      });
+      expect(result.data).toHaveLength(0);
+    });
+
+    it('should throw BadRequestException when TokenManagerService fails', async () => {
+      const mockExecuteWithToken = jest
+        .fn()
+        .mockRejectedValueOnce(
+          new BadRequestException('Token management failed'),
+        );
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      await expect(service.retrieveT1Guides()).rejects.toThrow(
+        new BadRequestException('Token management failed'),
+      );
+    });
+
+    it('should handle single guide in response', async () => {
+      const singleGuide = [mockGuides[0]];
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: singleGuide,
+        messages: [],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.retrieveT1Guides();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].trackingNumber).toBe('GUIDE123456');
+      expect(result.data[0].status).toBe('delivered');
+    });
+
+    it('should pass through messages from TokenManagerService', async () => {
+      const testMessages = [
+        'T1: Token refreshed',
+        'T1: guides fetching completed successfully',
+        'Additional message',
+      ];
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: mockGuides,
+        messages: testMessages,
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.retrieveT1Guides();
+
+      expect(result.messages).toEqual(testMessages);
+      expect(result.messages).toHaveLength(3);
+    });
+
+    it('should handle guides with minimal data', async () => {
+      const minimalGuides: GetGuideResponse[] = [
+        {
+          trackingNumber: 'MIN123',
+          shipmentNumber: null,
+          source: 'TONE',
+          status: 'pending',
+          carrier: 'T1',
+          courier: null,
+          price: '0',
+          guideLink: null,
+          labelUrl: null,
+          file: null,
+          order: null,
+          guide: null,
+          trackingLink: null,
+          shippingLink: null,
+          origin: null,
+          destination: {
+            name: 'Test',
+            alias: '',
+            street: 'Test St',
+            streetNumber: '1',
+            neighborhood: 'Test',
+            city: 'Test',
+            state: 'Test',
+          },
+        },
+      ];
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: minimalGuides,
+        messages: [],
+      });
+      tokenManagerService.executeWithTokenManagement = mockExecuteWithToken;
+
+      const result = await service.retrieveT1Guides();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].trackingNumber).toBe('MIN123');
+      expect(result.data[0].shipmentNumber).toBeNull();
+      expect(result.data[0].guideLink).toBeNull();
+    });
+
+    it('should work correctly in production environment', async () => {
+      const serviceWithProdConfig = await createServiceWithConfig({
+        ...mockConfig,
+        environment: 'production',
+      });
+
+      const mockExecuteWithToken = jest.fn().mockResolvedValueOnce({
+        result: mockGuides,
+        messages: ['T1: guides fetching completed successfully'],
+      });
+      serviceWithProdConfig['tokenManagerService'].executeWithTokenManagement =
+        mockExecuteWithToken;
+
+      const result = await serviceWithProdConfig.retrieveT1Guides();
+
+      expect(mockExecuteWithToken).toHaveBeenCalledWith(
+        expect.any(Function),
+        'guides fetching',
+        true, // isProd should be true
+        expect.any(Object),
+        'T1',
+      );
+      expect(result.data).toEqual(mockGuides);
     });
   });
 });

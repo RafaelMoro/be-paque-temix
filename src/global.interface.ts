@@ -30,7 +30,11 @@ export interface AddressGuide {
 
 export interface GetGuideResponse extends GlobalCreateGuideResponse {
   status: string;
+  order?: string | null; // Used in TONE with the order number
+  guide?: string | null; // Used in TONE with the guide number
+  trackingLink?: string | null; // Used in TONE as "link_rastreo"
+  shippingLink?: string | null; // Used in TONE as "link_documento"
   courier: QuoteCourier | null;
-  origin: AddressGuide;
+  origin: AddressGuide | null; // Having null value for TONE
   destination: AddressGuide;
 }
