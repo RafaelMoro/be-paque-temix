@@ -6,6 +6,7 @@ export const T1_MISSING_GUIDES_URI_ERROR =
 export const T1_MISSING_STORE_ID_ERROR = 'Store ID for T1 is not configured';
 export const T1_MISSING_PROVIDER_PROFIT_MARGIN =
   'TONE provider not found in global config';
+export const T1_RETRY_GUIDES = 'Retrying the fetching of TONE guides';
 
 // T1 backend errors:
 export const T1_INVALID_TOKEN_ERROR: string =
