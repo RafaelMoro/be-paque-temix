@@ -4,6 +4,7 @@ import {
   T1CreateGuideRequest,
   T1ExternalCreateGuideRequest,
   T1ExternalCreateGuideResponse,
+  T1GetGuideResponse,
 } from './t1.interface';
 import { GetQuoteT1Dto } from './dtos/t1.dtos';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -12,7 +13,11 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GlobalCreateGuideResponse,
+  GetGuideResponse,
+  AddressGuide,
+} from '@/global.interface';
 
 const NEXT_DAY_REGEX = /d[íi]a siguiente|mismo d[íi]a|express/i;
 const STANDARD_REGEX = /est[áa]ndar|2 dias/i;
@@ -165,4 +170,78 @@ export const formatT1CreateGuideResponse = (
     source: 'TONE',
     file: t1Response.detail.file,
   };
+};
+
+/**
+ * Maps T1 carrier string name to QuoteCourier enum
+ */
+const mapT1CarrierNameToCourier = (
+  carrierName: string,
+): QuoteCourier | null => {
+  const normalized = carrierName.toUpperCase();
+  if (normalized.includes('FEDEX')) return 'Fedex';
+  if (normalized.includes('DHL')) return 'DHL';
+  if (normalized.includes('UPS')) return 'UPS';
+  if (normalized.includes('EXPRESS')) return 'Paquetexpress';
+  if (normalized.includes('99MIN')) return 'NextDay';
+  if (normalized.includes('AMPM')) return 'AMPM';
+  return null;
+};
+
+/**
+ * Parses T1 address string into AddressGuide structure
+ * T1 provides address as a single string, so we do our best to parse it
+ */
+const parseT1AddressString = (
+  addressString: string,
+  name: string,
+): AddressGuide => {
+  // T1 typically formats addresses but we may need to handle various formats
+  // For now, we'll return a basic structure with the full string in the street field
+  return {
+    name: name || '',
+    alias: '',
+    street: addressString || '',
+    streetNumber: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+  };
+};
+
+/**
+ * Transforms T1 GetGuide response to GetGuideResponse format
+ * Handles the transformation of guide data from T1's structure to the standardized format
+ */
+export const formatT1GetGuideResponse = (
+  t1Response: T1GetGuideResponse,
+): GetGuideResponse[] => {
+  if (!t1Response?.detail?.data || !Array.isArray(t1Response.detail.data)) {
+    return [];
+  }
+
+  return t1Response.detail.data.map((guideData) => ({
+    // Fields from GlobalCreateGuideResponse
+    trackingNumber: guideData.guia || '',
+    shipmentNumber: guideData.num_orden?.toString() || null,
+    source: 'TONE',
+    carrier: guideData.mensajeria || '',
+    price: guideData.costo_total || '0',
+    guideLink: guideData.link_documento || null,
+    labelUrl: guideData.link_documento || null,
+    file: null,
+
+    // Additional fields specific to GetGuideResponse
+    status: guideData.estatus_generico || guideData.estatus || '',
+    order: guideData.num_orden?.toString() || null,
+    guide: guideData.guia || null,
+    trackingLink: guideData.link_rastreo || null,
+    shippingLink: guideData.link_documento || null,
+    courier: mapT1CarrierNameToCourier(guideData.mensajeria),
+    origin: null, // T1 does not provide origin information in getGuides response
+    destination: parseT1AddressString(
+      guideData.direccion_destino,
+      guideData.nombre_destino,
+    ),
+  }));
 };

@@ -161,7 +161,6 @@ export class GuiaEnviaService {
     try {
       const apiKey = this.configService.guiaEnvia.apiKey!;
       const uri = this.configService.guiaEnvia.uri!;
-      // const npmVersion: string = this.configService.version!;
       if (!apiKey) {
         throw new BadRequestException(GE_MISSING_API_KEY_ERROR);
       }

@@ -7,9 +7,11 @@ import {
   CREATE_GUIDE_T1_ENDPOINT,
   QUOTE_T1_ENDPOINT,
   T1_MISSING_ACCESS_TOKEN,
+  T1_MISSING_GUIDES_URI_ERROR,
   T1_MISSING_PROVIDER_PROFIT_MARGIN,
   T1_MISSING_STORE_ID_ERROR,
   T1_MISSING_URI_ERROR,
+  T1_TOKEN_DECODE_ERROR,
 } from '../t1.constants';
 import {
   T1GetQuoteResponse,
@@ -18,23 +20,27 @@ import {
   T1CreateGuideRequest,
   T1ExternalCreateGuideResponse,
   CreateGuideToneDataResponse,
+  T1ExternalCreateGuideRequest,
+  T1GetGuideResponse,
 } from '../t1.interface';
 import {
   formatPayloadCreateGuideT1,
   formatPayloadT1,
   formatT1QuoteData,
   formatT1CreateGuideResponse,
+  formatT1GetGuideResponse,
 } from '../t1.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { PROD_ENV } from '@/app.constant';
+import { DEV_ENV, PROD_ENV } from '@/app.constant';
 import {
   TokenManagerService,
   TokenOperations,
 } from '@/token-manager/services/token-manager.service';
+import { GetGuideResponse } from '@/global.interface';
 
 @Injectable()
 export class T1Service {
@@ -295,23 +301,26 @@ export class T1Service {
     };
   }
 
+  async retrieveT1Guides() {
+    const { result, messages } = await this.executeWithT1Token(
+      (token) => this.getGuides(token),
+      'guides fetching',
+    );
+    return {
+      data: result,
+      messages,
+    };
+  }
+
   /**
    * Private method to create guide in T1 API with a given token
    */
   private async createT1Guide(
-    payloadFormatted: any,
+    payloadFormatted: T1ExternalCreateGuideRequest,
     token: string,
   ): Promise<T1ExternalCreateGuideResponse> {
     try {
-      const uri = this.configService.t1.uri!;
-      const storeId = this.configService.t1.storeId!;
-
-      if (!uri) {
-        throw new BadRequestException(T1_MISSING_URI_ERROR);
-      }
-      if (!storeId) {
-        throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
-      }
+      const { uri, storeId } = this.checkUriAndStoreId();
 
       const url = `${uri}${CREATE_GUIDE_T1_ENDPOINT}`;
       const response: AxiosResponse<T1ExternalCreateGuideResponse, unknown> =
@@ -331,6 +340,72 @@ export class T1Service {
       }
       if (error instanceof Error) {
         console.log('Error in createT1Guide:', error.message);
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  private checkUriAndStoreId() {
+    const uri = this.configService.t1.uri!;
+    const environment = this.configService.environment!;
+    const guidesUri = this.configService.t1.guidesUri!;
+    const storeId = this.configService.t1.storeId!;
+    const defaultStoreId = this.configService.t1.guidesDefaultStoreId!;
+
+    if (!uri) {
+      throw new BadRequestException(T1_MISSING_URI_ERROR);
+    }
+    if (!guidesUri) {
+      throw new BadRequestException(T1_MISSING_GUIDES_URI_ERROR);
+    }
+    if (!storeId || !defaultStoreId) {
+      throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
+    }
+    const currentStoreId = environment === DEV_ENV ? defaultStoreId : storeId;
+
+    return {
+      uri,
+      guidesUri,
+      storeId: currentStoreId,
+    };
+  }
+
+  private async getGuides(token: string): Promise<GetGuideResponse[]> {
+    try {
+      const { guidesUri, storeId } = this.checkUriAndStoreId();
+      const url = `${guidesUri}/t1/pgs/guias-estatus/comercio/${storeId}/registros/10/pag/1`;
+      const response: AxiosResponse<T1GetGuideResponse, unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 45000, // 45 seconds timeout
+        });
+      const data = response?.data;
+      const transformedData = formatT1GetGuideResponse(data);
+
+      // Check if response contains token validation error
+      const responseWithError = data as {
+        error?: { message?: string };
+      };
+      const errorMessage = responseWithError?.error?.message;
+      if (
+        typeof errorMessage === 'string' &&
+        errorMessage.includes(T1_TOKEN_DECODE_ERROR)
+      ) {
+        console.log('Token decode error detected in response');
+        throw new BadRequestException(T1_TOKEN_DECODE_ERROR);
+      }
+
+      return transformedData;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log('Error in getGuidesT1:', error?.response?.data);
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      if (error instanceof Error) {
+        console.log('Error in getGuidesT1:', error.message);
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('An unknown error occurred');

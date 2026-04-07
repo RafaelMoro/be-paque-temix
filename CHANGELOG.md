@@ -1,3 +1,15 @@
+## v0.32.0 (2026-03-29)
+
+### Pull Requests
+[#79](https://github.com/RafaelMoro/be-paque-temix/pull/79) | Add feature to fetch TONE guides
+
+
+## v0.31.3 (2026-02-15)
+
+### Pull Requests
+[#78](https://github.com/RafaelMoro/be-paque-temix/pull/78) | Cleaning code on v0.31.2
+
+
 ## v0.31.2 (2026-02-13)
 
 ### Pull Requests

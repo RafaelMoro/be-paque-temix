@@ -61,6 +61,41 @@ export interface T1GetQuoteResponse {
   result: T1QuoteResult[];
 }
 
+export interface T1GetGuideResponse {
+  success: boolean;
+  message: string;
+  detail: {
+    data: {
+      num_orden: number; //Ex: 17404202
+      guia: string; //Ex: "889677920293"
+      fecha_hora: Date; //Ex: "2026-03-16 18:16:03"
+      status_entrega: number; //Ex: 1
+      pedido_comercio: string; //Ex: ""
+      comercio_id: number; //Ex: 9162
+      costo_total: string; //Ex: "466.71"
+      mensajeria_id: number; //Ex: 2
+      mensajeria: string; //Ex: "FEDEX"
+      nombre_destino: string; //Ex: "Roberto Ismael A."
+      telefono_destino: string; //Ex: "6674740322"
+      email_destino: string;
+      direccion_destino: string;
+      seguro: number;
+      valor_paquete: number;
+      link_documento: string;
+      paq_adicional: number;
+      cancelada: boolean;
+      incidence: number;
+      codigo_mensajeria: string; // Ex: "OC"
+      estatus: string; //Ex: "Guía generada"
+      estatus_generico: string; //Ex: "In Process"
+      g_ret: null;
+      link_rastreo: string;
+    }[];
+    total_registros: number;
+    total_filtrados: number;
+  };
+}
+
 export interface T1GetTokenResponse {
   access_token: string;
   expires_in: number;
