@@ -820,4 +820,480 @@ describe('PakkeService', () => {
     const response = await service.getQuotePakke(payload, mockGlobalConfig);
     expect(response).toBe(result);
   });
+
+  describe('getBasicGuidesInfoPkk', () => {
+    const mockPakkeExternalBasicGuideInfo = {
+      Content: 'Electronics',
+      CourierCode: 'PKE',
+      CreatedAt: new Date('2025-10-17T10:00:00Z'),
+      DaysInTransit: 1,
+      DynamicConfig: {
+        chargeOverweight: false,
+        circularLogo: 'logo-circular.png',
+        urlLogo: 'logo.png',
+        withoutBackgroundLogo: 'logo-no-bg.png',
+        zplEnable: false,
+      },
+      ExpiresAt: new Date('2025-10-24T10:00:00Z'),
+      HasExceptions: 0,
+      HasLost: 0,
+      InsuredAmount: 0,
+      IsMultiPackage: 0,
+      LabelType: 'PDF',
+      Name: 'John Doe',
+      RefundRequestDate: null,
+      ResellerReference: 'REF-123',
+      ShipmentId: 'PKK123456789',
+      ShipmentParent: null,
+      Status: 'SUCCESS',
+      TrackingNumber: 'PKK123456789',
+      TrackingStatus: 'WAITING',
+      WaybillNumber: 'WAY123',
+      Weight: 3,
+      email: 'john@example.com',
+    };
+
+    const mockFormattedBasicGuide = {
+      trackingNumber: 'PKK123456789',
+      shipmentNumber: 'PKK123456789',
+      source: 'Pkk' as const,
+      carrier: null,
+      price: null,
+      guideLink: null,
+      labelUrl: null,
+      file: null,
+      status: 'WAITING',
+      order: null,
+      guide: null,
+      trackingLink: null,
+      shippingLink: null,
+      courier: null,
+      origin: null,
+      destination: null,
+    };
+
+    it('should successfully get basic guides info with default pagination', async () => {
+      jest
+        .spyOn(utils, 'formatPakkeGetBasicInfoGuidesResponse')
+        .mockReturnValue(mockFormattedBasicGuide);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [mockPakkeExternalBasicGuideInfo],
+      });
+
+      const result = await service.getBasicGuidesInfoPkk({});
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toContain(
+        'https://test-pakke.com/Reseller/shipments/byFilter',
+      );
+      expect(url).toContain('pageNumber=1');
+      expect(url).toContain('pageSize=30');
+      expect(url).toContain('startRecordIndex=0');
+      expect(url).toContain('endRecordIndex=29');
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-pakke-api-key',
+        },
+      });
+      expect(utils.formatPakkeGetBasicInfoGuidesResponse).toHaveBeenCalledWith(
+        mockPakkeExternalBasicGuideInfo,
+      );
+      expect(result).toEqual([mockFormattedBasicGuide]);
+    });
+
+    it('should successfully get basic guides info with custom pagination', async () => {
+      jest
+        .spyOn(utils, 'formatPakkeGetBasicInfoGuidesResponse')
+        .mockReturnValue(mockFormattedBasicGuide);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [mockPakkeExternalBasicGuideInfo],
+      });
+
+      const result = await service.getBasicGuidesInfoPkk({
+        pageNumber: 2,
+        pageSize: 50,
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url] = mockedAxios.get.mock.calls[0];
+      expect(url).toContain('pageNumber=2');
+      expect(url).toContain('pageSize=50');
+      expect(url).toContain('startRecordIndex=0');
+      expect(url).toContain('endRecordIndex=49');
+      expect(result).toEqual([mockFormattedBasicGuide]);
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        pakke: {
+          apiKey: '',
+          uri: 'https://test-pakke.com',
+        },
+        version: '1.0.0',
+      });
+
+      await expect(
+        serviceWithoutApiKey.getBasicGuidesInfoPkk({}),
+      ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_API_KEY_ERROR));
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        pakke: {
+          apiKey: 'test-pakke-api-key',
+          uri: '',
+        },
+        version: '1.0.0',
+      });
+
+      await expect(serviceWithoutUri.getBasicGuidesInfoPkk({})).rejects.toThrow(
+        new BadRequestException(PAKKE_MISSING_URI_ERROR),
+      );
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const errorMessage = 'Network timeout';
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(service.getBasicGuidesInfoPkk({})).rejects.toThrow(
+        new BadRequestException(errorMessage),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      mockedAxios.get.mockRejectedValue({
+        status: 500,
+        message: 'Server error',
+      });
+
+      await expect(service.getBasicGuidesInfoPkk({})).rejects.toThrow(
+        new BadRequestException('An unknown error occurred'),
+      );
+    });
+
+    it('should handle empty response array', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: [],
+      });
+
+      const result = await service.getBasicGuidesInfoPkk({});
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle multiple guides in response', async () => {
+      const secondGuide = {
+        ...mockPakkeExternalBasicGuideInfo,
+        ShipmentId: 'PKK987654321',
+        TrackingNumber: 'PKK987654321',
+      };
+
+      const formattedSecondGuide = {
+        ...mockFormattedBasicGuide,
+        trackingNumber: 'PKK987654321',
+        shipmentNumber: 'PKK987654321',
+      };
+
+      jest
+        .spyOn(utils, 'formatPakkeGetBasicInfoGuidesResponse')
+        .mockReturnValueOnce(mockFormattedBasicGuide)
+        .mockReturnValueOnce(formattedSecondGuide);
+
+      mockedAxios.get.mockResolvedValue({
+        data: [mockPakkeExternalBasicGuideInfo, secondGuide],
+      });
+
+      const result = await service.getBasicGuidesInfoPkk({});
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(mockFormattedBasicGuide);
+      expect(result[1]).toEqual(formattedSecondGuide);
+    });
+  });
+
+  describe('getSingleGuidePkk', () => {
+    const mockPakkeExternalGetGuide = {
+      ShipmentId: 'PKK123456789',
+      ResellerId: 'RSL001',
+      OwnerId: 'OWN001',
+      OrderId: null,
+      ResellerCourierServiceId: null,
+      CreatedAt: new Date('2025-10-17T10:00:00Z'),
+      ExpiresAt: new Date('2025-10-24T10:00:00Z'),
+      TransitAt: null,
+      DeliveredAt: null,
+      CourierName: 'Estafeta',
+      CourierCode: 'EDEQ_STF',
+      CourierServiceId: 'ESTAFETA_TERRESTRE_CONSUMO_EDEQ',
+      CostingPercentageAdjustment: 0,
+      CourierService: 'Terrestre Consumo',
+      ResellerReference: 'REF-123',
+      Status: 'SUCCESS',
+      HasExceptions: false,
+      HasLost: 0,
+      HasChangeZipCode: false,
+      TrackingNumber: 'PKK123456789',
+      WaybillNumber: 'WAY123',
+      TrackingStatus: 'WAITING',
+      SendRecipientNotifications: true,
+      InsuredAmount: 0,
+      ShipmentDependencyId: null,
+      PaternGuide: null,
+      ShipmentType: 0,
+      ReasonGuide: null,
+      Parcel: {
+        Height: 15,
+        Width: 20,
+        Length: 25,
+        Weight: 3,
+        VolumetricWeight: 3,
+      },
+      QuotedWeight: 3,
+      RealWeight: 3,
+      RealOverWeight: 0,
+      CoveredWeight: 3,
+      OverWeight: 0,
+      OverWeightPrice: 0,
+      CoveredAmount: 0,
+      ExtrasAmount: 0,
+      QuotedAmount: 120.0,
+      QuoteExtraFee: 0,
+      OverWeightCounterAmount: 0,
+      CouponCode: null,
+      InsurenceAmountSegureGroup: 0,
+      InsurancePercentFactor: 0,
+      ShipmentAmount: 100.0,
+      ShipmentSubtotalAmount: 100.0,
+      ShipmentVatAmount: 20.0,
+      InsuranceAmount: 0,
+      InsuranceVatAmount: 0,
+      ExtendedZoneAmount: 0,
+      DiscountAmount: 0,
+      TotalAmount: 120.0,
+      OriginalWeight: 3,
+      OriginalWidth: 20,
+      OriginalLength: 25,
+      OriginalHeight: 15,
+      OriginalVolumetricWeight: 3,
+      CourierWeight: 3,
+      CourierWidth: 20,
+      CourierLength: 25,
+      CourierHeight: 15,
+      CourierVolumetricWeight: 3,
+      AddressFrom: {
+        Country: 'MX',
+        ZipCode: '01010',
+        State: 'MX-CDMX',
+        UserState: 'MX-CDMX',
+        City: 'Mexico City',
+        Neighborhood: 'Centro',
+        Address1: 'Calle Principal 123',
+        Address2: 'Near the park',
+        Residential: false,
+        SaveAddress: false,
+      },
+      AddressTo: {
+        Country: 'MX',
+        ZipCode: '02020',
+        State: 'MX-JAL',
+        UserState: 'MX-JAL',
+        City: 'Guadalajara',
+        Neighborhood: 'Norte',
+        Address1: 'Avenida Secundaria 456',
+        Address2: 'Apartment 2B',
+        Residential: true,
+        SaveAddress: false,
+      },
+      Sender: {
+        Name: 'John Doe',
+        Email: 'john@example.com',
+        Phone1: '+52 55 1234 5678',
+        Phone2: undefined,
+        CompanyName: 'Sender Corp',
+      },
+      Recipient: {
+        Name: 'Jane Smith',
+        Email: 'jane@example.com',
+        Phone1: '+52 55 8765 4321',
+        Phone2: undefined,
+        CompanyName: 'Receiver Corp',
+      },
+      ReceivedAt: null,
+      ReceivedBy: null,
+      Owner: 'PKK',
+      DaysInTransit: 1,
+      EnableRefund: 1,
+      ChangeZipCode: null,
+      Clarification: null,
+      Content: 'Electronics',
+      transactions: [],
+      transactionsPending: [],
+      Credentials: 'CRED123',
+      TrackingNumberReplaced: null,
+      TrackingNumberReplaces: null,
+      Folio: null,
+      EstimatedDeliveryDate: null,
+      Dependencies: [],
+      isCustomCredentials: false,
+      LabelType: 'PDF',
+      NotValidConditions: false,
+      IsMultiPackage: 0,
+      DispatchIndications: null,
+    };
+
+    const mockFormattedGuideDetail = {
+      trackingNumber: 'PKK123456789',
+      shipmentNumber: 'PKK123456789',
+      source: 'Pkk' as const,
+      carrier: 'Estafeta',
+      price: '120',
+      guideLink: null,
+      labelUrl: null,
+      file: null,
+      status: 'WAITING',
+      order: 'REF-123',
+      guide: 'WAY123',
+      trackingLink: null,
+      shippingLink: null,
+      courier: 'Estafeta' as const,
+      origin: {
+        name: 'John Doe',
+        alias: '',
+        street: 'Calle Principal 123',
+        streetNumber: '',
+        neighborhood: 'Centro',
+        city: 'Mexico City',
+        state: 'MX-CDMX',
+      },
+      destination: {
+        name: 'Jane Smith',
+        alias: '',
+        street: 'Avenida Secundaria 456',
+        streetNumber: '',
+        neighborhood: 'Norte',
+        city: 'Guadalajara',
+        state: 'MX-JAL',
+      },
+    };
+
+    it('should successfully get a single guide', async () => {
+      jest
+        .spyOn(utils, 'formatPakkeGetGuideDetailResponse')
+        .mockReturnValue(mockFormattedGuideDetail);
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockPakkeExternalGetGuide,
+      });
+
+      const shipmentId = 'PKK123456789';
+      const result = await service.getSingleGuidePkk(shipmentId);
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      const [url, config] = mockedAxios.get.mock.calls[0];
+      expect(url).toBe(`https://test-pakke.com/Shipments/${shipmentId}`);
+      expect(config).toMatchObject({
+        headers: {
+          Authorization: 'test-pakke-api-key',
+        },
+      });
+      expect(utils.formatPakkeGetGuideDetailResponse).toHaveBeenCalledWith(
+        mockPakkeExternalGetGuide,
+      );
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        messages: [],
+        error: null,
+        data: {
+          guide: mockFormattedGuideDetail,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when API key is missing', async () => {
+      const serviceWithoutApiKey = await createServiceWithConfig({
+        pakke: {
+          apiKey: '',
+          uri: 'https://test-pakke.com',
+        },
+        version: '1.0.0',
+      });
+
+      await expect(
+        serviceWithoutApiKey.getSingleGuidePkk('PKK123456789'),
+      ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_API_KEY_ERROR));
+    });
+
+    it('should throw BadRequestException when URI is missing', async () => {
+      const serviceWithoutUri = await createServiceWithConfig({
+        pakke: {
+          apiKey: 'test-pakke-api-key',
+          uri: '',
+        },
+        version: '1.0.0',
+      });
+
+      await expect(
+        serviceWithoutUri.getSingleGuidePkk('PKK123456789'),
+      ).rejects.toThrow(new BadRequestException(PAKKE_MISSING_URI_ERROR));
+    });
+
+    it('should throw BadRequestException when axios throws an error', async () => {
+      const errorMessage = 'Guide not found';
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+
+      await expect(service.getSingleGuidePkk('PKK123456789')).rejects.toThrow(
+        new BadRequestException(errorMessage),
+      );
+    });
+
+    it('should throw BadRequestException with generic message for unknown errors', async () => {
+      mockedAxios.get.mockRejectedValue({
+        status: 404,
+        message: 'Not found',
+      });
+
+      await expect(service.getSingleGuidePkk('PKK123456789')).rejects.toThrow(
+        new BadRequestException('An unknown error occurred'),
+      );
+    });
+
+    it('should include version in response', async () => {
+      jest
+        .spyOn(utils, 'formatPakkeGetGuideDetailResponse')
+        .mockReturnValue(mockFormattedGuideDetail);
+
+      mockedAxios.get.mockResolvedValue({
+        data: mockPakkeExternalGetGuide,
+      });
+
+      const result = await service.getSingleGuidePkk('PKK123456789');
+
+      expect(result.version).toBe('1.0.0');
+      expect(result.message).toBeNull();
+      expect(result.messages).toEqual([]);
+      expect(result.error).toBeNull();
+    });
+
+    it('should handle response with undefined data', async () => {
+      jest
+        .spyOn(utils, 'formatPakkeGetGuideDetailResponse')
+        .mockReturnValue(mockFormattedGuideDetail);
+
+      mockedAxios.get.mockResolvedValue({
+        data: undefined,
+      });
+
+      const result = await service.getSingleGuidePkk('PKK123456789');
+
+      expect(utils.formatPakkeGetGuideDetailResponse).toHaveBeenCalledWith(
+        undefined,
+      );
+      expect(result.version).toBe('1.0.0');
+      expect(result.data.guide).toEqual(mockFormattedGuideDetail);
+    });
+  });
 });
