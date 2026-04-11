@@ -11,8 +11,8 @@ export interface GlobalCreateGuideResponse {
   trackingNumber: string;
   shipmentNumber?: string | null;
   source: ProviderSource;
-  carrier: string;
-  price: string;
+  carrier: string | null;
+  price: string | null;
   guideLink: string | null;
   labelUrl: string | null;
   file: string | null;
@@ -35,6 +35,6 @@ export interface GetGuideResponse extends GlobalCreateGuideResponse {
   trackingLink?: string | null; // Used in TONE as "link_rastreo"
   shippingLink?: string | null; // Used in TONE as "link_documento"
   courier: QuoteCourier | null;
-  origin: AddressGuide | null; // Having null value for TONE
-  destination: AddressGuide;
+  origin: AddressGuide | null; // Having null value for TONE and Pkk
+  destination: AddressGuide | null; // Having it null for Pkk
 }
