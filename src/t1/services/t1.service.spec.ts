@@ -210,6 +210,16 @@ describe('T1Service', () => {
       quotes: mockFormattedQuotes,
       messages: [],
     });
+
+    // Silence console output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    // Restore console methods
+    jest.restoreAllMocks();
   });
 
   describe('getQuote', () => {

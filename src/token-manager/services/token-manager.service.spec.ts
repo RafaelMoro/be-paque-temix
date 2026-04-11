@@ -19,6 +19,11 @@ describe('TokenManagerService', () => {
     }).compile();
 
     service = module.get<TokenManagerService>(TokenManagerService);
+
+    // Silence console output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

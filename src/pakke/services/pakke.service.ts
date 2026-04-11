@@ -5,6 +5,8 @@ import axios, { AxiosResponse } from 'axios';
 
 import {
   CREATE_GUIDE_PAKKE_ENDPOINT,
+  GET_BASIC_GUIDES_PAKKE_ENDPOINT,
+  GET_SINGLE_GUIDE_PAKKE_ENDPOINT,
   PAKKE_MISSING_API_KEY_ERROR,
   PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
   PAKKE_MISSING_URI_ERROR,
@@ -12,7 +14,10 @@ import {
 } from '../pakke.constants';
 import {
   CreateGuidePkkDataResponse,
+  GetGuidePkkPayload,
   PakkeExternalCreateGuideResponse,
+  PakkeExternalGetBasicGuideInfo,
+  PakkeExternalGetGuide,
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
 } from '../pakke.interface';
@@ -20,12 +25,15 @@ import {
   convertPayloadToPakkeDto,
   convertPkkCreateGuideToExternal,
   formatPakkeCreateGuideResponse,
+  formatPakkeGetBasicInfoGuidesResponse,
+  formatPakkeGetGuideDetailResponse,
   formatPakkeQuotes,
 } from '../pakke.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { GetGuideDataResponse } from '@/guides/guides.interface';
 
 @Injectable()
 export class PakkeService {
@@ -70,6 +78,83 @@ export class PakkeService {
       return {
         quotes,
         messages: updatedMessages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getBasicGuidesInfoPkk({
+    pageNumber = 1,
+    pageSize = 30,
+  }: GetGuidePkkPayload) {
+    try {
+      const apiKey = this.configService.pakke.apiKey!;
+      const uri = this.configService.pakke.uri!;
+
+      if (!apiKey) {
+        throw new BadRequestException(PAKKE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
+      }
+
+      const startRecordIndex = 0;
+      const endRecordIndex = pageSize - 1;
+      const url = `${uri}${GET_BASIC_GUIDES_PAKKE_ENDPOINT}/byFilter?pageNumber=${pageNumber}&pageSize=${pageSize}&startRecordIndex=${startRecordIndex}&endRecordIndex=${endRecordIndex}&shipReturn=false&trackingStatus=&feeType=`;
+      const response: AxiosResponse<PakkeExternalGetBasicGuideInfo[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const formattedData = data.map((guide) =>
+        formatPakkeGetBasicInfoGuidesResponse(guide),
+      );
+
+      return formattedData;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getSingleGuidePkk(shipmentId: string): Promise<GetGuideDataResponse> {
+    try {
+      const npmVersion: string = this.configService.version!;
+      const apiKey = this.configService.pakke.apiKey!;
+      const uri = this.configService.pakke.uri!;
+
+      if (!apiKey) {
+        throw new BadRequestException(PAKKE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_SINGLE_GUIDE_PAKKE_ENDPOINT}/${shipmentId}`;
+      const response: AxiosResponse<PakkeExternalGetGuide, unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      const formattedData = formatPakkeGetGuideDetailResponse(data);
+      return {
+        version: npmVersion,
+        message: null,
+        messages: [],
+        error: null,
+        data: {
+          guide: formattedData,
+        },
       };
     } catch (error) {
       if (error instanceof Error) {
