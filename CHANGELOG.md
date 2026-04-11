@@ -1,3 +1,9 @@
+## v0.33.0 (2026-04-11)
+
+### Pull Requests
+[#81](https://github.com/RafaelMoro/be-paque-temix/pull/81) | See guides from Pkk
+
+
 ## v0.32.0 (2026-03-29)
 
 ### Pull Requests

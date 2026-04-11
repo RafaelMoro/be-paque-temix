@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuidesController } from './guides.controller';
 import { GuidesService } from '../services/guides.service';
-import { GetQuoteDataResponse } from '../guides.interface';
+import { GetGuidesDataResponse } from '../guides.interface';
 import { GetGuideResponse } from '@/global.interface';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
 
@@ -9,7 +9,7 @@ describe('GuidesController', () => {
   let controller: GuidesController;
   let guidesService: jest.Mocked<GuidesService>;
 
-  const mockGuidesResponse: GetQuoteDataResponse = {
+  const mockGuidesResponse: GetGuidesDataResponse = {
     version: '1.0.0',
     message: null,
     messages: [],
@@ -42,7 +42,7 @@ describe('GuidesController', () => {
     },
   };
 
-  const mockEmptyGuidesResponse: GetQuoteDataResponse = {
+  const mockEmptyGuidesResponse: GetGuidesDataResponse = {
     version: '1.0.0',
     message: null,
     messages: [],
@@ -194,7 +194,7 @@ describe('GuidesController', () => {
     });
 
     it('should handle single guide response', async () => {
-      const singleGuideResponse: GetQuoteDataResponse = {
+      const singleGuideResponse: GetGuidesDataResponse = {
         version: '1.0.0',
         message: null,
         messages: [],
@@ -238,7 +238,7 @@ describe('GuidesController', () => {
     });
 
     it('should handle service returning response with messages', async () => {
-      const responseWithMessages: GetQuoteDataResponse = {
+      const responseWithMessages: GetGuidesDataResponse = {
         ...mockGuidesResponse,
         messages: ['Warning: Some guides may be delayed'],
       };

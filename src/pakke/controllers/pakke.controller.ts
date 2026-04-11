@@ -1,10 +1,11 @@
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PakkeService } from '../services/pakke.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   CreateGuidePakkeRequestDto,
   CreateGuidePakkeResponseDto,
+  GetSingleGuidePakkeResponseDto,
 } from '../dtos/pakke.dto';
 
 @UseGuards(JwtGuard)
@@ -24,5 +25,19 @@ export class PakkeController {
   })
   async createGuide(@Body() payload: CreateGuidePakkeRequestDto) {
     return this.pkkService.createGuidePakke(payload);
+  }
+
+  @Get('get-single-guide/:shipmentId')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get a single guide for Pkk.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: GetSingleGuidePakkeResponseDto,
+    description: 'Guide retrieved successfully.',
+  })
+  async getSingleGuide(@Param('shipmentId') shipmentId: string) {
+    return this.pkkService.getSingleGuidePkk(shipmentId);
   }
 }

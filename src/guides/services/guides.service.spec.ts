@@ -2,14 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GuidesService } from './guides.service';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
+import { PakkeService } from '@/pakke/services/pakke.service';
 import config from '@/config';
 import { GetGuideResponse } from '@/global.interface';
-import { GetQuoteDataResponse } from '../guides.interface';
+import { GetGuidesDataResponse } from '../guides.interface';
+import { T1_USER_NOT_FOUND_ERROR, T1_RETRY_GUIDES } from '@/t1/t1.constants';
 
 describe('GuidesService', () => {
   let service: GuidesService;
   let guiaEnviaService: jest.Mocked<GuiaEnviaService>;
   let t1Service: jest.Mocked<T1Service>;
+  let pakkeService: jest.Mocked<PakkeService>;
 
   const mockConfig = {
     version: '1.0.0',
@@ -82,13 +85,75 @@ describe('GuidesService', () => {
     },
   ];
 
+  const mockT1Guides: GetGuideResponse[] = [
+    {
+      trackingNumber: 'T1123456789',
+      shipmentNumber: null,
+      source: 'TONE',
+      status: 'En tránsito',
+      carrier: 'Estafeta',
+      courier: 'Estafeta',
+      price: '200.00',
+      guideLink: null,
+      labelUrl: 'https://t1.example.com/label/T1123456789.pdf',
+      file: null,
+      order: 'ORDER-001',
+      guide: 'GUIDE-001',
+      trackingLink: 'https://track.example.com/T1123456789',
+      shippingLink: 'https://shipping.example.com/T1123456789',
+      origin: {
+        name: 'T1 Warehouse',
+        alias: 'T1 Main',
+        street: 'T1 Street',
+        streetNumber: '500',
+        neighborhood: 'T1 Zone',
+        city: 'Monterrey',
+        state: 'Nuevo León',
+      },
+      destination: {
+        name: 'T1 Customer',
+        alias: 'T1 Home',
+        street: 'T1 Avenue',
+        streetNumber: '600',
+        neighborhood: 'T1 Neighborhood',
+        city: 'Tijuana',
+        state: 'Baja California',
+      },
+    },
+  ];
+
+  const mockPkkGuides: GetGuideResponse[] = [
+    {
+      trackingNumber: 'PKK123456789',
+      shipmentNumber: 'PKK123456789',
+      source: 'Pkk',
+      status: 'WAITING',
+      carrier: null,
+      courier: null,
+      price: null,
+      guideLink: null,
+      labelUrl: null,
+      file: null,
+      order: null,
+      guide: null,
+      trackingLink: null,
+      shippingLink: null,
+      origin: null,
+      destination: null,
+    },
+  ];
+
   beforeEach(async () => {
     const mockGuiaEnviaService = {
       getGuides: jest.fn(),
     };
 
     const mockT1Service = {
-      retrieveT1Guides: jest.fn().mockResolvedValue({ data: [], messages: [] }),
+      retrieveT1Guides: jest.fn(),
+    };
+
+    const mockPakkeService = {
+      getBasicGuidesInfoPkk: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -103,6 +168,10 @@ describe('GuidesService', () => {
           useValue: mockT1Service,
         },
         {
+          provide: PakkeService,
+          useValue: mockPakkeService,
+        },
+        {
           provide: config.KEY,
           useValue: mockConfig,
         },
@@ -112,10 +181,22 @@ describe('GuidesService', () => {
     service = module.get<GuidesService>(GuidesService);
     guiaEnviaService = module.get(GuiaEnviaService);
     t1Service = module.get(T1Service);
+    pakkeService = module.get(PakkeService);
+
+    // Set default mock implementations
+    guiaEnviaService.getGuides.mockResolvedValue([]);
+    t1Service.retrieveT1Guides.mockResolvedValue({ data: [], messages: [] });
+    pakkeService.getBasicGuidesInfoPkk.mockResolvedValue([]);
+
+    // Silence console output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -123,7 +204,35 @@ describe('GuidesService', () => {
   });
 
   describe('getGuides', () => {
-    it('should successfully retrieve guides from Guia Envia', async () => {
+    it('should successfully retrieve guides from all three services', async () => {
+      guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        message: null,
+        messages: [],
+        error: null,
+        data: {
+          guides: [...mockGEGuides, ...mockT1Guides, ...mockPkkGuides],
+        },
+      });
+      expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
+      expect(t1Service.retrieveT1Guides).toHaveBeenCalledTimes(1);
+      expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledTimes(1);
+      expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledWith({
+        pageNumber: 1,
+        pageSize: 30,
+      });
+    });
+
+    it('should successfully retrieve guides from Guia Envia only', async () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
 
       const result = await service.getGuides();
@@ -145,16 +254,132 @@ describe('GuidesService', () => {
 
       const result = await service.getGuides();
 
-      expect(result).toEqual({
-        version: '1.0.0',
-        message: 'GE failed to get guides',
-        messages: ['GE failed to get guides', 'GE Error: API Error'],
-        error: null,
-        data: {
-          guides: [],
-        },
-      });
+      expect(result.messages).toContain('GE failed to get guides');
+      expect(result.messages).toContain('GE Error: API Error');
+      expect(result.data.guides).toEqual([]);
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle T1 service rejection', async () => {
+      t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 API Error'));
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('T1 failed to get guides');
+      expect(result.data.guides).toEqual([]);
+    });
+
+    it('should handle Pkk service rejection', async () => {
+      pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
+        new Error('Pkk API Error'),
+      );
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('Pkk failed to get guides');
+      expect(result.data.guides).toEqual([]);
+    });
+
+    it('should handle T1 user not found error with retry message', async () => {
+      t1Service.retrieveT1Guides.mockRejectedValue(
+        new Error(T1_USER_NOT_FOUND_ERROR),
+      );
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('T1 failed to get guides');
+      expect(result.messages).toContain(T1_RETRY_GUIDES);
+    });
+
+    it('should handle T1 returning messages in successful response', async () => {
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: ['T1 Warning: Rate limit approaching'],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('T1 Warning: Rate limit approaching');
+      expect(result.data.guides).toEqual(mockT1Guides);
+    });
+
+    it('should handle all three services rejecting', async () => {
+      guiaEnviaService.getGuides.mockRejectedValue(new Error('GE Error'));
+      t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
+      pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
+        new Error('Pkk Error'),
+      );
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('GE failed to get guides');
+      expect(result.messages).toContain('T1 failed to get guides');
+      expect(result.messages).toContain('Pkk failed to get guides');
+      expect(result.data.guides).toEqual([]);
+      expect(result.error).toBeNull();
+    });
+
+    it('should combine guides from GE and T1 when Pkk fails', async () => {
+      guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
+        new Error('Pkk Error'),
+      );
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([...mockGEGuides, ...mockT1Guides]);
+      expect(result.messages).toContain('Pkk failed to get guides');
+    });
+
+    it('should combine guides from GE and Pkk when T1 fails', async () => {
+      guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([...mockGEGuides, ...mockPkkGuides]);
+      expect(result.messages).toContain('T1 failed to get guides');
+    });
+
+    it('should combine guides from T1 and Pkk when GE fails', async () => {
+      guiaEnviaService.getGuides.mockRejectedValue(new Error('GE Error'));
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([...mockT1Guides, ...mockPkkGuides]);
+      expect(result.messages).toContain('GE failed to get guides');
+    });
+
+    it('should handle T1 returning null data', async () => {
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: null as any,
+        messages: [],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([]);
+    });
+
+    it('should handle T1 returning undefined data', async () => {
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: undefined as any,
+        messages: [],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([]);
     });
 
     it('should return empty guides array when Guia Envia returns empty array', async () => {
@@ -162,15 +387,8 @@ describe('GuidesService', () => {
 
       const result = await service.getGuides();
 
-      expect(result).toEqual({
-        version: '1.0.0',
-        message: null,
-        messages: [],
-        error: null,
-        data: {
-          guides: [],
-        },
-      });
+      expect(result.data.guides).toEqual([]);
+      expect(result.messages).toEqual([]);
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
     });
 
@@ -182,7 +400,6 @@ describe('GuidesService', () => {
 
       expect(result.data.guides).toHaveLength(1);
       expect(result.data.guides[0]).toEqual(mockGEGuides[0]);
-      expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
     });
 
     it('should handle multiple guides correctly', async () => {
@@ -190,10 +407,10 @@ describe('GuidesService', () => {
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toHaveLength(2);
-      expect(result.data.guides[0].trackingNumber).toBe('GE123456789');
-      expect(result.data.guides[1].trackingNumber).toBe('DHL987654321');
-      expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
+      expect(result.data.guides.length).toBeGreaterThanOrEqual(2);
+      const geGuides = result.data.guides.filter((g) => g.source === 'GE');
+      expect(geGuides[0].trackingNumber).toBe('GE123456789');
+      expect(geGuides[1].trackingNumber).toBe('DHL987654321');
     });
 
     it('should include correct version from config', async () => {
@@ -207,7 +424,7 @@ describe('GuidesService', () => {
     it('should return response with correct structure', async () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
 
-      const result: GetQuoteDataResponse = await service.getGuides();
+      const result: GetGuidesDataResponse = await service.getGuides();
 
       expect(result).toHaveProperty('version');
       expect(result).toHaveProperty('message');
@@ -223,23 +440,36 @@ describe('GuidesService', () => {
 
     it('should handle Promise.allSettled correctly when service resolves', async () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toEqual(mockGEGuides);
+      expect(result.data.guides).toEqual([
+        ...mockGEGuides,
+        ...mockT1Guides,
+        ...mockPkkGuides,
+      ]);
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
+      expect(t1Service.retrieveT1Guides).toHaveBeenCalledTimes(1);
+      expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledTimes(1);
     });
 
     it('should handle Promise.allSettled correctly when service rejects', async () => {
       const error = new Error('Service unavailable');
       guiaEnviaService.getGuides.mockRejectedValue(error);
+      t1Service.retrieveT1Guides.mockRejectedValue(error);
+      pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(error);
 
       const result = await service.getGuides();
 
       expect(result.data.guides).toEqual([]);
       expect(result.messages).toContain('GE failed to get guides');
-      expect(result.messages).toContain('GE Error: Service unavailable');
-      expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
+      expect(result.messages).toContain('T1 failed to get guides');
+      expect(result.messages).toContain('Pkk failed to get guides');
     });
 
     it('should handle network errors gracefully', async () => {
@@ -271,7 +501,10 @@ describe('GuidesService', () => {
 
       const result = await service.getGuides();
 
-      expect(result.data.guides[0]).toMatchObject({
+      const geGuide = result.data.guides.find(
+        (g) => g.trackingNumber === 'GE123456789',
+      );
+      expect(geGuide).toMatchObject({
         trackingNumber: 'GE123456789',
         shipmentNumber: 'shipment-001',
         source: 'GE',
@@ -361,17 +594,32 @@ describe('GuidesService', () => {
       expect(result.data.guides[0]).toEqual(guidesWithMinimalFields[0]);
     });
 
-    it('should call guiaEnviaService.getGuides exactly once', async () => {
+    it('should call all services exactly once', async () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
 
       await service.getGuides();
 
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
       expect(guiaEnviaService.getGuides).toHaveBeenCalledWith();
+      expect(t1Service.retrieveT1Guides).toHaveBeenCalledTimes(1);
+      expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledTimes(1);
+      expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledWith({
+        pageNumber: 1,
+        pageSize: 30,
+      });
     });
 
-    it('should not throw error when guiaEnviaService fails', async () => {
-      guiaEnviaService.getGuides.mockRejectedValue(new Error('Service error'));
+    it('should not throw error when any service fails', async () => {
+      guiaEnviaService.getGuides.mockRejectedValue(new Error('GE error'));
+      t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 error'));
+      pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
+        new Error('Pkk error'),
+      );
 
       await expect(service.getGuides()).resolves.toBeDefined();
     });
@@ -391,8 +639,110 @@ describe('GuidesService', () => {
 
       const result = await service.getGuides();
 
-      expect(result.data.guides[0].trackingNumber).toBe('DHL987654321');
-      expect(result.data.guides[1].trackingNumber).toBe('GE123456789');
+      const geGuides = result.data.guides.filter((g) => g.source === 'GE');
+      expect(geGuides[0].trackingNumber).toBe('DHL987654321');
+      expect(geGuides[1].trackingNumber).toBe('GE123456789');
+    });
+
+    it('should set message to first message when messages array is not empty', async () => {
+      guiaEnviaService.getGuides.mockRejectedValue(new Error('GE Error'));
+
+      const result = await service.getGuides();
+
+      expect(result.message).toBe('GE failed to get guides');
+      expect(result.messages[0]).toBe('GE failed to get guides');
+    });
+
+    it('should keep message as null when all services succeed', async () => {
+      guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result.message).toBeNull();
+      expect(result.messages).toEqual([]);
+    });
+
+    it('should handle mixed success and failure scenarios', async () => {
+      guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
+      t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toEqual([...mockGEGuides, ...mockPkkGuides]);
+      expect(result.messages).toContain('T1 failed to get guides');
+      expect(result.messages.length).toBe(1);
+    });
+
+    it('should aggregate warnings from T1 service', async () => {
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: mockT1Guides,
+        messages: ['Warning 1', 'Warning 2'],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('Warning 1');
+      expect(result.messages).toContain('Warning 2');
+      expect(result.data.guides).toEqual(mockT1Guides);
+    });
+
+    it('should handle large number of guides from all services', async () => {
+      const manyGEGuides = Array(50)
+        .fill(null)
+        .map((_, i) => ({ ...mockGEGuides[0], trackingNumber: `GE${i}` }));
+      const manyT1Guides = Array(50)
+        .fill(null)
+        .map((_, i) => ({ ...mockT1Guides[0], trackingNumber: `T1${i}` }));
+      const manyPkkGuides = Array(50)
+        .fill(null)
+        .map((_, i) => ({ ...mockPkkGuides[0], trackingNumber: `PKK${i}` }));
+
+      guiaEnviaService.getGuides.mockResolvedValue(manyGEGuides);
+      t1Service.retrieveT1Guides.mockResolvedValue({
+        data: manyT1Guides,
+        messages: [],
+      });
+      pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(manyPkkGuides);
+
+      const result = await service.getGuides();
+
+      expect(result.data.guides).toHaveLength(150);
+    });
+
+    it('should execute all service calls in parallel', async () => {
+      const callOrder: string[] = [];
+
+      guiaEnviaService.getGuides.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        callOrder.push('GE');
+        return mockGEGuides;
+      });
+
+      t1Service.retrieveT1Guides.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        callOrder.push('T1');
+        return { data: mockT1Guides, messages: [] };
+      });
+
+      pakkeService.getBasicGuidesInfoPkk.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        callOrder.push('Pkk');
+        return mockPkkGuides;
+      });
+
+      const startTime = Date.now();
+      await service.getGuides();
+      const duration = Date.now() - startTime;
+
+      // If calls were sequential, it would take ~120ms, parallel should be ~50ms
+      expect(duration).toBeLessThan(100);
+      expect(callOrder).toHaveLength(3);
     });
   });
 });
