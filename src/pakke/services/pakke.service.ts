@@ -145,6 +145,7 @@ export class PakkeService {
         });
       const data = response?.data;
       const formattedData = formatPakkeGetGuideDetailResponse(data);
+      return formattedData;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
