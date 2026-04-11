@@ -3,7 +3,7 @@ import { ConfigType } from '@nestjs/config';
 
 import config from '@/config';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
-import { GetQuoteDataResponse } from '../guides.interface';
+import { GetGuidesDataResponse } from '../guides.interface';
 import { T1Service } from '@/t1/services/t1.service';
 import { T1_USER_NOT_FOUND_ERROR, T1_RETRY_GUIDES } from '@/t1/t1.constants';
 import { PakkeService } from '@/pakke/services/pakke.service';
@@ -17,7 +17,7 @@ export class GuidesService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
-  async getGuides(): Promise<GetQuoteDataResponse> {
+  async getGuides(): Promise<GetGuidesDataResponse> {
     const npmVersion: string = this.configService.version!;
     const messages: string[] = [];
     const [GEGuidesResponse, T1GuidesResponse, PkkGuidesResponse] =

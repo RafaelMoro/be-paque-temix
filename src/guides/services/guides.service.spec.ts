@@ -4,7 +4,7 @@ import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
 import config from '@/config';
 import { GetGuideResponse } from '@/global.interface';
-import { GetQuoteDataResponse } from '../guides.interface';
+import { GetGuidesDataResponse } from '../guides.interface';
 
 describe('GuidesService', () => {
   let service: GuidesService;
@@ -207,7 +207,7 @@ describe('GuidesService', () => {
     it('should return response with correct structure', async () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
 
-      const result: GetQuoteDataResponse = await service.getGuides();
+      const result: GetGuidesDataResponse = await service.getGuides();
 
       expect(result).toHaveProperty('version');
       expect(result).toHaveProperty('message');

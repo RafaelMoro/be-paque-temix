@@ -33,6 +33,7 @@ import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
+import { GetGuidesDataResponse } from '@/guides/guides.interface';
 
 @Injectable()
 export class PakkeService {
@@ -124,8 +125,9 @@ export class PakkeService {
     }
   }
 
-  async getSingleGuidePkk(shipmentId: string) {
+  async getSingleGuidePkk(shipmentId: string): Promise<GetGuidesDataResponse> {
     try {
+      const npmVersion: string = this.configService.version!;
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
 
@@ -145,7 +147,15 @@ export class PakkeService {
         });
       const data = response?.data;
       const formattedData = formatPakkeGetGuideDetailResponse(data);
-      return formattedData;
+      return {
+        version: npmVersion,
+        message: null,
+        messages: [],
+        error: null,
+        data: {
+          guides: [formattedData],
+        },
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
