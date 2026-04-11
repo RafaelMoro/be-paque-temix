@@ -228,7 +228,7 @@ export interface PakkeExternalGetGuide {
   Status: string; // "SUCCESS"
   TrackingNumber: string;
   // Not using union type as I don't know if there are more statuses
-  TrackingStatus: string; // 'WAITING' | 'DELIVERED'
+  TrackingStatus: string; // 'WAITING' | 'DELIVERED' | 'ON_DELIVERY'
   WaybillNumber: string;
   Weight: number; // 25
   email: string;
