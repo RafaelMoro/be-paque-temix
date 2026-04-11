@@ -16,7 +16,7 @@ import {
   CreateGuidePkkDataResponse,
   GetGuidePkkPayload,
   PakkeExternalCreateGuideResponse,
-  PakkeExternalGetGuide,
+  PakkeExternalGetBasicGuideInfo,
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
 } from '../pakke.interface';
@@ -102,7 +102,7 @@ export class PakkeService {
       const startRecordIndex = 0;
       const endRecordIndex = pageSize - 1;
       const url = `${uri}${GET_BASIC_GUIDES_PAKKE_ENDPOINT}/byFilter?pageNumber=${pageNumber}&pageSize=${pageSize}&startRecordIndex=${startRecordIndex}&endRecordIndex=${endRecordIndex}&shipReturn=false&trackingStatus=&feeType=`;
-      const response: AxiosResponse<PakkeExternalGetGuide[], unknown> =
+      const response: AxiosResponse<PakkeExternalGetBasicGuideInfo[], unknown> =
         await axios.get(url, {
           headers: {
             Authorization: apiKey,
@@ -135,7 +135,7 @@ export class PakkeService {
       }
 
       const url = `${uri}${GET_SINGLE_GUIDE_PAKKE_ENDPOINT}/${shipmentId}`;
-      const response: AxiosResponse<PakkeExternalGetGuide[], unknown> =
+      const response: AxiosResponse<PakkeExternalGetBasicGuideInfo[], unknown> =
         await axios.get(url, {
           headers: {
             Authorization: apiKey,

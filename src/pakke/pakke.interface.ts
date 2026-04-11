@@ -202,7 +202,7 @@ export interface PakkeExternalCreateGuideResponse {
   Label: string;
 }
 
-export interface PakkeExternalGetGuide {
+export interface PakkeExternalGetBasicGuideInfo {
   Content: string;
   CourierCode: string;
   CreatedAt: Date;

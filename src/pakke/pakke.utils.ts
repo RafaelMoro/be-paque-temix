@@ -4,7 +4,7 @@ import {
   PkkCreateGuideRequest,
   PkkExternalCreateGuideRequest,
   PakkeExternalCreateGuideResponse,
-  PakkeExternalGetGuide,
+  PakkeExternalGetBasicGuideInfo,
 } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -148,7 +148,7 @@ export const formatPakkeCreateGuideResponse = (
 };
 
 export const formatPakkeGetGuidesResponse = (
-  response: PakkeExternalGetGuide,
+  response: PakkeExternalGetBasicGuideInfo,
 ): GetGuideResponse => {
   return {
     trackingNumber: response.TrackingNumber, // guide number
