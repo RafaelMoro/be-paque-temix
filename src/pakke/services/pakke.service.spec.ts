@@ -353,6 +353,16 @@ describe('PakkeService', () => {
       quotes: mockFormattedQuotes,
       messages: [],
     });
+
+    // Silence console output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    // Restore console methods
+    jest.restoreAllMocks();
   });
 
   describe('getQuotePakke', () => {
@@ -620,9 +630,6 @@ describe('PakkeService', () => {
         data: mockPakkeExternalResponse,
       });
 
-      // Mock console.log to avoid output during tests
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       const result = await service.createGuidePakke(mockCreateGuidePayload);
 
       expect(utils.convertPkkCreateGuideToExternal).toHaveBeenCalledWith(
@@ -641,8 +648,6 @@ describe('PakkeService', () => {
         mockPakkeExternalResponse,
       );
       expect(result).toEqual(mockCreateGuideResponse);
-
-      consoleSpy.mockRestore();
     });
 
     it('should throw BadRequestException when API key is missing', async () => {
@@ -710,9 +715,6 @@ describe('PakkeService', () => {
         .spyOn(utils, 'formatPakkeCreateGuideResponse')
         .mockReturnValue(mockFormattedCreateGuideResponse);
 
-      // Mock console.log to avoid output during tests
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       mockedAxios.post.mockResolvedValue({
         data: undefined,
       });
@@ -725,8 +727,6 @@ describe('PakkeService', () => {
       expect(result.messages).toContain('Pkk Guide created successfully');
       expect(result.version).toBe('1.0.0');
       expect(result.error).toBeNull();
-
-      consoleSpy.mockRestore();
     });
 
     it('should propagate BadRequestException from utils', async () => {
@@ -769,9 +769,6 @@ describe('PakkeService', () => {
         .spyOn(utils, 'formatPakkeCreateGuideResponse')
         .mockReturnValue(mockFormattedCreateGuideResponse);
 
-      // Mock console.log to avoid output during tests
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       mockedAxios.post.mockResolvedValue({
         data: mockPakkeExternalResponse,
       });
@@ -783,8 +780,6 @@ describe('PakkeService', () => {
       expect(result.error).toBeNull();
       expect(result.message).toBeNull();
       expect(result.data.guide).toEqual(mockFormattedCreateGuideResponse);
-
-      consoleSpy.mockRestore();
     });
   });
 
