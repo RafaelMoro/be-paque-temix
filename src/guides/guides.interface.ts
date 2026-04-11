@@ -8,3 +8,12 @@ export interface GetGuidesDataResponse
     guides: GetGuideResponse[];
   };
 }
+
+export interface GetGuideDataResponse
+  extends Omit<GeneralResponse, 'data' | 'error'> {
+  error: null;
+  messages: string[];
+  data: {
+    guide: GetGuideResponse;
+  };
+}
