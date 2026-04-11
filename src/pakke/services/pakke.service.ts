@@ -17,6 +17,7 @@ import {
   GetGuidePkkPayload,
   PakkeExternalCreateGuideResponse,
   PakkeExternalGetBasicGuideInfo,
+  PakkeExternalGetGuide,
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
 } from '../pakke.interface';
@@ -135,7 +136,7 @@ export class PakkeService {
       }
 
       const url = `${uri}${GET_SINGLE_GUIDE_PAKKE_ENDPOINT}/${shipmentId}`;
-      const response: AxiosResponse<PakkeExternalGetBasicGuideInfo[], unknown> =
+      const response: AxiosResponse<PakkeExternalGetGuide, unknown> =
         await axios.get(url, {
           headers: {
             Authorization: apiKey,

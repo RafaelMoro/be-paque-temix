@@ -234,6 +234,126 @@ export interface PakkeExternalGetBasicGuideInfo {
   email: string;
 }
 
+export interface PakkeExternalGuideAddress {
+  Country: string;
+  ZipCode: string;
+  State: string; // "MX-GUA"
+  UserState: string; // "MX-GUA"
+  City: string; // "León"
+  Neighborhood: string; // "Centro"
+  Address1: string;
+  Address2: string;
+  Residential: boolean;
+  SaveAddress: boolean;
+}
+
+export interface PakkeExternalGuideTransaction {
+  id: string;
+  Date: Date;
+  Type: string; // "Shipment Fee"
+  TypeId: number; // 1
+  MovementType: number;
+  Amount: number;
+  Status: number;
+  ParentId: string | null;
+  Refunded: boolean;
+}
+
+export interface PakkeExternalGetGuide {
+  ShipmentId: string;
+  ResellerId: string;
+  OwnerId: string;
+  OrderId: string | null;
+  ResellerCourierServiceId: string | null;
+  CreatedAt: Date;
+  ExpiresAt: Date;
+  TransitAt: string | null;
+  DeliveredAt: string | null;
+  CourierName: string; // "Estafeta"
+  CourierCode: string; // "EDEQ_STF"
+  CourierServiceId: string; // "ESTAFETA_TERRESTRE_CONSUMO_EDEQ"
+  CostingPercentageAdjustment: number;
+  CourierService: string; // "Terrestre Consumo"
+  ResellerReference: string; // "REF-1775701234567"
+  Status: string; // "SUCCESS"
+  HasExceptions: boolean;
+  HasLost: number;
+  HasChangeZipCode: boolean;
+  TrackingNumber: string;
+  WaybillNumber: string;
+  TrackingStatus: string; // 'WAITING' | 'DELIVERED' | 'ON_DELIVERY'
+  SendRecipientNotifications: boolean;
+  InsuredAmount: number;
+  ShipmentDependencyId: string | null;
+  PaternGuide: string | null;
+  ShipmentType: number; // 0
+  ReasonGuide: string | null;
+  Parcel: {
+    Height: number;
+    Width: number;
+    Length: number;
+    Weight: number;
+    VolumetricWeight: number;
+  };
+  QuotedWeight: number;
+  RealWeight: number;
+  RealOverWeight: number;
+  CoveredWeight: number;
+  OverWeight: number;
+  OverWeightPrice: number;
+  CoveredAmount: number;
+  ExtrasAmount: number;
+  QuotedAmount: number;
+  QuoteExtraFee: number;
+  OverWeightCounterAmount: number;
+  CouponCode: string | null;
+  InsurenceAmountSegureGroup: number;
+  InsurancePercentFactor: number;
+  ShipmentAmount: number;
+  ShipmentSubtotalAmount: number;
+  ShipmentVatAmount: number;
+  InsuranceAmount: number;
+  InsuranceVatAmount: number;
+  ExtendedZoneAmount: number;
+  DiscountAmount: number;
+  TotalAmount: number;
+  OriginalWeight: number;
+  OriginalWidth: number;
+  OriginalLength: number;
+  OriginalHeight: number;
+  OriginalVolumetricWeight: number;
+  CourierWeight: number;
+  CourierWidth: number;
+  CourierLength: number;
+  CourierHeight: number;
+  CourierVolumetricWeight: number;
+  AddressFrom: PakkeExternalGuideAddress;
+  AddressTo: PakkeExternalGuideAddress;
+  Sender: PkkRecipientCreateGuide;
+  Recipient: PkkRecipientCreateGuide;
+  ReceivedAt: Date | null;
+  ReceivedBy: string | null;
+  Owner: string;
+  DaysInTransit: number | null;
+  EnableRefund: number; // 1
+  ChangeZipCode: string | null;
+  Clarification: string | null;
+  Content: string;
+  transactions: PakkeExternalGuideTransaction[];
+  transactionsPending: PakkeExternalGuideTransaction[];
+  Credentials: string;
+  TrackingNumberReplaced: string | null;
+  TrackingNumberReplaces: string | null;
+  Folio: string | null;
+  EstimatedDeliveryDate: Date | null;
+  Dependencies: unknown[]; // Don't know what type is this, came as an empty array in the responses
+  isCustomCredentials: boolean;
+  LabelType: string; // "PDF"
+  NotValidConditions: boolean;
+  IsMultiPackage: number;
+  DispatchIndications: string | null;
+}
+
 export interface CreateGuidePkkDataResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
