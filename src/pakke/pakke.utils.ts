@@ -4,6 +4,7 @@ import {
   PkkCreateGuideRequest,
   PkkExternalCreateGuideRequest,
   PakkeExternalCreateGuideResponse,
+  PakkeExternalGetGuide,
 } from './pakke.interface';
 import { GetQuotePakkeDto } from './dtos/pakke.dto';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -12,7 +13,10 @@ import {
   QuoteCourier,
   QuoteTypeSevice,
 } from '@/quotes/quotes.interface';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GlobalCreateGuideResponse,
+  GetGuideResponse,
+} from '@/global.interface';
 import { DEFAULT_COMPANY_NAME } from './pakke.constants';
 
 export const getTypeServicePakke = (
@@ -140,5 +144,28 @@ export const formatPakkeCreateGuideResponse = (
     labelUrl: null,
     source: 'Pkk',
     file: response.Label || null,
+  };
+};
+
+export const formatPakkeGetGuidesResponse = (
+  response: PakkeExternalGetGuide,
+): GetGuideResponse => {
+  return {
+    trackingNumber: response.TrackingNumber, // guide number
+    shipmentNumber: response.ShipmentId || null,
+    source: 'Pkk',
+    carrier: null, // not returning carrier
+    price: null, // not returning price
+    guideLink: null,
+    labelUrl: null,
+    file: null,
+    status: response.TrackingStatus,
+    order: null, // only used in TONE
+    guide: null, // only used in TONE
+    trackingLink: null,
+    shippingLink: null,
+    courier: null,
+    origin: null,
+    destination: null, // not returning destination info
   };
 };
