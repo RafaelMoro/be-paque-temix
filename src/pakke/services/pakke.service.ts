@@ -25,7 +25,8 @@ import {
   convertPayloadToPakkeDto,
   convertPkkCreateGuideToExternal,
   formatPakkeCreateGuideResponse,
-  formatPakkeGetGuidesResponse,
+  formatPakkeGetBasicInfoGuidesResponse,
+  formatPakkeGetGuideDetailResponse,
   formatPakkeQuotes,
 } from '../pakke.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -111,7 +112,7 @@ export class PakkeService {
         });
       const data = response?.data;
       const formattedData = data.map((guide) =>
-        formatPakkeGetGuidesResponse(guide),
+        formatPakkeGetBasicInfoGuidesResponse(guide),
       );
 
       return formattedData;
@@ -143,6 +144,7 @@ export class PakkeService {
           },
         });
       const data = response?.data;
+      const formattedData = formatPakkeGetGuideDetailResponse(data);
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
