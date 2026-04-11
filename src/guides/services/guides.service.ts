@@ -24,7 +24,10 @@ export class GuidesService {
       await Promise.allSettled([
         this.guiaEnviaService.getGuides(),
         this.toneService.retrieveT1Guides(),
-        this.pakkeService.getGuidesPakke({ pageNumber: 1, pageSize: 30 }),
+        this.pakkeService.getBasicGuidesInfoPkk({
+          pageNumber: 1,
+          pageSize: 30,
+        }),
       ]);
 
     const geGuidesData =

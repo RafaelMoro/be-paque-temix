@@ -83,7 +83,10 @@ export class PakkeService {
     }
   }
 
-  async getGuidesPakke({ pageNumber = 1, pageSize = 30 }: GetGuidePkkPayload) {
+  async getBasicGuidesInfoPkk({
+    pageNumber = 1,
+    pageSize = 30,
+  }: GetGuidePkkPayload) {
     try {
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
