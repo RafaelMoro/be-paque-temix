@@ -23,6 +23,7 @@ import {
   convertPayloadToPakkeDto,
   convertPkkCreateGuideToExternal,
   formatPakkeCreateGuideResponse,
+  formatPakkeGetGuidesResponse,
   formatPakkeQuotes,
 } from '../pakke.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
@@ -84,7 +85,6 @@ export class PakkeService {
 
   async getGuidesPakke({ pageNumber = 1, pageSize = 30 }: GetGuidePkkPayload) {
     try {
-      const messages: string[] = [];
       const apiKey = this.configService.pakke.apiKey!;
       const uri = this.configService.pakke.uri!;
 
@@ -105,19 +105,11 @@ export class PakkeService {
           },
         });
       const data = response?.data;
-      // const formattedQuotes = formatPakkeQuotes(data);
-      // const { quotes, messages: updatedMessages } = calculateTotalQuotes({
-      //   quotes: formattedQuotes,
-      //   provider: 'Pkk',
-      //   config,
-      //   messages,
-      //   providerNotFoundMessage: PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
-      // });
+      const formattedData = data.map((guide) =>
+        formatPakkeGetGuidesResponse(guide),
+      );
 
-      return {
-        guides: [],
-        // messages: updatedMessages,
-      };
+      return formattedData;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
