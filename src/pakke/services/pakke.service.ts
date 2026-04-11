@@ -5,7 +5,8 @@ import axios, { AxiosResponse } from 'axios';
 
 import {
   CREATE_GUIDE_PAKKE_ENDPOINT,
-  GET_GUIDES_PAKKE_ENDPOINT,
+  GET_BASIC_GUIDES_PAKKE_ENDPOINT,
+  GET_SINGLE_GUIDE_PAKKE_ENDPOINT,
   PAKKE_MISSING_API_KEY_ERROR,
   PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
   PAKKE_MISSING_URI_ERROR,
@@ -100,7 +101,7 @@ export class PakkeService {
 
       const startRecordIndex = 0;
       const endRecordIndex = pageSize - 1;
-      const url = `${uri}${GET_GUIDES_PAKKE_ENDPOINT}/byFilter?pageNumber=${pageNumber}&pageSize=${pageSize}&startRecordIndex=${startRecordIndex}&endRecordIndex=${endRecordIndex}&shipReturn=false&trackingStatus=&feeType=`;
+      const url = `${uri}${GET_BASIC_GUIDES_PAKKE_ENDPOINT}/byFilter?pageNumber=${pageNumber}&pageSize=${pageSize}&startRecordIndex=${startRecordIndex}&endRecordIndex=${endRecordIndex}&shipReturn=false&trackingStatus=&feeType=`;
       const response: AxiosResponse<PakkeExternalGetGuide[], unknown> =
         await axios.get(url, {
           headers: {
@@ -113,6 +114,34 @@ export class PakkeService {
       );
 
       return formattedData;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getSingleGuidePkk(shipmentId: string) {
+    try {
+      const apiKey = this.configService.pakke.apiKey!;
+      const uri = this.configService.pakke.uri!;
+
+      if (!apiKey) {
+        throw new BadRequestException(PAKKE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
+      }
+
+      const url = `${uri}${GET_SINGLE_GUIDE_PAKKE_ENDPOINT}/${shipmentId}`;
+      const response: AxiosResponse<PakkeExternalGetGuide[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
