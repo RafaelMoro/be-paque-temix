@@ -202,6 +202,38 @@ export interface PakkeExternalCreateGuideResponse {
   Label: string;
 }
 
+export interface PakkeExternalGetGuide {
+  Content: string;
+  CourierCode: string;
+  CreatedAt: Date;
+  DaysInTransit: number | null;
+  DynamicConfig: {
+    chargeOverweight: boolean;
+    circularLogo: string;
+    urlLogo: string;
+    withoutBackgroundLogo: string;
+    zplEnable: boolean;
+  };
+  ExpiresAt: Date;
+  HasExceptions: number; // 0
+  HasLost: number; // 0
+  InsuredAmount: number; // 0
+  IsMultiPackage: number; // 0
+  LabelType: string; // "PDF"
+  Name: string;
+  RefundRequestDate: Date | null;
+  ResellerReference: string; // "REF-1775701234567"
+  ShipmentId: string;
+  ShipmentParent: string | null; // null
+  Status: string; // "SUCCESS"
+  TrackingNumber: string;
+  // Not using union type as I don't know if there are more statuses
+  TrackingStatus: string; // 'WAITING' | 'DELIVERED'
+  WaybillNumber: string;
+  Weight: number; // 25
+  email: string;
+}
+
 export interface CreateGuidePkkDataResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
@@ -209,4 +241,9 @@ export interface CreateGuidePkkDataResponse
   data: {
     guide: GlobalCreateGuideResponse | null;
   };
+}
+
+export interface GetGuidePkkPayload {
+  pageNumber?: number;
+  pageSize?: number;
 }

@@ -5,6 +5,7 @@ import axios, { AxiosResponse } from 'axios';
 
 import {
   CREATE_GUIDE_PAKKE_ENDPOINT,
+  GET_GUIDES_PAKKE_ENDPOINT,
   PAKKE_MISSING_API_KEY_ERROR,
   PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
   PAKKE_MISSING_URI_ERROR,
@@ -12,7 +13,9 @@ import {
 } from '../pakke.constants';
 import {
   CreateGuidePkkDataResponse,
+  GetGuidePkkPayload,
   PakkeExternalCreateGuideResponse,
+  PakkeExternalGetGuide,
   PakkeGetQuoteResponse,
   PkkCreateGuideRequest,
 } from '../pakke.interface';
@@ -70,6 +73,50 @@ export class PakkeService {
       return {
         quotes,
         messages: updatedMessages,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async getGuidesPakke({ pageNumber = 1, pageSize = 30 }: GetGuidePkkPayload) {
+    try {
+      const messages: string[] = [];
+      const apiKey = this.configService.pakke.apiKey!;
+      const uri = this.configService.pakke.uri!;
+
+      if (!apiKey) {
+        throw new BadRequestException(PAKKE_MISSING_API_KEY_ERROR);
+      }
+      if (!uri) {
+        throw new BadRequestException(PAKKE_MISSING_URI_ERROR);
+      }
+
+      const startRecordIndex = 0;
+      const endRecordIndex = pageSize - 1;
+      const url = `${uri}${GET_GUIDES_PAKKE_ENDPOINT}/byFilter?pageNumber=${pageNumber}&pageSize=${pageSize}&startRecordIndex=${startRecordIndex}&endRecordIndex=${endRecordIndex}&shipReturn=false&trackingStatus=&feeType=`;
+      const response: AxiosResponse<PakkeExternalGetGuide[], unknown> =
+        await axios.get(url, {
+          headers: {
+            Authorization: apiKey,
+          },
+        });
+      const data = response?.data;
+      // const formattedQuotes = formatPakkeQuotes(data);
+      // const { quotes, messages: updatedMessages } = calculateTotalQuotes({
+      //   quotes: formattedQuotes,
+      //   provider: 'Pkk',
+      //   config,
+      //   messages,
+      //   providerNotFoundMessage: PAKKE_MISSING_PROVIDER_PROFIT_MARGIN,
+      // });
+
+      return {
+        guides: [],
+        // messages: updatedMessages,
       };
     } catch (error) {
       if (error instanceof Error) {
