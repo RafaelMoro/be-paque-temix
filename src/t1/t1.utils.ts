@@ -230,6 +230,8 @@ export const formatT1GetGuideResponse = (
     guideLink: guideData.link_documento || null,
     labelUrl: guideData.link_documento || null,
     file: null,
+    content: null,
+    startDate: null,
 
     // Additional fields specific to GetGuideResponse
     status: guideData.estatus_generico || guideData.estatus || '',

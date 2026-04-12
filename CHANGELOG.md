@@ -1,3 +1,9 @@
+## v0.33.1 (2026-04-12)
+
+### Pull Requests
+[#83](https://github.com/RafaelMoro/be-paque-temix/pull/83) | Patch | Add more props for get guides with PKK
+
+
 ## v0.33.0 (2026-04-11)
 
 ### Pull Requests

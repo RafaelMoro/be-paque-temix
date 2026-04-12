@@ -3181,6 +3181,8 @@ describe('GuiaEnviaService', () => {
         guideLink: null,
         labelUrl: 'https://app.guiaenvia.com/label/GE123456789.pdf',
         file: null,
+        content: null,
+        startDate: null,
         origin: {
           name: 'Juan Pérez',
           alias: 'Casa Principal',
@@ -3211,6 +3213,8 @@ describe('GuiaEnviaService', () => {
         guideLink: null,
         labelUrl: 'https://app.guiaenvia.com/label/DHL987654321.pdf',
         file: null,
+        content: null,
+        startDate: null,
         origin: {
           name: 'Juan Pérez',
           alias: 'Casa Principal',
