@@ -155,6 +155,8 @@ export const formatPakkeGetBasicInfoGuidesResponse = (
     trackingNumber: response.TrackingNumber, // guide number
     shipmentNumber: response.ShipmentId || null,
     source: 'Pkk',
+    content: response.Content,
+    startDate: response.CreatedAt,
     carrier: null, // not returning carrier
     price: null, // not returning price
     guideLink: null,
