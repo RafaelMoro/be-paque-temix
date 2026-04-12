@@ -168,6 +168,8 @@ export const formatGetGuideResponseGE = (
     labelUrl: firstGuide?.url || firstShipment?.url_etiqueta || null,
     file: null,
     courier: getGeCourier(firstShipment?.servicio || ''),
+    content: null,
+    startDate: null,
     origin: {
       name: response.origen?.nombre || '',
       alias: response.origen?.alias || '',
