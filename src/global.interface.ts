@@ -34,6 +34,8 @@ export interface GetGuideResponse extends GlobalCreateGuideResponse {
   guide?: string | null; // Used in TONE with the guide number
   trackingLink?: string | null; // Used in TONE as "link_rastreo"
   shippingLink?: string | null; // Used in TONE as "link_documento"
+  content?: string | null; // Used in Pkk as it returns first not enough data.
+  startDate?: Date | null; // Used in Pkk as it returns first not enough data.
   courier: QuoteCourier | null;
   origin: AddressGuide | null; // Having null value for TONE and Pkk
   destination: AddressGuide | null; // Having it null for Pkk
