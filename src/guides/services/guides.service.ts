@@ -7,6 +7,7 @@ import { GetGuidesDataResponse } from '../guides.interface';
 import { T1Service } from '@/t1/services/t1.service';
 import { T1_USER_NOT_FOUND_ERROR, T1_RETRY_GUIDES } from '@/t1/t1.constants';
 import { PakkeService } from '@/pakke/services/pakke.service';
+import { ManuableService } from '@/manuable/services/manuable.service';
 
 @Injectable()
 export class GuidesService {
@@ -14,21 +15,29 @@ export class GuidesService {
     private guiaEnviaService: GuiaEnviaService,
     private toneService: T1Service,
     private pakkeService: PakkeService,
+    private manuableService: ManuableService,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
   async getGuides(): Promise<GetGuidesDataResponse> {
     const npmVersion: string = this.configService.version!;
     const messages: string[] = [];
-    const [GEGuidesResponse, T1GuidesResponse, PkkGuidesResponse] =
-      await Promise.allSettled([
-        this.guiaEnviaService.getGuides(),
-        this.toneService.retrieveT1Guides(),
-        this.pakkeService.getBasicGuidesInfoPkk({
-          pageNumber: 1,
-          pageSize: 30,
-        }),
-      ]);
+    const [
+      GEGuidesResponse,
+      T1GuidesResponse,
+      PkkGuidesResponse,
+      ManuableGuidesResponse,
+    ] = await Promise.allSettled([
+      this.guiaEnviaService.getGuides(),
+      this.toneService.retrieveT1Guides(),
+      this.pakkeService.getBasicGuidesInfoPkk({
+        pageNumber: 1,
+        pageSize: 30,
+      }),
+      this.manuableService.getHistoryGuidesWithAutoRetry({
+        tracking_number: undefined,
+      }),
+    ]);
 
     const geGuidesData =
       GEGuidesResponse.status === 'fulfilled' ? GEGuidesResponse.value : [];
@@ -38,6 +47,10 @@ export class GuidesService {
         : [];
     const pkkGuidesData =
       PkkGuidesResponse.status === 'fulfilled' ? PkkGuidesResponse.value : [];
+    const manuableGuidesData =
+      ManuableGuidesResponse.status === 'fulfilled'
+        ? ManuableGuidesResponse.value.guides
+        : [];
 
     // Handle rejected promises
     if (GEGuidesResponse.status === 'rejected') {
@@ -55,6 +68,9 @@ export class GuidesService {
     if (PkkGuidesResponse.status === 'rejected') {
       messages.push('Pkk failed to get guides');
     }
+    if (ManuableGuidesResponse.status === 'rejected') {
+      messages.push('Manuable failed to get guides');
+    }
 
     // Handle fulfilled cases with messages
     if (
@@ -63,8 +79,19 @@ export class GuidesService {
     ) {
       messages.push(...T1GuidesResponse.value.messages);
     }
+    if (
+      ManuableGuidesResponse.status === 'fulfilled' &&
+      ManuableGuidesResponse.value.messages
+    ) {
+      messages.push(...ManuableGuidesResponse.value.messages);
+    }
 
-    const allGuides = [...geGuidesData, ...t1GuidesData, ...pkkGuidesData];
+    const allGuides = [
+      ...geGuidesData,
+      ...t1GuidesData,
+      ...pkkGuidesData,
+      ...manuableGuidesData,
+    ];
     return {
       version: npmVersion,
       message: messages.length > 0 ? messages[0] : null,
