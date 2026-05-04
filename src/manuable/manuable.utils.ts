@@ -13,7 +13,10 @@ import {
   TypeServiceMn,
 } from './manuable.interface';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { GlobalCreateGuideResponse } from '@/global.interface';
+import {
+  GlobalCreateGuideResponse,
+  GetGuideResponse,
+} from '@/global.interface';
 
 export const getTypeServiceMn = (
   service: TypeServiceMn,
@@ -141,3 +144,38 @@ export const formatManuableCreateGuideResponse = (
     file: null, // Manuable doesn't provide a file field, only label_url
   };
 };
+
+/**
+ * Transforms ManuableGuide to GetGuideResponse format
+ */
+export const formatGetGuideResponseMn = (
+  guide: ManuableGuide,
+): GetGuideResponse => {
+  return {
+    trackingNumber: guide.tracking_number,
+    shipmentNumber: null,
+    source: 'Mn',
+    status: guide.tracking_status || 'unknown',
+    carrier: guide.carrier,
+    price: guide.price,
+    guideLink: null,
+    labelUrl: guide.label_url,
+    file: null,
+    courier: getPakkeCourier(guide.carrier as MnCarrier),
+    content: null,
+    startDate: guide.created_at ? new Date(guide.created_at) : null,
+    order: null,
+    guide: null,
+    trackingLink: null,
+    shippingLink: null,
+    origin: null,
+    destination: null,
+  };
+};
+
+/**
+ * Transforms array of ManuableGuides to array of GetGuideResponse
+ */
+export const formatGetGuidesResponseMn = (
+  guides: ManuableGuide[],
+): GetGuideResponse[] => guides.map(formatGetGuideResponseMn);

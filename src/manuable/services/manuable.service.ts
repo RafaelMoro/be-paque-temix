@@ -37,6 +37,7 @@ import {
   formatPayloadManuable,
   formatPayloadRequestMn,
   formatManuableCreateGuideResponse,
+  formatGetGuidesResponseMn,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -563,7 +564,8 @@ export class ManuableService {
           },
         });
       const guides = response?.data?.data;
-      return guides;
+      const guidesFormatted = formatGetGuidesResponseMn(guides);
+      return guidesFormatted;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
