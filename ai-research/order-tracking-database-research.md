@@ -32,16 +32,20 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### 1. Order Creation Flow
 
-**Requirement**: Create guide in DB first, then sync with external API upon successful response.
+**Requirement**: Create order via external API first, then persist to DB regardless of success/failure.
 
 **High-Level Actions**:
 
 - Create `Order` entity/schema with Mongoose
-- Define order status lifecycle (pending, created, failed, cancelled, etc.)
-- Implement database-first creation logic
-- Update external API creation to sync after DB persistence
+- Define order status lifecycle (created, failed, in-transit, delivered, cancelled, etc.)
+- Implement API-first creation logic:
+  1. Call external provider API with quote data
+  2. Save to DB regardless of API result
+  3. Store appropriate status based on API response
 - Handle success/failure scenarios from external APIs
-- Update DB order status based on external API response
+- Generate internal Kraft tracking number if provider fails to provide one
+- Replace internal tracking number when provider returns one (provider tracking is source of truth)
+- Support retry for failed orders by updating existing order record
 
 ### 2. User Order Retrieval
 
@@ -49,10 +53,12 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 **High-Level Actions**:
 
-- Create endpoint to fetch orders filtered by user ID
+- Create endpoint to fetch orders filtered by user ID (from JWT token)
 - Implement pagination for order lists
 - Add sorting capabilities (by date, status, provider)
-- Filter orders by status, provider, date range
+- **Priority filters**: Search by tracking number (internal or external), provider, date range, status
+- Search functionality must check both internal Kraft tracking number AND external provider tracking number
+- Users can only access their own orders (strict isolation)
 - Return formatted order data with provider-specific details
 
 ### 3. Admin Access
@@ -67,6 +73,21 @@ This document outlines the high-level actions needed to implement order/guide tr
 - Return user-specific orders when role is 'user'
 - Maintain proper authorization guards
 
+**Admin Capabilities** (confirmed for MVP):
+
+- View all orders from all users
+- Cancel any order
+- Manually update order status
+- Same search/filter capabilities as users but across all orders
+
+**Admin Features to Discuss with Client**:
+
+- Add notes/comments to orders
+- Bulk operations (export, status updates)
+- Refund management
+- Dispute resolution
+- Audit log access
+
 ---
 
 ## Database Design Considerations
@@ -77,14 +98,32 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 - User reference (relationship to User entity)
 - Provider identifier (guia-envia, t1, pakke, manuable)
-- Order status (pending, processing, created, failed, cancelled)
-- External provider response data
-- Tracking number(s)
+- Order status (created, failed, in-transit, delivered, cancelled, etc.)
+- Kraft internal tracking number (generated if provider fails)
+- External provider tracking number (source of truth when available)
+- Quote data reference (store selected quote information)
+  - Quote ID from request
+  - Quote cost (total price shown to customer)
+  - Service type selected
+  - Courier selected
+- External provider response data (full API response)
 - Creation timestamp
 - Last updated timestamp
-- Guide document URL
-- Shipping details (origin, destination, package info)
-- Cost information
+- Last sync timestamp (when status was last updated from provider)
+- Guide document URL / Label URL
+- **Full address storage** (origin and destination - embedded in order)
+  - Origin: Complete address details
+  - Destination: Complete address details
+  - Store as embedded documents (not references) for historical accuracy
+- Package information (dimensions, weight, content)
+- Cost information (from quote)
+- Payment reference (optional - for future payment integration)
+- Error details (if order creation failed)
+- Retry count (number of retry attempts)
+- Cancellation details (if cancelled)
+  - Cancelled by (user ID or admin ID)
+  - Cancellation timestamp
+  - Cancellation reason
 
 ### Relationships
 
@@ -94,15 +133,49 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### Status Management
 
-**Suggested Status Flow**:
+**Provider Status Systems**:
 
-1. `pending` - Order created in DB, awaiting external API call
-2. `processing` - External API call in progress
-3. `created` - Successfully created in external provider
-4. `failed` - External API call failed
-5. `cancelled` - Order cancelled by user
-6. `delivered` - Shipment delivered (synced from provider)
-7. `in-transit` - Shipment in transit (synced from provider)
+**T1 Statuses**:
+
+- `estatus`: Provider-specific status string (e.g., "Guía generada")
+- `estatus_generico`: Generic status (e.g., "In Process")
+- `cancelada`: boolean
+- `status_entrega`: number (delivery status code)
+- `incidence`: number
+
+**Pakke Statuses**:
+
+- `Status`: 'SUCCESS' | 'REFUNDED' | 'REFUNDPENDING' | 'REFUNDFAILED'
+- `TrackingStatus`: 'WAITING' | 'IN_TRANSIT' | 'ON_DELIVERY' | 'DELIVERED' | 'RETURNED' | 'CANCELLED' | 'EXCEPTION'
+
+**GuiaEnvia Statuses**:
+
+- `estado`: string (e.g., "completo")
+
+**Manuable Statuses**:
+
+- `tracking_status`: Currently null/undefined (check implementation)
+- `label_status`: string
+- `cancellable`: boolean
+
+**Kraft Consolidated Status Flow** (to be defined during implementation):
+
+1. `created` - Successfully created in external provider
+2. `failed` - External API call failed
+3. `waiting` - Waiting for pickup/processing
+4. `in-transit` - Package in transit to destination
+5. `on-delivery` - Out for delivery
+6. `delivered` - Successfully delivered
+7. `cancelled` - Order cancelled (by user or admin)
+8. `returned` - Package returned to sender
+9. `exception` - Delivery exception/issue
+
+**Status Mapping Strategy**:
+
+- Map each provider's status to Kraft's consolidated status
+- Store both original provider status and Kraft status
+- Update mapping as we discover new provider statuses
+- Document edge cases and special status meanings per provider
 
 ---
 
@@ -146,19 +219,36 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ```typescript
 {
+  quoteId: string | number,  // ID from the selected quote
   provider: 'guia-envia' | 't1' | 'pakke' | 'manuable',
-  shippingDetails: { /* provider-specific payload */ }
+  shippingDetails: { /* provider-specific payload from saved address */ }
 }
 ```
 
 **Flow**:
 
-1. Validate request payload
-2. Create order in DB with status 'pending'
-3. Call provider-specific create-guide service
-4. Update order with external API response
-5. Update status to 'created' or 'failed'
-6. Return order data
+1. Extract user ID from JWT token
+2. Validate request payload
+3. Call external provider create-guide API
+4. Create order in DB with result:
+   - If API success: Save with status 'created' and provider tracking number
+   - If API fails: Save with status 'failed', generate internal Kraft tracking number, store error details
+5. Return order data to user
+
+**Retry Flow** (for failed orders):
+
+1. User triggers retry on failed order
+2. Retrieve order data from DB
+3. Call external provider API again with stored data
+4. Update existing order record:
+   - If success: Update status to 'created', replace internal tracking with provider tracking
+   - If fail again: Keep as 'failed', increment retry count, update error details
+
+**Concurrent Orders**:
+
+- Users CAN create multiple orders simultaneously
+- No locking mechanism needed
+- Each order is independent
 
 ### User Orders Retrieval
 
@@ -167,15 +257,18 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 - `page` - Pagination
 - `limit` - Results per page
-- `status` - Filter by status
-- `provider` - Filter by provider
-- `startDate` - Filter by date range
-- `endDate` - Filter by date range
+- `status` - Filter by status (Priority filter)
+- `provider` - Filter by provider (Priority filter)
+- `startDate` - Filter by date range (Priority filter)
+- `endDate` - Filter by date range (Priority filter)
+- `trackingNumber` - Search by tracking number (Priority filter)
+  - Must search BOTH internal Kraft tracking number AND external provider tracking number
 
 **Authorization**:
 
 - Extracts user ID from JWT token
-- Returns orders belonging to authenticated user
+- Returns orders belonging to authenticated user only (strict isolation)
+- Users cannot see orders from other users
 
 ### Admin Orders Retrieval
 
@@ -195,6 +288,53 @@ This document outlines the high-level actions needed to implement order/guide tr
 - User can only view their own orders
 - Admin can view any order
 
+**On-Demand Sync Behavior**:
+
+- When user/admin views a specific order, trigger sync with provider
+- Call provider's get-guide API to fetch latest status
+- Update order in DB with latest information
+- Return updated order data
+- This ensures users always see current status without constant polling
+
+---
+
+## Quote Integration
+
+### Current Quote System
+
+- Quotes are **NOT** stored in the database
+- Quotes are fetched from external provider APIs on-demand
+- Quote data structure (from `/quotes/quotes.interface.ts`):
+  - `id`: Quote identifier
+  - `service`: Service name
+  - `total`: **Final price shown to customer** (This is the source for order cost)
+  - `courier`: Courier/provider name
+  - `typeService`: 'standard' | 'nextDay'
+  - `source`: Provider source (GE, T1, PKK, MANUABLE)
+
+### Quote-to-Order Flow
+
+1. User requests quotes for a shipment
+2. System calls all providers and returns available quotes
+3. User selects a quote (which includes provider information)
+4. User clicks create order
+5. Frontend sends:
+   - Quote ID (from selected quote)
+   - Provider (from selected quote)
+   - Shipping details (from saved address or manual input)
+6. Backend uses quote `total` as the order cost
+
+### Order Cost Strategy
+
+- **Source of Truth**: Quote `total` field
+- Store quote information in order record:
+  - Quote ID
+  - Quote total (cost)
+  - Selected service
+  - Selected courier
+- Do **NOT** rely on provider API response for cost in order record
+- Provider API response cost is for validation/audit only
+
 ---
 
 ## Service Layer Architecture
@@ -203,21 +343,25 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 **Responsibilities**:
 
-- Create orders in database
-- Query orders with filters
-- Update order status
+- Create orders via external API then persist to database
+- Query orders with filters and search
+- Update order status from provider sync
 - Coordinate with provider services
-- Handle order lifecycle events
+- Handle order lifecycle events (creation, retry, cancellation, sync)
+- Generate internal Kraft tracking numbers when needed
 
 **Key Methods**:
 
-- `createOrder(userId, provider, payload)` - Create order in DB
-- `syncWithProvider(orderId)` - Sync with external API
-- `getOrdersByUser(userId, filters)` - Get user orders
-- `getAllOrders(filters)` - Get all orders (admin)
-- `getOrderById(orderId)` - Get single order
-- `updateOrderStatus(orderId, status)` - Update status
-- `cancelOrder(orderId)` - Cancel order
+- `createOrder(userId, quoteData, provider, payload)` - Call ext API, then save to DB
+- `retryFailedOrder(orderId, userId)` - Retry failed order, update existing record
+- `syncOrderWithProvider(orderId)` - Fetch latest status from provider, update DB
+- `getOrdersByUser(userId, filters)` - Get user orders with search/filter
+- `getAllOrders(filters)` - Get all orders (admin) with search/filter
+- `getOrderById(orderId, userId, isAdmin)` - Get single order with on-demand sync
+- `updateOrderStatus(orderId, status, updatedBy)` - Manual status update (admin)
+- `cancelOrder(orderId, userId, isAdmin, reason)` - Cancel order
+- `generateInternalTrackingNumber()` - Generate Kraft tracking number
+- `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both internal and external tracking
 
 ### Provider Service Updates
 
@@ -257,17 +401,35 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 
 ### Initial Creation
 
-1. **DB First**: Create order in database
-2. **API Call**: Call external provider API
-3. **Update DB**: Update order with provider response
-4. **Handle Failures**: Rollback or mark as failed
+1. **API First**: Call external provider API
+2. **DB Persistence**: Save order to database regardless of API result
+3. **Status Assignment**: Set status based on API response
+   - Success: 'created' with provider tracking number
+   - Failure: 'failed' with internal Kraft tracking number and error details
+
+### On-Demand Sync (Primary Strategy)
+
+- **Trigger**: When user/admin views a specific order detail
+- **Process**:
+  1. Fetch order from DB
+  2. Call provider's get-guide API for latest status
+  3. Update DB with latest tracking information
+  4. Update order status if changed
+  5. Update lastSyncTimestamp
+  6. Return updated data to user
+- **Benefits**:
+  - No polling overhead
+  - Always fresh data when user needs it
+  - Reduces API calls to providers
+  - Better user experience (see updates immediately)
 
 ### Periodic Sync (Future Enhancement)
 
-- Background job to sync order status
-- Update tracking information
+- Background job to sync order status for recent/in-transit orders
+- Update tracking information for orders in active delivery states
 - Sync delivery status
-- Handle provider-initiated updates (webhooks)
+- Handle provider-initiated updates (webhooks if available)
+- Consider rate limiting to avoid hitting provider API limits
 
 ---
 
@@ -309,6 +471,38 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 
 ---
 
+## Address Integration
+
+### Existing Addresses Feature
+
+- Users can save addresses in the system (see `/addresses` module)
+- Saved addresses contain all information needed for guide creation across all providers
+- Different providers require different fields from the saved address
+
+### Address-to-Order Flow
+
+1. User selects a saved address (or enters manually)
+2. Frontend formats address data according to provider requirements
+3. Provider-specific payload is sent to backend in order creation request
+4. Backend stores **full address data** (origin + destination) in order record
+
+### Why Embed Address Data in Orders
+
+- **Historical Accuracy**: Address may be modified/deleted after order creation
+- **Audit Trail**: Complete record of what address was used
+- **Independence**: Order data is self-contained
+- **Compliance**: Shipping records often required for legal purposes
+
+### Address Data Storage Strategy
+
+- Store complete address object (embedded document)
+- Include all fields even if not used by specific provider
+- Preserve original address format as provided
+- Store both origin and destination addresses
+- Do NOT reference Address entity - copy the data
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -340,7 +534,10 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 - Index on user ID for fast user order retrieval
 - Index on status for status-based queries
 - Index on creation date for sorting
-- Compound indexes for common query patterns
+- **Index on internal tracking number** for search functionality
+- **Index on external tracking number** for search functionality
+- Compound indexes for common query patterns (userId + status, userId + createdAt)
+- Consider text index if implementing full-text search across order fields
 
 ### API Response Times
 
@@ -424,13 +621,180 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 ## Technical Decisions Needed
 
 1. **Order ID Format**: MongoDB ObjectId vs custom format?
+   - **Recommendation**: Use MongoDB ObjectId for simplicity
 2. **Status Enum**: Comprehensive list of all possible statuses?
+   - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, cancelled, returned, exception)
+   - **Action**: Map provider statuses to Kraft statuses during implementation
 3. **Provider Data Storage**: Embed vs reference external provider data?
+   - **Decided**: Embed full provider response for audit and historical accuracy
 4. **Retry Logic**: Automatic vs manual retry for failed orders?
+   - **Decided**: Manual retry triggered by user; updates existing order record
 5. **Soft Delete**: Should orders be soft-deleted or hard-deleted?
+   - **Recommendation**: Soft delete with `deletedAt` timestamp for audit purposes
 6. **Audit Trail**: Track all changes to order status?
+   - **Recommendation**: Yes, add `statusHistory` array field with timestamps and actors
 7. **Provider Selection**: How does user select provider during creation?
+   - **Decided**: Provider is selected via quote selection; quote contains provider info
 8. **Cost Calculation**: Store in DB or calculate on-demand?
+   - **Decided**: Store cost from quote `total` field in order record
+9. **Tracking Number Generation**: Format for internal Kraft tracking numbers?
+   - **Need Decision**: Prefix + timestamp + random? Sequential? UUID?
+10. **Duplicate Prevention**: Additional safeguards beyond FE button disable?
+    - **Need Decision**: Idempotency keys? Check for recent duplicate orders?
+11. **Error Message Display**: Show provider error or friendly message?
+    - **Need Client Decision**: See Questions for Client section
+12. **Admin Audit Log**: Log all admin actions on orders?
+    - **Recommendation**: Yes, track who cancelled/updated orders
+
+---
+
+## Questions for Client
+
+The following questions need client input before finalizing implementation:
+
+### 1. Order Cancellation
+
+**Question**: Can users cancel orders after creation? If yes:
+
+- At what point can orders no longer be cancelled?
+- Do we need to call the external provider's cancel API?
+- What happens to the order in our system (status change to 'cancelled')?
+- Should cancellation be free or are there fees?
+
+**Impact**: Affects API design, provider integration, and status workflow.
+
+### 2. Failed Order Retry Behavior
+
+**Question**: When an order creation fails at the external provider:
+
+- Should users be able to retry unlimited times?
+- Should there be a time limit for retries?
+- Should we charge/track each retry attempt?
+- Should we suggest alternative providers if one consistently fails?
+
+**Impact**: Affects UX, business logic, and cost tracking.
+
+### 3. Order Editing Capability
+
+**Question**: Can users edit order details after creation?
+
+- Before provider confirmation?
+- After provider confirmation?
+- What fields can be edited (address, package details, etc.)?
+- Does editing require provider API update or just our DB?
+
+**Impact**: Significant impact on data model and provider integration complexity.
+
+### 4. Error Message Display
+
+**Question**: When order creation fails:
+
+- Show technical error from provider to user?
+- Show user-friendly generic message?
+- Show different messages for different error types?
+- Provide troubleshooting suggestions?
+
+**Impact**: Affects UX and error handling strategy.
+
+### 5. Admin Order Creation
+
+**Question**: Can admins create orders on behalf of users?
+
+- If yes, how do they specify which user?
+- Are there special permissions or audit requirements?
+- Can admins modify order details that users cannot?
+
+**Impact**: Affects admin API endpoints and authorization logic.
+
+### 6. Admin Actions and Permissions
+
+**Question**: What other admin capabilities are needed?
+
+- Add notes/comments to orders?
+- Issue refunds?
+- Override order status manually?
+- Delete orders permanently?
+- View sensitive customer data (payment info)?
+
+**Impact**: Affects admin API design and permission system.
+
+### 7. Notification Preferences
+
+**Question**: What notifications should users receive (future feature)?
+
+- Email, SMS, push notifications, or combination?
+- Which events trigger notifications (created, shipped, delivered, failed)?
+- Can users customize notification preferences?
+- Should admins receive notifications for failed orders?
+
+**Impact**: Affects future notification system design.
+
+### 8. Order History and Retention
+
+**Question**: How long should order data be retained?
+
+- Keep all orders indefinitely?
+- Archive old orders after X days/months?
+- Different retention for different statuses (e.g., delivered vs failed)?
+- Compliance or legal requirements?
+
+**Impact**: Affects database design, storage costs, and archival strategy.
+
+### 9. Refund and Dispute Process
+
+**Question**: How are refunds and disputes handled?
+
+- Track refund status in order record?
+- Allow users to request refunds through the system?
+- Admin approval required?
+- Integration with payment system?
+
+**Impact**: Affects order schema and potential new module requirements.
+
+### 10. Multi-Package Orders
+
+**Question**: Future consideration - will orders ever contain multiple packages?
+
+- If yes, when is this feature needed?
+- How would pricing work?
+- Same destination or different destinations?
+
+**Impact**: May affect initial schema design if coming soon.
+
+---
+
+## Technical Decisions Made (Summary)
+
+### ✅ Confirmed Decisions
+
+1. **Order Creation Flow**: External API first → Save to DB (always, regardless of result)
+2. **Tracking Numbers**: Dual system (internal Kraft + external provider)
+3. **Cost Source**: Quote `total` field
+4. **Address Storage**: Full address data embedded in order
+5. **User Isolation**: Strict - users see only their orders
+6. **Admin Visibility**: Admins see all orders
+7. **Retry Strategy**: Manual retry, updates existing order
+8. **Concurrent Orders**: Allowed - no locking
+9. **Sync Strategy**: On-demand when viewing order detail
+10. **Quote Storage**: Not stored in DB
+11. **Provider Credentials**: System-wide (not per-user)
+12. **Historical Data**: No backfill - start fresh
+13. **Payment Integration**: Optional payment reference field for future
+14. **Notifications**: Not implemented in MVP
+15. **Admin Bulk Operations**: Not in MVP
+
+### ⏳ Pending Client Decisions
+
+1. Order cancellation workflow
+2. Failed order retry limits
+3. Order editing capability
+4. Error message display strategy
+5. Admin order creation on behalf of users
+6. Additional admin capabilities
+7. Notification preferences
+8. Order retention policy
+9. Refund and dispute process
+10. Multi-package orders timeline
 
 ---
 
@@ -463,9 +827,36 @@ This implementation will transform the system from an API proxy to a data-centri
 
 - **Database is source of truth** for order data
 - **External APIs serve as execution mechanisms** for guide creation
-- **Users have full visibility** of their order history
-- **Admins have comprehensive oversight** of all orders
-- **System is resilient** to external API failures
+- **Users have full visibility** of their order history with strict isolation
+- **Admins have comprehensive oversight** of all orders with enhanced permissions
+- **System is resilient** to external API failures (stores failed orders for retry)
 - **Data is structured** for future analytics and reporting
+- **Dual tracking system** (internal Kraft + external provider) ensures no order is lost
+- **On-demand synchronization** keeps data fresh without excessive API calls
+- **Quote integration** provides accurate cost tracking from user selection
+- **Full address embedding** maintains historical accuracy and compliance
 
-The transition requires careful coordination between database operations and external API calls, with robust error handling and a clear status lifecycle.
+### Key Implementation Principles
+
+1. **API-First Creation**: Call provider API before DB persistence
+2. **Always Persist**: Save orders regardless of API success/failure
+3. **User Isolation**: Strict data access control per user
+4. **Transparent Retry**: Failed orders can be retried using stored data
+5. **On-Demand Sync**: Fetch latest status when user views order details
+6. **Audit Trail**: Track status changes, cancellations, and admin actions
+7. **Provider Agnostic**: Design supports all four providers (GE, T1, Pakke, Manuable)
+
+### Pending Client Decisions
+
+Before full implementation, the following must be confirmed with the client:
+
+- Order cancellation workflow and provider integration
+- Failed order retry limits and policies
+- Order editing capabilities and restrictions
+- Error message display strategy (technical vs user-friendly)
+- Admin order creation on behalf of users
+- Additional admin capabilities and audit requirements
+- Order retention and archival policies
+- Refund and dispute handling processes
+
+The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, and API contracts.
