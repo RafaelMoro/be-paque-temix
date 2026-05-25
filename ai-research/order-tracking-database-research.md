@@ -97,11 +97,25 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 **Core Fields**:
 
+- `_id` (MongoDB ObjectId): Internal database identifier for relationships and queries
 - User reference (relationship to User entity)
 - Provider identifier (guia-envia, t1, pakke, manuable)
 - Order status (created, failed, in-transit, delivered, cancelled, etc.)
-- Kraft internal tracking number (generated if provider fails)
-- External provider tracking number (source of truth when available)
+- **Tracking Numbers** (Dual System):
+  - `kraftId` (string): Custom Kraft tracking number (e.g., "KFT-202605-000001")
+    - Always generated on order creation
+    - User-facing, customer-friendly format
+    - Used for customer support and order searches
+    - Indexed and unique across entire system
+  - `externalId` (string, optional): Provider's tracking number
+    - Initially null/undefined when order is created
+    - Set when provider API returns successful response
+    - Used for tracking with provider and sync operations
+    - Indexed for fast search
+  - `isProviderTrackingSynced` (boolean): Indicates if provider tracking number has been received
+    - Initially false
+    - Set to true when externalId is populated
+    - Used for UI display logic and retry flow decisions
 - Quote data reference (store selected quote information)
   - Quote ID from request
   - Quote cost (total price shown to customer)
@@ -368,8 +382,8 @@ This document outlines the high-level actions needed to implement order/guide tr
 - `getOrderById(orderId, userId, isAdmin)` - Get single order with on-demand sync
 - `updateOrderStatus(orderId, status, updatedBy)` - Manual status update (admin)
 - `cancelOrder(orderId, userId, isAdmin, reason)` - Cancel order
-- `generateInternalTrackingNumber()` - Generate Kraft tracking number
-- `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both internal and external tracking
+- `generateKraftId()` - Generate custom Kraft tracking number (KFT-YYYYMM-XXXXXX format)
+- `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both kraftId and externalId
 
 ### Provider Service Updates
 
@@ -563,8 +577,8 @@ For complete error code documentation, implementation guidelines, error code reg
 - Index on user ID for fast user order retrieval
 - Index on status for status-based queries
 - Index on creation date for sorting
-- **Index on internal tracking number** for search functionality
-- **Index on external tracking number** for search functionality
+- **Index on kraftId** (unique) for fast customer-facing searches
+- **Index on externalId** (sparse, allows nulls) for provider tracking searches
 - Compound indexes for common query patterns (userId + status, userId + createdAt)
 - Consider text index if implementing full-text search across order fields
 
@@ -650,7 +664,14 @@ For complete error code documentation, implementation guidelines, error code reg
 ## Technical Decisions Needed
 
 1. **Order ID Format**: MongoDB ObjectId vs custom format?
-   - **Recommendation**: Use MongoDB ObjectId for simplicity
+   - **✅ DECIDED**: Use both - MongoDB ObjectId for database operations + Custom kraftId for customer-facing operations
+   - **kraftId Format**: `KFT-{YEAR}{MONTH}-{SEQUENCE}` (e.g., KFT-202605-000001)
+   - **Rationale**: Provides user-friendly tracking numbers while maintaining MongoDB efficiency
+   - **Properties**:
+     - `_id`: MongoDB ObjectId (internal use)
+     - `kraftId`: Custom sequential tracking number (always present, indexed, unique)
+     - `externalId`: Provider tracking number (optional, indexed)
+     - `isProviderTrackingSynced`: Boolean flag indicating if externalId is populated
 2. **Status Enum**: Comprehensive list of all possible statuses?
    - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, cancelled, returned, exception)
    - **Action**: Map provider statuses to Kraft statuses during implementation
@@ -667,7 +688,10 @@ For complete error code documentation, implementation guidelines, error code reg
 8. **Cost Calculation**: Store in DB or calculate on-demand?
    - **Decided**: Store cost from quote `total` field in order record
 9. **Tracking Number Generation**: Format for internal Kraft tracking numbers?
-   - **Need Decision**: Prefix + timestamp + random? Sequential? UUID?
+   - **✅ DECIDED**: Sequential format `KFT-{YEAR}{MONTH}-{SEQUENCE}`
+   - Six-digit sequence resets monthly
+   - User-friendly and professional appearance
+   - Easy to communicate with customer support
 10. **Duplicate Prevention**: Additional safeguards beyond FE button disable?
     - **Need Decision**: Idempotency keys? Check for recent duplicate orders?
 11. **Error Message Display**: Show provider error or friendly message?
@@ -797,20 +821,24 @@ The following questions need client input before finalizing implementation:
 ### ✅ Confirmed Decisions
 
 1. **Order Creation Flow**: External API first → Save to DB (always, regardless of result)
-2. **Tracking Numbers**: Dual system (internal Kraft + external provider)
-3. **Cost Source**: Quote `total` field
-4. **Address Storage**: Full address data embedded in order
-5. **User Isolation**: Strict - users see only their orders
-6. **Admin Visibility**: Admins see all orders
-7. **Retry Strategy**: Manual retry, updates existing order
-8. **Concurrent Orders**: Allowed - no locking
-9. **Sync Strategy**: On-demand when viewing order detail
-10. **Quote Storage**: Not stored in DB
-11. **Provider Credentials**: System-wide (not per-user)
-12. **Historical Data**: No backfill - start fresh
-13. **Payment Integration**: Optional payment reference field for future
-14. **Notifications**: Not implemented in MVP
-15. **Admin Bulk Operations**: Not in MVP
+2. **Tracking Numbers**: Dual system with three properties:
+   - `kraftId`: Custom Kraft tracking (KFT-202605-XXXXXX) - always present
+   - `externalId`: Provider tracking number - populated on successful provider response
+   - `isProviderTrackingSynced`: Boolean flag for sync status
+3. **ID Strategy**: MongoDB ObjectId for DB operations, kraftId for customer-facing
+4. **Cost Source**: Quote `total` field
+5. **Address Storage**: Full address data embedded in order
+6. **User Isolation**: Strict - users see only their orders
+7. **Admin Visibility**: Admins see all orders
+8. **Retry Strategy**: Manual retry, updates existing order
+9. **Concurrent Orders**: Allowed - no locking
+10. **Sync Strategy**: On-demand when viewing order detail
+11. **Quote Storage**: Not stored in DB
+12. **Provider Credentials**: System-wide (not per-user)
+13. **Historical Data**: No backfill - start fresh
+14. **Payment Integration**: Optional payment reference field for future
+15. **Notifications**: Not implemented in MVP
+16. **Admin Bulk Operations**: Not in MVP
 
 ### ⏳ Pending Client Decisions
 
