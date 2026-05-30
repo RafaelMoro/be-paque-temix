@@ -1,8 +1,9 @@
 import { GeneralResponse } from '@/global.interface';
 import { AddressDoc } from './entities/addresses.entity';
+import { Types } from 'mongoose';
 
 export interface Address extends AddressDoc {
-  _id: unknown;
+  _id: Types.ObjectId;
 }
 
 export interface CreateAddressResponse
