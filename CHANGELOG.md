@@ -1,3 +1,9 @@
+## v0.34.0 (2026-05-30)
+
+### Pull Requests
+[#85](https://github.com/RafaelMoro/be-paque-temix/pull/85) | Feat/see mn guides
+
+
 ## v0.33.1 (2026-04-12)
 
 ### Pull Requests
