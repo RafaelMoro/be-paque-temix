@@ -28,7 +28,7 @@ export class ManuableController {
     return this.manuableService.createGuideWithAutoRetry(payload);
   }
 
-  @Get('guides')
+  @Get('guide')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get history guides for Mn.',
