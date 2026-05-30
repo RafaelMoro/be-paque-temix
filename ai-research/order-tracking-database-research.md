@@ -676,17 +676,17 @@ For complete error code documentation, implementation guidelines, error code reg
    - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, cancelled, returned, exception)
    - **Action**: Map provider statuses to Kraft statuses during implementation
 3. **Provider Data Storage**: Embed vs reference external provider data?
-   - **Decided**: Embed full provider response for audit and historical accuracy
+   - **✅ Decided**: Embed full provider response for audit and historical accuracy
 4. **Retry Logic**: Automatic vs manual retry for failed orders?
-   - **Decided**: Manual retry triggered by user; updates existing order record
+   - **✅ Decided**: Manual retry triggered by user; updates existing order record
 5. **Soft Delete**: Should orders be soft-deleted or hard-deleted?
    - **Recommendation**: Soft delete with `deletedAt` timestamp for audit purposes
 6. **Audit Trail**: Track all changes to order status?
    - **Recommendation**: Yes, add `statusHistory` array field with timestamps and actors
 7. **Provider Selection**: How does user select provider during creation?
-   - **Decided**: Provider is selected via quote selection; quote contains provider info
+   - **✅ Decided**: Provider is selected via quote selection; quote contains provider info
 8. **Cost Calculation**: Store in DB or calculate on-demand?
-   - **Decided**: Store cost from quote `total` field in order record
+   - **✅ Decided**: Store cost from quote `total` field in order record
 9. **Tracking Number Generation**: Format for internal Kraft tracking numbers?
    - **✅ DECIDED**: Sequential format `KFT-{YEAR}{MONTH}-{SEQUENCE}`
    - Six-digit sequence resets monthly
