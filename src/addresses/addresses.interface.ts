@@ -6,11 +6,25 @@ export interface Address extends AddressDoc {
   _id: Types.ObjectId;
 }
 
+export interface AddressData {
+  addressName: string;
+  externalNumber: string;
+  internalNumber?: string;
+  reference?: string;
+  zipcode: string;
+  neighborhood: string;
+  state: string;
+  city: string[];
+  town: string[];
+  alias: string;
+  isGEAddress?: boolean;
+}
+
 export interface CreateAddressResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {
-    address: Omit<AddressDoc, '_id' | 'email'>;
+    address: AddressData;
   };
 }
 
@@ -18,7 +32,7 @@ export interface GetAddressesResponse
   extends Omit<GeneralResponse, 'data' | 'error'> {
   error: null;
   data: {
-    addresses: Omit<AddressDoc, '_id' | 'email'>[];
+    addresses: AddressData[];
   };
 }
 
