@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "prebuild": "rimraf dist",
-    "deploy": "bun run build && sls deploy",
+    "prebuild": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
+    "deploy": "pnpm run build && sls deploy",
     "start": "node ./dist/main.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start",
