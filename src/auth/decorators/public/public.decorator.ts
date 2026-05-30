@@ -1,4 +1,4 @@
 import { SetMetadata } from '@nestjs/common';
+import { IS_PUBLIC_KEY } from '@/auth/auth.constant';
 
-const publicKey = process.env.PUBLIC_KEY;
-export const Public = (...args: string[]) => SetMetadata(publicKey, args);
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
