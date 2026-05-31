@@ -1,7 +1,8 @@
-import { createElement } from 'react';
+import { render } from '@react-email/render';
 import { Resend } from 'resend';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import * as React from 'react';
 
 import config from '@/config';
 import { MailForgotPasswordDto } from '../dtos/mail.dto';
@@ -21,11 +22,15 @@ export class MailService {
       const { oneTimeToken, email, name, lastName } = payload;
       const url = `${this.configService.frontend.uri}/reset-password/${oneTimeToken}`;
 
+      const emailHtml = await render(
+        React.createElement(ResetPassword, { name, lastName, url }),
+      );
+
       await resend.emails.send({
         from: emailSender,
         to: email,
         subject: 'Recupera tu contraseña en Kraft Envios',
-        react: createElement(ResetPassword, { name, lastName, url }),
+        html: emailHtml,
       });
     } catch (error) {
       if (error instanceof Error) {

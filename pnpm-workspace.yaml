@@ -1,0 +1,7 @@
+allowBuilds:
+  '@nestjs/core': true
+  '@scarf/scarf': false
+  '@swc/core': true
+  aws-sdk: true
+  esbuild: false
+  serverless: true

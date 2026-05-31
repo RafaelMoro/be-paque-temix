@@ -1,26 +1,16 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtGuard } from './jwt-guard.guard';
-import config from '@/config';
+import { IS_PUBLIC_KEY } from '@/auth/auth.constant';
 
 describe('JwtGuard', () => {
   let guard: JwtGuard;
   let reflector: jest.Mocked<Reflector>;
-  let mockConfigService: any;
-
-  const mockConfig = {
-    auth: {
-      publicKey: 'isPublic',
-      jwtKey: 'test-jwt-key',
-      roleKey: 'roles',
-      oneTimeJwtKey: 'test-one-time-jwt-key',
-    },
-  };
 
   beforeEach(async () => {
     const mockReflector = {
@@ -35,16 +25,11 @@ describe('JwtGuard', () => {
           provide: Reflector,
           useValue: mockReflector,
         },
-        {
-          provide: config.KEY,
-          useValue: mockConfig,
-        },
       ],
     }).compile();
 
     guard = module.get<JwtGuard>(JwtGuard);
     reflector = module.get(Reflector);
-    mockConfigService = module.get(config.KEY);
   });
 
   afterEach(() => {
@@ -72,30 +57,19 @@ describe('JwtGuard', () => {
     });
 
     it('should return true for public routes', () => {
-      reflector.get.mockReturnValue(true);
+      reflector.getAllAndOverride.mockReturnValue(true);
 
       const result = guard.canActivate(mockExecutionContext);
 
       expect(result).toBe(true);
-      expect(reflector.get).toHaveBeenCalledWith(
-        'isPublic',
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
         mockExecutionContext.getHandler(),
-      );
-    });
-
-    it('should check reflector for public metadata using correct key', () => {
-      reflector.get.mockReturnValue(true);
-
-      guard.canActivate(mockExecutionContext);
-
-      expect(reflector.get).toHaveBeenCalledWith(
-        mockConfigService.auth.publicKey,
-        mockExecutionContext.getHandler(),
-      );
+        mockExecutionContext.getClass(),
+      ]);
     });
 
     it('should call parent canActivate when route is not public', () => {
-      reflector.get.mockReturnValue(false);
+      reflector.getAllAndOverride.mockReturnValue(false);
 
       // Mock the parent's canActivate method
       const parentCanActivate = jest
@@ -107,17 +81,17 @@ describe('JwtGuard', () => {
 
       const result = guard.canActivate(mockExecutionContext);
 
-      expect(reflector.get).toHaveBeenCalledWith(
-        'isPublic',
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
         mockExecutionContext.getHandler(),
-      );
+        mockExecutionContext.getClass(),
+      ]);
       expect(parentCanActivate).toHaveBeenCalledWith(mockExecutionContext);
 
       parentCanActivate.mockRestore();
     });
 
     it('should handle undefined public metadata', () => {
-      reflector.get.mockReturnValue(undefined);
+      reflector.getAllAndOverride.mockReturnValue(undefined);
 
       const parentCanActivate = jest
         .spyOn(
@@ -128,17 +102,17 @@ describe('JwtGuard', () => {
 
       guard.canActivate(mockExecutionContext);
 
-      expect(reflector.get).toHaveBeenCalledWith(
-        'isPublic',
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
         mockExecutionContext.getHandler(),
-      );
+        mockExecutionContext.getClass(),
+      ]);
       expect(parentCanActivate).toHaveBeenCalledWith(mockExecutionContext);
 
       parentCanActivate.mockRestore();
     });
 
     it('should handle null public metadata', () => {
-      reflector.get.mockReturnValue(null);
+      reflector.getAllAndOverride.mockReturnValue(null);
 
       const parentCanActivate = jest
         .spyOn(
@@ -170,24 +144,30 @@ describe('JwtGuard', () => {
 
       guard.canActivate(mockExecutionContext);
 
-      expect(reflector.get).toHaveBeenCalledWith(
-        'isPublic',
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
         mockExecutionContext.getHandler(),
-      );
+        mockExecutionContext.getClass(),
+      ]);
       expect(parentCanActivate).toHaveBeenCalledWith(mockExecutionContext);
 
       parentCanActivate.mockRestore();
     });
 
-    it('should use handler from execution context', () => {
+    it('should use handler and class from execution context', () => {
       const mockHandler = jest.fn();
+      const mockClass = jest.fn();
       mockExecutionContext.getHandler.mockReturnValue(mockHandler);
-      reflector.get.mockReturnValue(true);
+      mockExecutionContext.getClass.mockReturnValue(mockClass);
+      reflector.getAllAndOverride.mockReturnValue(true);
 
       guard.canActivate(mockExecutionContext);
 
       expect(mockExecutionContext.getHandler).toHaveBeenCalled();
-      expect(reflector.get).toHaveBeenCalledWith('isPublic', mockHandler);
+      expect(mockExecutionContext.getClass).toHaveBeenCalled();
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
+        mockHandler,
+        mockClass,
+      ]);
     });
 
     it('should be instance of JwtGuard', () => {
