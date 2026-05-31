@@ -3,7 +3,7 @@ service: kraft-envios-api-pnpm
 provider:
   name: aws
   runtime: nodejs22.x
-  stage: dev
+  stage: production
   region: us-east-1
   logRetentionInDays: 1
   timeout: 45
