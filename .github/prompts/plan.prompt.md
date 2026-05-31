@@ -1,5 +1,5 @@
 ---
-description: 'Convert a research doc into a implementation plan. Reads ai-research/*.md, defines phases, specifies file-level changes, and writes a ai-planning/planning?*.md'
+description: 'Convert a research doc into a implementation plan. Reads ai-research/*.md, defines phases, specifies file-level changes, and writes ai-planning/planning-*.md'
 ---
 
 # /plan - Story Planning workflow
@@ -15,9 +15,10 @@ You are a running the **planning phase** for a story or task. Input is a complet
 
 Read in order:
 
-1. The specified research document (if provided) or ask the user to select one from `ai-research/*.md`. this is the source of thruth for scope, affected files and open questions.
-2. [.github/copilot-instructions.md](../copilot-intructions.md) - Review rubric and guidelines for code quality, type safety, testing, documentation, and best practices.
-3. /memories/\*-research.md - Check for any relevant research memories that may impact planning or implementation.
+1. The specified research document (if provided) or ask the user to select one from `ai-research/*.md`. This is the source of truth for scope, affected files and open questions.
+2. [.github/copilot-instructions.md](../copilot-instructions.md) - Review rubric and guidelines for code quality, type safety, testing, documentation, and best practices.
+3. [.github/REPO_CONTEXT.md](../REPO_CONTEXT.md) - Current codebase structure to understand existing modules and services.
+4. `/memories/repo/*-research.md` - Check for any relevant research memories that may impact planning or implementation.
 
 ## Step 2 - Verify research plan-ready
 
@@ -66,14 +67,16 @@ Don't create a phase for "lint/format or "code review" - thoise are PR concerns,
 
 ## Step 4 - Specify changes per phase
 
-For each file change in each phase, provide
+For each phase, include a **"Changes Required"** section that specifies:
 
-- Exact path
-- Action: Create / Modify / Delete
-- for modifications: liune range or "after line x"
-- code structure - function signatures, key logic, critical conditionals. Not full implementations
-- Edge cases worth flagging (only the non-obvious ones)
-- A 1-2 sentence "why" only when not self-evident
+For each file change:
+
+- **Exact path** (e.g., `src/users/services/user.service.ts`)
+- **Action**: Create / Modify / Delete
+- **For modifications**: line range or "after line x"
+- **Code structure**: function signatures, key logic, critical conditionals. Not full implementations
+- **Edge cases** worth flagging (only the non-obvious ones)
+- **Rationale**: A 1-2 sentence "why" only when not self-evident
 
 **Stay concise**. Show the implementer what to build; don't write it for them. Target 500-700 lines for the whole plan.
 
@@ -102,7 +105,11 @@ Describe what to test, not how. Full test code beling in the implementation phas
 File path: `ai-planning/planning-{story-name}.md`
 Length target: 500-700 lines. If exceeding, you're writing implementation, not a plan. Also may be the AC is too broad and needs to be broken into multiple stories.
 
-## Step 8 - Present for review
+## Step 8 - Capture planning insights to memory
+
+If planning reveals non-obvious technical decisions or constraints that future work would benefit from, write a short note to `/memories/repo/{story-name}-planning.md`.
+
+## Step 9 - Present for review
 
 End the turn with:
 
