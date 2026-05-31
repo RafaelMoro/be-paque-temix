@@ -10,9 +10,20 @@ provider:
   stackName: kraft-envios-api-test-pnpm
   apiName: kraft-envios-api-test-pnpm
 
+package:
+  patterns:
+    - '.bundle/**'
+    - '!src/**'
+    - '!test/**'
+    - '!emails/**'
+    - '!dist/**'
+    - '!node_modules/**'
+    - '!coverage/**'
+    - '!docs/**'
+
 functions:
   api:
-    handler: dist/lambda.handler
+    handler: .bundle/index.handler
     events:
       - http:
           method: ANY
@@ -22,5 +33,4 @@ functions:
           path: '{proxy+}'
 
 plugins:
-  - serverless-jetpack
   - serverless-offline
