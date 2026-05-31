@@ -1,3 +1,9 @@
+## v1.0.1 (2026-05-31)
+
+### Pull Requests
+[#88](https://github.com/RafaelMoro/be-paque-temix/pull/88) | Add license
+
+
 ## v1.0.0 (2026-05-31)
 
 ### Pull Requests
