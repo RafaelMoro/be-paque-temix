@@ -1,3 +1,9 @@
+## v1.0.0 (2026-05-31)
+
+### Pull Requests
+[#86](https://github.com/RafaelMoro/be-paque-temix/pull/86) | Change bun to pnpm 11
+
+
 ## v0.34.0 (2026-05-30)
 
 ### Pull Requests
