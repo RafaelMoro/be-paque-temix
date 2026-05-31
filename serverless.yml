@@ -1,4 +1,4 @@
-service: kraft-envios-api-pnpm-11
+service: kraft-envios-api-pnpm
 
 provider:
   name: aws
@@ -7,8 +7,8 @@ provider:
   region: us-east-1
   logRetentionInDays: 1
   timeout: 45
-  stackName: kraft-envios-api-test-pnpm
-  apiName: kraft-envios-api-test-pnpm
+  stackName: kraft-envios-api-pnpm
+  apiName: kraft-envios-api-pnpm
 
 package:
   patterns:
