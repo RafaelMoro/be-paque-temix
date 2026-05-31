@@ -98,12 +98,6 @@ importers:
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.2.1)
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
-      uid:
-        specifier: ^2.0.2
-        version: 2.0.2
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
