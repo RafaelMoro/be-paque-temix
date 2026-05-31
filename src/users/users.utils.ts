@@ -4,6 +4,6 @@ import { PayloadTokenForgotPwd } from './users.interface';
 
 export const generateJWT = (user: UserDoc, jwtService: JwtService) => {
   const mongoId = user._id;
-  const payload: PayloadTokenForgotPwd = { sub: mongoId as string };
+  const payload: PayloadTokenForgotPwd = { sub: mongoId.toString() };
   return jwtService.sign(payload);
 };

@@ -84,6 +84,7 @@ describe('UsersService', () => {
     updatedAt: new Date(),
     save: jest.fn(),
     toJSON: jest.fn(),
+    toObject: jest.fn(),
     id: 'mockUserId123',
   } as unknown as UserDoc;
 
@@ -130,6 +131,7 @@ describe('UsersService', () => {
           ...mockUser,
           ...data,
           toJSON: jest.fn().mockReturnValue({ ...mockUser, ...data }),
+          toObject: jest.fn().mockReturnValue({ ...mockUser, ...data }),
         }),
       };
       return mockInstance;
@@ -255,6 +257,7 @@ describe('UsersService', () => {
         password: 'plainPassword123', // This should be the original password before hashing
         save: jest.fn().mockResolvedValue({
           toJSON: jest.fn().mockReturnValue(savedUserData),
+          toObject: jest.fn().mockReturnValue(savedUserData),
         }),
       };
 
@@ -309,6 +312,7 @@ describe('UsersService', () => {
         password: 'plainPassword123', // This should be the original password before hashing
         save: jest.fn().mockResolvedValue({
           toJSON: jest.fn().mockReturnValue(savedUserData),
+          toObject: jest.fn().mockReturnValue(savedUserData),
         }),
       };
 
@@ -387,7 +391,6 @@ describe('UsersService', () => {
       expect(userModel.updateOne).toHaveBeenCalledWith(
         { _id: mockUser.id },
         { oneTimeToken: 'mockOneTimeToken123' },
-        { multi: true },
       );
       expect(mailService.sendUserForgotPasswordEmail).toHaveBeenCalledWith({
         email,

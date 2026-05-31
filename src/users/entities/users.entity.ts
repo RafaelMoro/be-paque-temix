@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { Role } from '../users.interface';
 
 @Schema()
@@ -39,7 +39,7 @@ export class User extends Document {
 }
 
 export interface UserDoc extends User {
-  _id: unknown;
+  _id: Types.ObjectId;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(User);

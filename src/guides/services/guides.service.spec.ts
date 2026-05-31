@@ -3,6 +3,7 @@ import { GuidesService } from './guides.service';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
+import { ManuableService } from '@/manuable/services/manuable.service';
 import config from '@/config';
 import { GetGuideResponse } from '@/global.interface';
 import { GetGuidesDataResponse } from '../guides.interface';
@@ -13,6 +14,7 @@ describe('GuidesService', () => {
   let guiaEnviaService: jest.Mocked<GuiaEnviaService>;
   let t1Service: jest.Mocked<T1Service>;
   let pakkeService: jest.Mocked<PakkeService>;
+  let manuableService: jest.Mocked<ManuableService>;
 
   const mockConfig = {
     version: '1.0.0',
@@ -143,6 +145,27 @@ describe('GuidesService', () => {
     },
   ];
 
+  const mockManuableGuides: GetGuideResponse[] = [
+    {
+      trackingNumber: 'MAN123456789',
+      shipmentNumber: 'MAN123456789',
+      source: 'Mn',
+      status: 'En tránsito',
+      carrier: 'Manuable',
+      courier: null,
+      price: '150.00',
+      guideLink: null,
+      labelUrl: 'https://manuable.example.com/label/MAN123456789.pdf',
+      file: null,
+      order: null,
+      guide: null,
+      trackingLink: null,
+      shippingLink: null,
+      origin: null,
+      destination: null,
+    },
+  ];
+
   beforeEach(async () => {
     const mockGuiaEnviaService = {
       getGuides: jest.fn(),
@@ -154,6 +177,10 @@ describe('GuidesService', () => {
 
     const mockPakkeService = {
       getBasicGuidesInfoPkk: jest.fn(),
+    };
+
+    const mockManuableService = {
+      getHistoryGuidesWithAutoRetry: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -172,6 +199,10 @@ describe('GuidesService', () => {
           useValue: mockPakkeService,
         },
         {
+          provide: ManuableService,
+          useValue: mockManuableService,
+        },
+        {
           provide: config.KEY,
           useValue: mockConfig,
         },
@@ -182,11 +213,16 @@ describe('GuidesService', () => {
     guiaEnviaService = module.get(GuiaEnviaService);
     t1Service = module.get(T1Service);
     pakkeService = module.get(PakkeService);
+    manuableService = module.get(ManuableService);
 
     // Set default mock implementations
     guiaEnviaService.getGuides.mockResolvedValue([]);
     t1Service.retrieveT1Guides.mockResolvedValue({ data: [], messages: [] });
     pakkeService.getBasicGuidesInfoPkk.mockResolvedValue([]);
+    manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+      guides: [],
+      messages: [],
+    });
 
     // Silence console output during tests
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -211,6 +247,10 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
@@ -220,7 +260,12 @@ describe('GuidesService', () => {
         messages: [],
         error: null,
         data: {
-          guides: [...mockGEGuides, ...mockT1Guides, ...mockPkkGuides],
+          guides: [
+            ...mockGEGuides,
+            ...mockT1Guides,
+            ...mockPkkGuides,
+            ...mockManuableGuides,
+          ],
         },
       });
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
@@ -229,6 +274,14 @@ describe('GuidesService', () => {
       expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledWith({
         pageNumber: 1,
         pageSize: 30,
+      });
+      expect(
+        manuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        manuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledWith({
+        tracking_number: undefined,
       });
     });
 
@@ -280,6 +333,17 @@ describe('GuidesService', () => {
       expect(result.data.guides).toEqual([]);
     });
 
+    it('should handle Manuable service rejection', async () => {
+      manuableService.getHistoryGuidesWithAutoRetry.mockRejectedValue(
+        new Error('Manuable API Error'),
+      );
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('Manuable failed to get guides');
+      expect(result.data.guides).toEqual([]);
+    });
+
     it('should handle T1 user not found error with retry message', async () => {
       t1Service.retrieveT1Guides.mockRejectedValue(
         new Error(T1_USER_NOT_FOUND_ERROR),
@@ -303,11 +367,26 @@ describe('GuidesService', () => {
       expect(result.data.guides).toEqual(mockT1Guides);
     });
 
+    it('should handle Manuable returning messages in successful response', async () => {
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: ['Manuable Warning: Connection slow'],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('Manuable Warning: Connection slow');
+      expect(result.data.guides).toEqual(mockManuableGuides);
+    });
+
     it('should handle all three services rejecting', async () => {
       guiaEnviaService.getGuides.mockRejectedValue(new Error('GE Error'));
       t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
       pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
         new Error('Pkk Error'),
+      );
+      manuableService.getHistoryGuidesWithAutoRetry.mockRejectedValue(
+        new Error('Manuable Error'),
       );
 
       const result = await service.getGuides();
@@ -315,6 +394,7 @@ describe('GuidesService', () => {
       expect(result.messages).toContain('GE failed to get guides');
       expect(result.messages).toContain('T1 failed to get guides');
       expect(result.messages).toContain('Pkk failed to get guides');
+      expect(result.messages).toContain('Manuable failed to get guides');
       expect(result.data.guides).toEqual([]);
       expect(result.error).toBeNull();
     });
@@ -328,10 +408,18 @@ describe('GuidesService', () => {
       pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
         new Error('Pkk Error'),
       );
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toEqual([...mockGEGuides, ...mockT1Guides]);
+      expect(result.data.guides).toEqual([
+        ...mockGEGuides,
+        ...mockT1Guides,
+        ...mockManuableGuides,
+      ]);
       expect(result.messages).toContain('Pkk failed to get guides');
     });
 
@@ -339,10 +427,18 @@ describe('GuidesService', () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
       t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toEqual([...mockGEGuides, ...mockPkkGuides]);
+      expect(result.data.guides).toEqual([
+        ...mockGEGuides,
+        ...mockPkkGuides,
+        ...mockManuableGuides,
+      ]);
       expect(result.messages).toContain('T1 failed to get guides');
     });
 
@@ -353,10 +449,18 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toEqual([...mockT1Guides, ...mockPkkGuides]);
+      expect(result.data.guides).toEqual([
+        ...mockT1Guides,
+        ...mockPkkGuides,
+        ...mockManuableGuides,
+      ]);
       expect(result.messages).toContain('GE failed to get guides');
     });
 
@@ -445,6 +549,10 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
@@ -452,10 +560,14 @@ describe('GuidesService', () => {
         ...mockGEGuides,
         ...mockT1Guides,
         ...mockPkkGuides,
+        ...mockManuableGuides,
       ]);
       expect(guiaEnviaService.getGuides).toHaveBeenCalledTimes(1);
       expect(t1Service.retrieveT1Guides).toHaveBeenCalledTimes(1);
       expect(pakkeService.getBasicGuidesInfoPkk).toHaveBeenCalledTimes(1);
+      expect(
+        manuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should handle Promise.allSettled correctly when service rejects', async () => {
@@ -463,6 +575,7 @@ describe('GuidesService', () => {
       guiaEnviaService.getGuides.mockRejectedValue(error);
       t1Service.retrieveT1Guides.mockRejectedValue(error);
       pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(error);
+      manuableService.getHistoryGuidesWithAutoRetry.mockRejectedValue(error);
 
       const result = await service.getGuides();
 
@@ -470,6 +583,7 @@ describe('GuidesService', () => {
       expect(result.messages).toContain('GE failed to get guides');
       expect(result.messages).toContain('T1 failed to get guides');
       expect(result.messages).toContain('Pkk failed to get guides');
+      expect(result.messages).toContain('Manuable failed to get guides');
     });
 
     it('should handle network errors gracefully', async () => {
@@ -601,6 +715,10 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       await service.getGuides();
 
@@ -612,6 +730,14 @@ describe('GuidesService', () => {
         pageNumber: 1,
         pageSize: 30,
       });
+      expect(
+        manuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        manuableService.getHistoryGuidesWithAutoRetry,
+      ).toHaveBeenCalledWith({
+        tracking_number: undefined,
+      });
     });
 
     it('should not throw error when any service fails', async () => {
@@ -619,6 +745,9 @@ describe('GuidesService', () => {
       t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 error'));
       pakkeService.getBasicGuidesInfoPkk.mockRejectedValue(
         new Error('Pkk error'),
+      );
+      manuableService.getHistoryGuidesWithAutoRetry.mockRejectedValue(
+        new Error('Manuable error'),
       );
 
       await expect(service.getGuides()).resolves.toBeDefined();
@@ -660,6 +789,10 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
@@ -671,10 +804,18 @@ describe('GuidesService', () => {
       guiaEnviaService.getGuides.mockResolvedValue(mockGEGuides);
       t1Service.retrieveT1Guides.mockRejectedValue(new Error('T1 Error'));
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(mockPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toEqual([...mockGEGuides, ...mockPkkGuides]);
+      expect(result.data.guides).toEqual([
+        ...mockGEGuides,
+        ...mockPkkGuides,
+        ...mockManuableGuides,
+      ]);
       expect(result.messages).toContain('T1 failed to get guides');
       expect(result.messages.length).toBe(1);
     });
@@ -692,6 +833,19 @@ describe('GuidesService', () => {
       expect(result.data.guides).toEqual(mockT1Guides);
     });
 
+    it('should aggregate warnings from Manuable service', async () => {
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: mockManuableGuides,
+        messages: ['Manuable Warning 1', 'Manuable Warning 2'],
+      });
+
+      const result = await service.getGuides();
+
+      expect(result.messages).toContain('Manuable Warning 1');
+      expect(result.messages).toContain('Manuable Warning 2');
+      expect(result.data.guides).toEqual(mockManuableGuides);
+    });
+
     it('should handle large number of guides from all services', async () => {
       const manyGEGuides = Array(50)
         .fill(null)
@@ -702,6 +856,12 @@ describe('GuidesService', () => {
       const manyPkkGuides = Array(50)
         .fill(null)
         .map((_, i) => ({ ...mockPkkGuides[0], trackingNumber: `PKK${i}` }));
+      const manyManuableGuides = Array(50)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockManuableGuides[0],
+          trackingNumber: `MAN${i}`,
+        }));
 
       guiaEnviaService.getGuides.mockResolvedValue(manyGEGuides);
       t1Service.retrieveT1Guides.mockResolvedValue({
@@ -709,10 +869,14 @@ describe('GuidesService', () => {
         messages: [],
       });
       pakkeService.getBasicGuidesInfoPkk.mockResolvedValue(manyPkkGuides);
+      manuableService.getHistoryGuidesWithAutoRetry.mockResolvedValue({
+        guides: manyManuableGuides,
+        messages: [],
+      });
 
       const result = await service.getGuides();
 
-      expect(result.data.guides).toHaveLength(150);
+      expect(result.data.guides).toHaveLength(200);
     });
 
     it('should execute all service calls in parallel', async () => {
@@ -736,13 +900,21 @@ describe('GuidesService', () => {
         return mockPkkGuides;
       });
 
+      manuableService.getHistoryGuidesWithAutoRetry.mockImplementation(
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 35));
+          callOrder.push('Manuable');
+          return { guides: mockManuableGuides, messages: [] };
+        },
+      );
+
       const startTime = Date.now();
       await service.getGuides();
       const duration = Date.now() - startTime;
 
-      // If calls were sequential, it would take ~120ms, parallel should be ~50ms
+      // If calls were sequential, it would take ~155ms, parallel should be ~50ms
       expect(duration).toBeLessThan(100);
-      expect(callOrder).toHaveLength(3);
+      expect(callOrder).toHaveLength(4);
     });
   });
 });

@@ -59,12 +59,14 @@ describe('AddressesService', () => {
     const mockSave = jest.fn().mockResolvedValue({
       ...mockAddressData,
       toJSON: () => mockAddressData,
+      toObject: () => mockAddressData,
     });
 
     // Mock model constructor
     const MockModel: any = jest.fn().mockImplementation(() => ({
       save: mockSave,
       toJSON: () => mockAddressData,
+      toObject: () => mockAddressData,
     }));
 
     MockModel.findOne = jest.fn();
@@ -200,6 +202,7 @@ describe('AddressesService', () => {
         {
           ...mockAddressData,
           toJSON: () => mockAddressData,
+          toObject: () => mockAddressData,
         },
       ]);
       model.find.mockReturnValue({ exec: execMock });

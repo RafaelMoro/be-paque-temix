@@ -81,7 +81,7 @@ export class UsersService {
       const passwordHashed = await bcrypt.hash(userModel.password, 10);
       userModel.password = passwordHashed;
       const modelSaved: UserDoc = await userModel.save();
-      const responseCreateUser: FlattenMaps<UserDoc> = modelSaved.toJSON();
+      const responseCreateUser = modelSaved.toObject();
       const { email, name, lastName, role: roleResponse } = responseCreateUser;
       const createUserData: CreateUserData = {
         email,
@@ -120,11 +120,7 @@ export class UsersService {
 
       const { name, lastName } = user;
       const oneTimeToken = generateJWT(user, this.jwtService);
-      await this.userModel.updateOne(
-        { _id: user.id },
-        { oneTimeToken },
-        { multi: true },
-      );
+      await this.userModel.updateOne({ _id: user.id }, { oneTimeToken });
 
       const emailPayload: MailForgotPasswordDto = {
         email,
@@ -207,7 +203,7 @@ export class UsersService {
         .exec();
       if (!user) throw new BadRequestException(USER_NOT_FOUND_ERROR);
       const { _id } = user;
-      const userIdGotten = _id as string;
+      const userIdGotten = _id.toString();
 
       const userOneTimeToken = user.oneTimeToken;
       if (!userOneTimeToken) throw new BadRequestException(JWT_NOT_FOUND);

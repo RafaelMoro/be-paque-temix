@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { TypeProfitMargin } from '../global-configs.interface';
 
 export class ProfitMargin {
@@ -39,7 +39,7 @@ export class GlobalConfigs extends Document {
 }
 
 export interface GlobalConfigsDoc extends GlobalConfigs {
-  _id: unknown;
+  _id: Types.ObjectId;
 }
 
 export const GlobalConfigsSchema = SchemaFactory.createForClass(GlobalConfigs);
