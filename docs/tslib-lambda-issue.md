@@ -76,11 +76,35 @@ pnpm add uid
 
 These errors follow a recurring pattern with pnpm + `serverless-jetpack` deployments: any transitive dependency of `@nestjs/*` packages that is not explicitly declared in `package.json` will be missing from the Lambda bundle.
 
-If this keeps recurring, consider adding a root `.npmrc` with `shamefully-hoist=true` to mimic npm/bun flat hoisting behavior:
+---
+
+## Permanent Fix: `shamefully-hoist=true` (May 31, 2026)
+
+Instead of manually tracking and adding each missing transitive dependency, the root cause was addressed by configuring pnpm to hoist all packages to the root `node_modules/`, matching the behavior of npm and bun.
+
+### Solution
+
+Created `.npmrc` at the project root:
 
 ```ini
-# .npmrc
 shamefully-hoist=true
 ```
 
-This instructs pnpm to hoist all transitive dependencies to the root `node_modules/`, eliminating these missing module errors without needing to manually track each one.
+This instructs pnpm to hoist all transitive dependencies to the root `node_modules/`, making them accessible to `serverless-jetpack` during bundling — eliminating the entire class of missing module errors.
+
+### Cleanup
+
+With this fix applied, the previously added workaround dependencies (`tslib`, `uid`) were **removed** from `package.json`. They are not directly imported by this project and were only added as temporary patches. Keeping them would have been phantom dependencies (deps declared but not directly used).
+
+```bash
+pnpm remove tslib uid
+```
+
+### Why not keep the explicit deps?
+
+| Approach                        | Pros                                    | Cons                                                          |
+| ------------------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| Add each missing dep explicitly | No hoisting side effects                | Fragile — any `@nestjs` update can introduce new missing deps |
+| `shamefully-hoist=true`         | Permanent fix, matches npm/bun behavior | Slightly looser module isolation                              |
+
+For a Lambda deployment with `serverless-jetpack`, `shamefully-hoist=true` is the correct long-term solution.
