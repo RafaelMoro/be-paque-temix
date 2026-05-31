@@ -1,3 +1,5 @@
+process.loadEnvFile();
+
 import 'reflect-metadata';
 import { configure as serverlessExpress } from '@codegenie/serverless-express';
 import { ValidationPipe } from '@nestjs/common';
