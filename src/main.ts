@@ -1,3 +1,5 @@
+process.loadEnvFile();
+
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common/pipes';

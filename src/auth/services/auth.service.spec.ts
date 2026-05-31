@@ -67,6 +67,13 @@ describe('AuthService', () => {
       role: ['user'] as Role[],
       password: 'hashedPassword123',
     }),
+    toObject: jest.fn().mockReturnValue({
+      email: 'test@example.com',
+      name: 'John',
+      lastName: 'Doe',
+      role: ['user'] as Role[],
+      password: 'hashedPassword123',
+    }),
   } as unknown as UserDoc;
 
   const mockLoginDataUser: LoginDataUser = {
@@ -136,7 +143,7 @@ describe('AuthService', () => {
         'hashedPassword123',
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockUserDoc.toJSON).toHaveBeenCalled();
+      expect(mockUserDoc.toObject).toHaveBeenCalled();
       expect(result).toEqual({
         name: 'John',
         lastName: 'Doe',

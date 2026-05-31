@@ -18,9 +18,9 @@ export class JwtGuard extends AuthGuard(JWT_STRATEGY) {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const isPublic = this.reflector.get<boolean>(
+    const isPublic = this.reflector.getAllAndOverride<boolean>(
       this.configService.auth.publicKey,
-      context.getHandler(),
+      [context.getHandler(), context.getClass()],
     );
     if (isPublic) return true;
 

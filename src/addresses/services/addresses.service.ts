@@ -17,6 +17,7 @@ import {
 } from '../dtos/addresses.dto';
 import {
   Address,
+  AddressData,
   CreateAddressResponse,
   AddressesByAliasResponse,
   GetAddressesResponse,
@@ -80,7 +81,7 @@ export class AddressesService {
       const updatedPayload: CreateAddressDto = { ...payload, email };
       const newAddress = new this.addressModel(updatedPayload);
       const model: Address = await newAddress.save();
-      const addressSaved: FlattenMaps<AddressDoc> = model.toJSON();
+      const addressSaved = model.toObject();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, email: emailProp, ...addressData } = addressSaved;
       return {
@@ -88,7 +89,7 @@ export class AddressesService {
         message: null,
         error: null,
         data: {
-          address: addressData,
+          address: addressData as AddressData,
         },
       };
     } catch (error) {
@@ -115,10 +116,10 @@ export class AddressesService {
       }
 
       const addressesFormated = addresses.map((addr) => {
-        const addressObj: FlattenMaps<AddressDoc> = addr.toJSON();
+        const addressObj = addr.toObject();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { _id, email: emailProp, ...addressData } = addressObj;
-        return addressData;
+        return addressData as AddressData;
       });
       return {
         version: npmVersion,

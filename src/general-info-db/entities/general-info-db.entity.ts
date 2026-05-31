@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export class ProviderConfig {
   @Prop({ required: true })
@@ -22,7 +22,7 @@ export class GeneralInfoDb extends Document {
 }
 
 export interface GeneralInfoDbDoc extends GeneralInfoDb {
-  _id: unknown;
+  _id: Types.ObjectId;
 }
 
 export const GeneralInfoDbSchema = SchemaFactory.createForClass(GeneralInfoDb);

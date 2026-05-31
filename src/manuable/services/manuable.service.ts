@@ -22,9 +22,7 @@ import {
   CreateGuideMnDataResponse,
   CreateGuideMnRequest,
   CreateManuableguideResponse,
-  FetchGuidesManuableResponse,
   FetchManuableQuotesResponse,
-  GetGuidesMnDataResponse,
   GetHistoryGuidesPayload,
   GetManuableGuideResponse,
   GetManuableQuoteResponse,
@@ -37,6 +35,7 @@ import {
   formatPayloadManuable,
   formatPayloadRequestMn,
   formatManuableCreateGuideResponse,
+  formatGetGuidesResponseMn,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
@@ -47,6 +46,7 @@ import {
   TokenManagerService,
   TokenOperations,
 } from '@/token-manager/services/token-manager.service';
+import { GetGuideResponse } from '@/global.interface';
 
 @Injectable()
 export class ManuableService {
@@ -183,7 +183,7 @@ export class ManuableService {
    */
   async getHistoryGuidesWithAutoRetry(
     payload: GetHistoryGuidesPayload,
-  ): Promise<GetGuidesMnDataResponse> {
+  ): Promise<{ guides: GetGuideResponse[]; messages: string[] }> {
     try {
       const { result: guides, messages } =
         await this.executeWithRetryOnUnauthorized(
@@ -203,16 +203,7 @@ export class ManuableService {
           },
           'get guides',
         );
-      const npmVersion: string = this.configService.version!;
-      return {
-        version: npmVersion,
-        message: null,
-        messages,
-        error: null,
-        data: {
-          guides,
-        },
-      };
+      return { guides, messages };
     } catch (error) {
       console.log(error);
       if (error instanceof Error) {
@@ -353,7 +344,7 @@ export class ManuableService {
    */
   async getManuableHistoryGuidesWithUnauthorized(
     payload: GetHistoryGuidesPayload,
-  ): Promise<FetchGuidesManuableResponse> {
+  ): Promise<{ messages: string[]; guides: GetGuideResponse[] }> {
     try {
       const { result: guides, messages } = await this.executeWithManuableToken(
         (token) => this.fetchManuableHistoryGuides(payload, token),
@@ -563,7 +554,8 @@ export class ManuableService {
           },
         });
       const guides = response?.data?.data;
-      return guides;
+      const guidesFormatted = formatGetGuidesResponseMn(guides);
+      return guidesFormatted;
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

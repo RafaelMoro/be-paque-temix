@@ -26,7 +26,7 @@ export class AuthService {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
-      const userResponse: FlattenMaps<UserDoc> = user.toJSON();
+      const userResponse = user.toObject();
       const { name, lastName, email, role } = userResponse;
       return {
         name,

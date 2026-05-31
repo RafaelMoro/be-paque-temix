@@ -423,7 +423,7 @@ describe('ManuableService', () => {
     it('fetches guides with tracking_number query param when provided', async () => {
       const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
       const token = 'test-token';
-      const guides: ManuableGuide[] = [
+      const rawGuides: ManuableGuide[] = [
         {
           token: 'guide-token',
           tracking_number: 'TRK123',
@@ -440,11 +440,38 @@ describe('ManuableService', () => {
 
       const getSpy = jest
         .spyOn(axios, 'get')
-        .mockResolvedValueOnce({ data: { data: guides } } as any);
+        .mockResolvedValueOnce({ data: { data: rawGuides } } as any);
+
+      // Mock formatGetGuidesResponseMn to return formatted guides
+      const formattedGuides = [
+        {
+          trackingNumber: 'TRK123',
+          shipmentNumber: null,
+          source: 'Mn',
+          status: 'unknown',
+          carrier: 'DHL',
+          courier: 'DHL',
+          price: '100.00',
+          guideLink: null,
+          labelUrl: 'http://example.com/label',
+          file: null,
+          order: null,
+          guide: null,
+          trackingLink: null,
+          shippingLink: null,
+          origin: null,
+          destination: null,
+          content: null,
+          startDate: new Date('2023-01-01'),
+        },
+      ];
+      jest
+        .spyOn(utils, 'formatGetGuidesResponseMn')
+        .mockReturnValueOnce(formattedGuides as any);
 
       const result = await service.fetchManuableHistoryGuides(payload, token);
 
-      expect(result).toBe(guides);
+      expect(result).toEqual(formattedGuides);
       expect(getSpy).toHaveBeenCalledWith(
         `https://mn.example.com${CREATE_GUIDE_MANUABLE_ENDPOINT}?tracking_number=TRK123`,
         {
@@ -456,15 +483,21 @@ describe('ManuableService', () => {
     it('fetches guides without query param when tracking_number not provided', async () => {
       const payload: GetHistoryGuidesPayload = {};
       const token = 'test-token';
-      const guides: ManuableGuide[] = [];
+      const rawGuides: ManuableGuide[] = [];
 
       const getSpy = jest
         .spyOn(axios, 'get')
-        .mockResolvedValueOnce({ data: { data: guides } } as any);
+        .mockResolvedValueOnce({ data: { data: rawGuides } } as any);
+
+      // Mock formatGetGuidesResponseMn to return formatted guides
+      const formattedGuides: any[] = [];
+      jest
+        .spyOn(utils, 'formatGetGuidesResponseMn')
+        .mockReturnValueOnce(formattedGuides);
 
       const result = await service.fetchManuableHistoryGuides(payload, token);
 
-      expect(result).toBe(guides);
+      expect(result).toEqual(formattedGuides);
       expect(getSpy).toHaveBeenCalledWith(
         `https://mn.example.com${CREATE_GUIDE_MANUABLE_ENDPOINT}`,
         {
@@ -603,18 +636,24 @@ describe('ManuableService', () => {
   describe('getHistoryGuidesWithAutoRetry', () => {
     it('returns guides response when TokenManagerService succeeds', async () => {
       const payload: GetHistoryGuidesPayload = { tracking_number: 'TRK123' };
-      const guides: ManuableGuide[] = [
+      const guides: any[] = [
         {
-          token: 'guide-token',
-          tracking_number: 'TRK123',
+          trackingNumber: 'TRK123',
+          shipmentNumber: null,
+          source: 'Mn',
+          status: 'unknown',
           carrier: 'DHL',
-          tracking_status: null,
+          courier: 'DHL',
           price: '100.00',
-          waybill: null,
-          label_url: 'http://example.com/label',
-          cancellable: true,
-          created_at: '2023-01-01',
-          label_status: 'active',
+          guideLink: null,
+          labelUrl: 'http://example.com/label',
+          file: null,
+          order: null,
+          guide: null,
+          trackingLink: null,
+          shippingLink: null,
+          origin: null,
+          destination: null,
         },
       ];
 
@@ -637,13 +676,8 @@ describe('ManuableService', () => {
         'Mn',
       );
       expect(result).toEqual({
-        version: '1.0.0', // from configService.version
-        message: null,
+        guides,
         messages: ['Mn: Token valid', 'Mn: get guides completed successfully'],
-        error: null,
-        data: {
-          guides,
-        },
       });
     });
 
