@@ -20,7 +20,7 @@ Before any codebase exploration, read these files (do not re-discover what's alr
 Skim the task or problem to solve and flag any of these **before** spending tool calls on exploration:
 
 - Missing or vague requirements
-- Unclear success criteria
+- Unclear success criteria or acceptance criteria
 - Ambiguous user needs
 - Lack of constraints or assumptions
 - Undefined terms not in the glossary
@@ -32,7 +32,7 @@ If any flag fires, ask the user before continuing. Do not invent answers.
 Use `vscode_askQuestions` to resolve at minimum:
 
 1. Quick or full research? Estimate complexity based on the requirements of the story. If it looks like a small bug fix or one-line behavioral change, ask:
-   > "This looks small. Want a quick research note (~30 lines, lightweight template) or the full template (300-500 lines)?"
+   > "This looks small. Want a quick research note (~200 lines, lightweight template) or the full template (300-1000 lines)?"
 
 Default to full template if unclear 2. Cross feature edition? If the story seems to touch multiple features or areas of the codebase, ask:
 
@@ -49,7 +49,9 @@ Batch these into one `vscode_askQuestions` call to minimize back-and-forth. Do n
 ## Step 4 - Write the research doc
 
 File path: `ai-research/{story-name}.md`
-Length target: 300 - 500 lines for full mode, ~30 lines for quick mode
+Length target: 300 - 1000 lines for full mode, ~200 lines for quick mode
+
+- Focus on high base actions needed to accomplish the task, no implementation.
 
 ## Step 5 - Capture non-obvious findings to memory
 
