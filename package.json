@@ -2,9 +2,9 @@
   "name": "be-paque-temix",
   "version": "1.0.0",
   "description": "",
-  "author": "",
+  "author": "Kraft Envios",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "nest build",
     "prebuild": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
