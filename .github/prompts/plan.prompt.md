@@ -18,7 +18,8 @@ Read in order:
 1. The specified research document (if provided) or ask the user to select one from `ai-research/*.md`. This is the source of truth for scope, affected files and open questions.
 2. [.github/copilot-instructions.md](../copilot-instructions.md) - Review rubric and guidelines for code quality, type safety, testing, documentation, and best practices.
 3. [.github/REPO_CONTEXT.md](../REPO_CONTEXT.md) - Current codebase structure to understand existing modules and services.
-4. `/memories/repo/*-research.md` - Check for any relevant research memories that may impact planning or implementation.
+4. [.github/IMPLEMENTATION_GUIDELINES.md](../IMPLEMENTATION_GUIDELINES.md) - Technical patterns for NestJS modules, services, controllers, and module dependencies.
+5. `/memories/repo/*-research.md` - Check for any relevant research memories that may impact planning or implementation.
 
 ## Step 2 - Verify research plan-ready
 

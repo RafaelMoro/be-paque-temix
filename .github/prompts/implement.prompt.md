@@ -18,7 +18,8 @@ Read in order:
 1. The specified planning document (if provided) or ask the user to select one from `ai-planning/planning-*.md`. This is the source of truth for the implementation.
 2. [.github/copilot-instructions.md](../copilot-instructions.md) - Review rubric and guidelines for code quality, type safety, testing, documentation, and best practices.
 3. [.github/REPO_CONTEXT.md](../REPO_CONTEXT.md) - Current codebase structure (will be updated at the end).
-4. `/memories/repo/*-planning.md` - Check for any relevant planning memories that may impact implementation.
+4. [.github/IMPLEMENTATION_GUIDELINES.md](../IMPLEMENTATION_GUIDELINES.md) - Technical patterns for NestJS modules, services, controllers, and module dependencies.
+5. `/memories/repo/*-planning.md` - Check for any relevant planning memories that may impact implementation.
 
 ## Step 2 - Confirm plan-ready
 
