@@ -30,13 +30,13 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ## Requirements
 
-### 1. Order Creation Flow
+### 1. Guide Creation Flow
 
-**Requirement**: Create order via external API first, then persist to DB regardless of success/failure.
+**Requirement**: Create guide via external API first, then persist to DB regardless of success/failure.
 
 **High-Level Actions**:
 
-- Create `Order` entity/schema with Mongoose
+- Create `Guide` entity/schema with Mongoose
 - Define order status lifecycle (created, failed, in-transit, delivered, cancelled, etc.)
 - Implement API-first creation logic:
   1. Call external provider API with quote data
@@ -47,14 +47,14 @@ This document outlines the high-level actions needed to implement order/guide tr
 - Replace internal tracking number when provider returns one (provider tracking is source of truth)
 - Support retry for failed orders by updating existing order record
 
-### 2. User Order Retrieval
+### 2. User Guide Retrieval
 
-**Requirement**: Get orders by user.
+**Requirement**: Get guides by user.
 
 **High-Level Actions**:
 
-- Create endpoint to fetch orders filtered by user ID (from JWT token)
-- Implement pagination for order lists
+- Create endpoint to fetch guides filtered by user ID (from JWT token)
+- Implement pagination for guides lists
 - Add sorting capabilities (by date, status, provider)
 - **Priority filters**: Search by tracking number (internal or external), provider, date range, status
 - Search functionality must check both internal Kraft tracking number AND external provider tracking number
@@ -63,7 +63,7 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### 3. Admin Access
 
-**Requirement**: Admin users can see all orders from all users including their own.
+**Requirement**: Admin users can see all guides from all users including their own.
 
 **High-Level Actions**:
 
@@ -75,15 +75,15 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 **Admin Capabilities** (confirmed for MVP):
 
-- View all orders from all users
-- Cancel any order
-- Manually update order status
-- Same search/filter capabilities as users but across all orders
-- Fetch orders by month and year (defaults to current month if not specified)
+- View all guides from all users
+- Cancel any guide
+- Manually update guide status
+- Same search/filter capabilities as users but across all guides
+- Fetch guides by month and year (defaults to current month if not specified)
 
 **Admin Features to Discuss with Client**:
 
-- Add notes/comments to orders
+- Add notes/comments to guides
 - Bulk operations (export, status updates)
 - Refund management
 - Dispute resolution
