@@ -186,15 +186,22 @@ Email sending capabilities (using Resend API).
 
 ### 9. **GlobalConfigsModule** (`src/global-configs/global-configs.module.ts`)
 
-**Purpose:** System-wide configuration and feature flags
+**Purpose:** System-wide configuration, feature flags, and profit margin management
 
 **Imports:** `MongooseModule.forFeature([GlobalConfigs])`
 **Providers:** `GlobalConfigsService` (implements `OnModuleInit` - loads config on startup)
 **Exports:** `GlobalConfigsService`
-**Controllers:** `GlobalConfigsController` (route: `/global-configs`)
+**Controllers:** `GlobalConfigsController` (route: `/global-configs`, **admin-only access**)
 **Entity:** `GlobalConfigs` with `GlobalConfigsSchema`
 
-**Usage:** Controls which shipping providers are enabled/disabled
+**Key Features:**
+
+- Controls which shipping providers are enabled/disabled
+- **Profit Margin Management:** Manages profit margins for each provider
+  - Supports percentage-based margins (e.g., 10% markup)
+  - Supports absolute/fixed margins (e.g., $5.00 flat fee)
+  - Update and retrieval operations
+- **Access Control:** Admin users only (protected by `JwtGuard` + `RolesGuard`)
 
 ---
 
@@ -254,23 +261,41 @@ These modules integrate with external shipping provider APIs.
 
 ### 14. **TokenManagerModule** (`src/token-manager/token-manager.module.ts`)
 
-**Purpose:** Manages OAuth/API tokens for providers that require authentication
+**Purpose:** Intelligent OAuth/API token management with automatic retry and refresh logic
 
 **Providers:** `TokenManagerService`
 **Exports:** `TokenManagerService`
 **Used by:** T1Module, ManuableModule
 
+**Key Features:**
+
+- **Token Expiration Handling:** Detects unauthorized (401) errors from provider APIs
+- **Automatic Retry Logic:**
+  1. Intercepts API call failures due to expired tokens
+  2. Determines if error is token-related (401/403)
+  3. Requests new token from provider
+  4. Updates token in `GeneralInfoDbService`
+  5. Retries original API call with fresh token
+- **Transparent Operation:** Other modules don't need to handle token refresh explicitly
+
 ---
 
 ### 15. **GeneralInfoDbModule** (`src/general-info-db/general-info-db.module.ts`)
 
-**Purpose:** Stores general provider metadata and information
+**Purpose:** Persistent storage for provider tokens and metadata
 
 **Imports:** `MongooseModule.forFeature([GeneralInfoDb])`
 **Providers:** `GeneralInfoDbService`
 **Exports:** `GeneralInfoDbService`
 **Entity:** `GeneralInfoDb` with `GeneralInfoDbSchema`
 **Used by:** T1Module, ManuableModule
+
+**Key Features:**
+
+- **Token Storage:** Stores OAuth/API tokens for Manuable (Mn) and T1 (TONE)
+- **Token Retrieval:** Provides current tokens to provider services
+- **Token Updates:** Persists refreshed tokens from `TokenManagerService`
+- **Metadata Management:** Stores additional provider-specific configuration and state
 
 ---
 
@@ -346,13 +371,15 @@ getSensitiveData() { ... }
 QuotesService
 ├─→ GuiaEnviaService (external API call)
 ├─→ T1Service
-│   ├─→ GeneralInfoDbService (metadata storage)
-│   └─→ TokenManagerService (OAuth tokens)
+│   ├─→ GeneralInfoDbService (token retrieval)
+│   └─→ TokenManagerService (token validation, retry on expiration)
+│       └─→ GeneralInfoDbService (token updates)
 ├─→ PakkeService (external API call)
 ├─→ ManuableService
-│   ├─→ GeneralInfoDbService
-│   └─→ TokenManagerService
-└─→ GlobalConfigsService (check enabled providers)
+│   ├─→ GeneralInfoDbService (token retrieval)
+│   └─→ TokenManagerService (token validation, retry on expiration)
+│       └─→ GeneralInfoDbService (token updates)
+└─→ GlobalConfigsService (check enabled providers, get profit margins)
 
 GuidesService
 ├─→ GuiaEnviaService
@@ -404,23 +431,34 @@ All provider services follow a similar pattern:
 
 ### Token Management (T1 & Manuable)
 
-**Flow:**
+**Automatic Retry Flow with TokenManagerService:**
 
-1. Service checks if token exists and is valid (via `TokenManagerService`)
-2. If expired/missing, refreshes token (stored in `GeneralInfoDbService`)
-3. Makes authenticated API request
-4. Handles token expiration gracefully
+1. T1Service or ManuableService makes API request to external provider
+2. If request fails with 401/403 (unauthorized):
+   - `TokenManagerService` detects token expiration
+   - Automatically requests new token from provider's OAuth endpoint
+   - Updates token in `GeneralInfoDbService` (persisted to MongoDB)
+   - Retries original API call with fresh token
+3. If request succeeds, response is returned normally
+4. Token is cached and reused until next expiration
+
+**Benefits:**
+
+- Services don't need explicit token refresh logic
+- Transparent to calling code (QuotesService, GuidesService)
+- Handles race conditions when multiple requests expire simultaneously
+- Persistent token storage survives Lambda cold starts
 
 ---
 
 ## Database Collections
 
-| Collection      | Module              | Purpose                             |
-| --------------- | ------------------- | ----------------------------------- |
-| `users`         | UsersModule         | User accounts, credentials, roles   |
-| `addresses`     | AddressesModule     | User shipping addresses             |
-| `globalconfigs` | GlobalConfigsModule | System configuration, feature flags |
-| `generalinfodb` | GeneralInfoDbModule | Provider metadata, tokens           |
+| Collection      | Module              | Purpose                                                      |
+| --------------- | ------------------- | ------------------------------------------------------------ |
+| `users`         | UsersModule         | User accounts, credentials, roles                            |
+| `addresses`     | AddressesModule     | User shipping addresses                                      |
+| `globalconfigs` | GlobalConfigsModule | System configuration, feature flags, provider profit margins |
+| `generalinfodb` | GeneralInfoDbModule | OAuth tokens for T1 and Manuable, provider metadata          |
 
 ---
 
@@ -542,5 +580,8 @@ When adding new modules to this codebase:
 - **Cookie-to-Header Conversion:** Handled by `LoggedMiddleware` globally
 - **Public Routes:** Use `@Public()` decorator to bypass JWT authentication
 - **Role-Based Access:** Use `@Roles()` decorator with `RolesGuard`
+- **Admin-Only Features:** Global configs (profit margins) require admin role
+- **Profit Margins:** Configured per provider in GlobalConfigs (percentage or absolute values)
+- **Token Refresh:** Automatic retry logic in `TokenManagerService` handles expired tokens transparently
 - **Provider Integration:** All provider services follow similar patterns for maintainability
-- **Serverless Considerations:** Lambda-compatible design (stateless, environment-based config)
+- **Serverless Considerations:** Lambda-compatible design (stateless, environment-based config), tokens persisted to MongoDB
