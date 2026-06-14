@@ -52,7 +52,7 @@ Implement standardized error codes for backend developers to quickly identify an
 | -------------- | ---- | -------------------- | --------------------------------------- |
 | Orders         | CMD  | Commandes            | Order management and creation           |
 | Quotes         | DVS  | Devis                | Quote requests and calculations         |
-| Guides         | GID  | Guides               | Guide retrieval and management (legacy) |
+| Guides         | GDE  | Guides               | Guide database persistence and tracking |
 | Addresses      | ADS  | Adresses             | Address management                      |
 | Authentication | AUT  | Authentification     | Login, tokens, sessions                 |
 | Users          | UTL  | Utilisateurs         | User management                         |
@@ -69,14 +69,18 @@ Implement standardized error codes for backend developers to quickly identify an
 | Error Type     | Code  | Description                  | When to Use                                                   |
 | -------------- | ----- | ---------------------------- | ------------------------------------------------------------- |
 | Database       | DB    | Database operations failed   | Mongoose errors, connection issues, query failures            |
+| Base de Datos  | BDN   | MongoDB operations failed    | Alternative DB error code (used in Guides module)             |
 | Validation     | VAL   | Input validation failed      | DTO validation, schema validation, business rule validation   |
 | External API   | EXT   | External provider API failed | Provider API errors, timeouts, invalid responses              |
+| Provider       | PVR   | Provider API failed          | Provider-specific errors (used in Guides module)              |
 | Authorization  | AUTH  | Permission denied            | Role check failed, JWT invalid, access denied                 |
 | Authentication | AUTHN | Identity verification failed | Login failed, invalid credentials, expired session            |
 | Business Logic | BUS   | Business rule violation      | Order can't be cancelled, insufficient balance, invalid state |
 | Not Found      | NF    | Resource not found           | Order not found, user not found, address not found            |
 | Conflict       | CONF  | Resource conflict            | Duplicate order, concurrent modification                      |
 | Network        | NET   | Network/connection error     | Timeout, connection refused, DNS failure                      |
+| Timeout        | TMOT  | Request timeout              | Provider took too long to respond (used in Guides module)     |
+| Rate Limit     | RLIM  | Rate limit exceeded          | Too many retry attempts (used in Guides module)               |
 | Configuration  | CFG   | System configuration error   | Missing env vars, invalid config, service unavailable         |
 | Internal       | INT   | Unexpected internal error    | Unhandled exceptions, system errors                           |
 
@@ -161,6 +165,86 @@ Implement standardized error codes for backend developers to quickly identify an
 
 - `DVS-BUS-001`: No quotes available for given criteria
 - `DVS-BUS-002`: Quote price calculation error
+
+### Guides Module (GDE-XXX-###)
+
+**Provider API Errors (GDE-PVR-###)**
+
+- `GDE-PVR-001`: Provider API call failed during guide creation
+- `GDE-PVR-002`: Provider returned invalid response format
+- `GDE-PVR-003`: Provider authentication failed
+- `GDE-PVR-004`: Provider service unavailable
+- `GDE-PVR-005`: Provider returned business logic error
+- `GDE-PVR-006`: Failed to sync guide status with provider
+- `GDE-PVR-007`: Provider rejected guide creation request
+
+**Network Errors (GDE-NET-###)**
+
+- `GDE-NET-001`: Network connection error during provider call
+- `GDE-NET-002`: DNS resolution failed for provider API
+- `GDE-NET-003`: Connection refused by provider
+- `GDE-NET-004`: Network timeout during provider call
+- `GDE-NET-005`: SSL/TLS handshake failed
+
+**Timeout Errors (GDE-TMOT-###)**
+
+- `GDE-TMOT-001`: Provider API request timed out
+- `GDE-TMOT-002`: Guide creation exceeded maximum wait time
+- `GDE-TMOT-003`: Guide status sync timed out
+
+**Rate Limit Errors (GDE-RLIM-###)**
+
+- `GDE-RLIM-001`: Maximum retry attempts exceeded (10 attempts)
+- `GDE-RLIM-002`: Retry cooldown period active (5 minutes)
+- `GDE-RLIM-003`: Provider rate limit exceeded
+- `GDE-RLIM-004`: User exceeded concurrent guide creation limit
+
+**Database Errors (GDE-BDN-###)**
+
+- `GDE-BDN-001`: Failed to save guide to database
+- `GDE-BDN-002`: Failed to update guide status in database
+- `GDE-BDN-003`: Failed to retrieve guide from database
+- `GDE-BDN-004`: Failed to delete guide from database
+- `GDE-BDN-005`: Database connection timeout
+- `GDE-BDN-006`: Failed to save retry attempt record
+- `GDE-BDN-007`: Failed to add comment to guide
+- `GDE-BDN-008`: KraftId generation failed
+
+**Authorization Errors (GDE-AUTH-###)**
+
+- `GDE-AUTH-001`: User not authorized to view guide
+- `GDE-AUTH-002`: User not authorized to retry guide
+- `GDE-AUTH-003`: Admin role required for this action
+- `GDE-AUTH-004`: User not authorized to delete guide
+- `GDE-AUTH-005`: User not authorized to update guide status
+- `GDE-AUTH-006`: User not authorized to add comments
+
+**Not Found Errors (GDE-NF-###)**
+
+- `GDE-NF-001`: Guide not found by ID
+- `GDE-NF-002`: Guide not found by kraftId
+- `GDE-NF-003`: Guide not found by externalId
+- `GDE-NF-004`: No guides found for user
+- `GDE-NF-005`: Quote not found for guide creation
+
+**Business Logic Errors (GDE-BUS-###)**
+
+- `GDE-BUS-001`: Cannot retry guide in current status
+- `GDE-BUS-002`: Guide already delivered, cannot modify
+- `GDE-BUS-003`: Cannot delete guide in current status
+- `GDE-BUS-004`: Invalid status transition
+- `GDE-BUS-005`: Guide creation failed, cannot proceed
+- `GDE-BUS-006`: Cannot add comment to soft-deleted guide
+- `GDE-BUS-007`: Invalid provider specified in payload
+
+**Validation Errors (GDE-VAL-###)**
+
+- `GDE-VAL-001`: Invalid guide creation payload
+- `GDE-VAL-002`: Missing required field in guide data
+- `GDE-VAL-003`: Invalid address format in payload
+- `GDE-VAL-004`: Invalid package dimensions
+- `GDE-VAL-005`: Invalid tracking number format
+- `GDE-VAL-006`: Invalid month/year for admin query
 
 ### Authentication Module (AUT-XXX-###)
 

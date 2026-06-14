@@ -420,23 +420,44 @@ This document outlines the high-level actions needed to implement guide tracking
 - Handle guide lifecycle events (creation, retry, sync)
 - Maintain dual tracking reference (kraftId + externalId)
 - Handle soft delete for regular users and hard delete for admins
+- Manage retry attempts with rate limiting (10 attempts, 5-minute cooldown)
+- Track retry history with error codes and timestamps
+- Manage admin comments on guides
 
 **Note**: This service will be implemented as `GuidesDbService` for retrocompatibility, keeping existing `GuidesService` intact for external API operations.
 
 **Key Methods**:
 
 - `createGuide(userId, payload)` - Extract provider, generate kraftId, call provider API, save to DB
-- `retryFailedGuide(guideId, userId)` - Retry failed guide, update existing record, keep kraftId
+- `retryFailedGuide(guideId, userId)` - Retry failed guide with rate limiting, update existing record, keep kraftId
 - `syncGuideWithProvider(guideId)` - Fetch latest status from provider using externalId, update DB
 - `getGuidesByUser(userId, filters)` - Get user guides with search/filter
 - `getAllGuides(filters, scope)` - Get guides (admin) with search/filter and scope (all/own)
 - `getGuidesByMonthYear(month, year, scope, userId)` - Admin query by month/year
 - `getGuideById(guideId, userId, isAdmin)` - Get single guide with on-demand sync
 - `updateGuideStatus(guideId, status, updatedBy)` - Manual status update (admin)
+- `addComment(guideId, adminId, comment)` - Add admin comment to guide
 - `generateKraftId()` - Generate custom Kraft tracking number (KFT-YYYYMM-XXXXXX format)
 - `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both kraftId and externalId
+- `checkRetryEligibility(guideId)` - Check if guide can be retried (rate limit, cooldown)
 - `softDeleteGuide(guideId, userId)` - Soft delete guide (users)
 - `hardDeleteGuide(guideId, adminId)` - Hard delete guide (admins only)
+
+**Schema Fields** (Guide Entity):
+
+- **Retry Management** (`retries` object):
+  - `retryAttempts`: Array of retry objects
+    - `attemptNumber`: Sequential number (1-10)
+    - `timestamp`: When retry occurred
+    - `userId`: Who triggered retry
+    - `error`: Error message from provider
+    - `errorCode`: Kraft error code (GDE-XXX-###)
+  - `retryCount`: Total number of retry attempts (0-10)
+  - `lastRetryAt`: Timestamp of last retry (for 5-minute cooldown check)
+- **Admin Comments** (`comments` array):
+  - `text`: Comment content
+  - `adminId`: Admin user who added comment
+  - `timestamp`: When comment was added
 
 ### Provider Service Updates
 
@@ -476,20 +497,101 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 
 ---
 
+## Standardized Payload Structure
+
+### Guide Creation Payload
+
+The system accepts a standardized payload structure that works across all 4 providers (GuiaEnvia, T1, Pakke, Manuable):
+
+```typescript
+type ProviderCreateGuide = 'Mn' | 'GE' | 'Pkk' | 'TONE';
+type CreateGuideAddressPayload = {
+  alias: string;
+  name: string; // customer's name
+  lastName: string;
+  phone: string;
+  email: string;
+  company: string;
+  street1: string;
+  street2?: string;
+  isResidential?: boolean; // defaulted to false
+  external_number: string;
+  neighborhood: string;
+  city: string;
+  town: string;
+  state: string;
+  zipcode: string;
+  country: string;
+  reference: string;
+};
+
+type CreateGuidePayload = {
+  provider: 'GE' | 'TONE' | 'Pkk' | 'Mn'; // Specify which provider to use
+  quoteId: string; // used in GE, Mn and TONE (quoteToken)
+  parcel: {
+    length: string;
+    width: string;
+    height: string;
+    weight: string;
+    content: string;
+    satProductId: string;
+    value: number;
+    quantity: number;
+  };
+  origin: CreateGuideAddressPayload;
+  destination: CreateGuideAddressPayload;
+  notifyMe: boolean; // only for TONE
+  provider: ProviderCreateGuide;
+};
+```
+
+**Key Points**:
+
+- `provider` field routes request to appropriate provider service
+- `quoteId` references the selected quote from quote selection flow
+- Address structure standardized across all providers
+- Provider-specific fields (like `notifyMe` for T1) included in base payload
+- Backend adapts this payload to provider-specific format
+
+---
+
 ## Custom Error Code System
 
 The project implements a standardized error code system for consistent error handling across all modules. Error codes use French-based abbreviations for obfuscation while remaining meaningful to the development team.
 
-**Format**: `MODULE-TYPE-CODE` (e.g., `CMD-DB-001`, `DVS-EXT-042`, `AUT-VAL-015`)
+**Format**: `MODULE-TYPE-CODE` (e.g., `CMD-DB-001`, `DVS-EXT-042`, `GDE-PVR-015`)
 
 **Key Features**:
 
 - Standardized error responses with user-friendly messages
-- Module-specific error codes (CMD=Orders, DVS=Quotes, AUT=Auth, etc.)
-- Category-based error types (DB, VAL, EXT, AUTH, BUS, NF, etc.)
+- Module-specific error codes (CMD=Orders, DVS=Quotes, GDE=Guides, etc.)
+- Category-based error types (DB, PVR, NET, TMOT, RLIM, etc.)
 - Technical details for logging and debugging
 - Centralized error handling with `KraftError` class and filter
 - French-based module codes for security through obscurity
+
+### Guides Module Error Codes (GDE-XXX-###)
+
+The Guides module uses the following error type categories:
+
+| Error Type           | Code | Module Prefix | Description                   | User-Friendly Message Example                                    |
+| -------------------- | ---- | ------------- | ----------------------------- | ---------------------------------------------------------------- |
+| Provider API Error   | PVR  | GDE-PVR-###   | External provider API failed  | "Unable to create guide with provider. Please try again."        |
+| Network Error        | NET  | GDE-NET-###   | Network/connection error      | "Network connection error. Please check your connection."        |
+| Timeout Error        | TMOT | GDE-TMOT-###  | Provider request timeout      | "Request timed out. Please try again."                           |
+| Rate Limit Error     | RLIM | GDE-RLIM-###  | Rate limit exceeded (retries) | "Too many attempts. Please wait 5 minutes before trying again."  |
+| Database Error       | BDN  | GDE-BDN-###   | MongoDB operation failed      | "Unable to save guide. Please try again or contact support."     |
+| Authorization Error  | AUTH | GDE-AUTH-###  | Permission denied             | "You don't have permission to perform this action."              |
+| Not Found Error      | NF   | GDE-NF-###    | Guide not found               | "Guide not found. Please check the tracking number."             |
+| Business Logic Error | BUS  | GDE-BUS-###   | Business rule violation       | "Unable to perform this action. Guide status does not allow it." |
+
+**Error Display Strategy**:
+
+- **Never show technical errors** from providers to users
+- **Always show kraftId** for user reference and support
+- **Display different user-friendly messages** based on error type
+- **No troubleshooting suggestions** (keep messages simple)
+- **Log full technical details** server-side for debugging
 
 For complete error code documentation, implementation guidelines, error code registry, and maintenance procedures, see:
 
@@ -723,7 +825,7 @@ For complete error code documentation, implementation guidelines, error code reg
 5. **Soft Delete**: Should guides be soft-deleted or hard-deleted?
    - **✅ DECIDED**: Regular users can only soft delete (sets `deletedAt` timestamp); only admins can hard delete
 6. **Audit Trail**: Track all changes to guide status?
-   - **Recommendation**: Yes, add `statusHistory` array field with timestamps and actors
+   - **✅ DECIDED**: Manual status updates by admin will be tracked via comments system, no separate statusHistory needed for MVP
 7. **Provider Selection**: How does user select provider during creation?
    - **✅ Decided**: Provider is selected via quote selection AND included in payload as `provider` prop
    - **Provider values**: 'GE' | 'TONE' | 'Pkk' | 'Mn'
@@ -859,19 +961,13 @@ The following questions need client input before finalizing implementation:
 
 ### 8. Guide History and Retention
 
-**✅ DECIDED**:
+**✅ DECIDED**: NOT PART OF MVP
 
-- **Keep all guides indefinitely**: YES
-- **Archive old guides**: After 1 year
-  - **Archival Strategy**: Use separate MongoDB collection (`guides_archive`)
-  - Move guides older than 1 year to archive collection via scheduled job
-  - Maintains data accessibility while improving main collection performance
-  - Alternative options: separate database, cold storage export to S3
-- **Different retention for different statuses**: NO (same retention for all)
-- **Compliance or legal requirements**: Not explored yet (to be determined)
+- **Keep all guides indefinitely**: YES (no archival needed for MVP)
+- Data retention and archival strategy will be addressed in future development
 - **kraftId immutability**: kraftId must NEVER be modified after guide creation
 
-**Impact**: Requires archival job implementation, separate archive collection, and query logic for both collections.
+**Impact**: No archival job implementation needed for MVP.
 
 ### 9. Refund and Dispute Process
 
@@ -930,15 +1026,19 @@ The following questions need client input before finalizing implementation:
 28. **Notifications**: Email/SMS for guide events?
     - **✅ DECIDED**: NOT part of MVP - email notifications only in future development
 29. **Guide Retention**: How long to keep guide data?
-    - **✅ DECIDED**: Keep indefinitely, archive after 1 year to separate collection (`guides_archive`)
+    - **✅ DECIDED**: Keep indefinitely, archival not part of MVP
 30. **Refund System**: Track refunds in guide?
     - **✅ DECIDED**: NOT part of MVP - future enhancement only
 
 ### ⏳ Pending Client Decisions
 
-- **Standardized payload field requirements for all 4 providers** (Priority: Define minimal required fields)
-- Archival job schedule and implementation details (monthly vs quarterly)
+All critical decisions have been made. Ready to proceed to planning phase.
+
+**Future Considerations** (not blocking):
+
 - Compliance or legal requirements for guide data retention
+- Archival strategy (future enhancement)
+- Notification system implementation (future enhancement)
 
 ---
 
