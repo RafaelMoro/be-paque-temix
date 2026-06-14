@@ -775,19 +775,23 @@ The following questions need client input before finalizing implementation:
 
 ### 2. Failed Guide Retry Behavior
 
+**Status**: ✅ DECIDED
+
 **Question**: When a guide creation fails at the external provider:
 
-- Should users be able to retry unlimited times?
-- Should there be a time limit for retries?
-- Should we charge/track each retry attempt?
-- Should we suggest alternative providers if one consistently fails?
-- kraftId remains the same across all retry attempts
+- Should users be able to retry unlimited times? **Yes, unlimited retry times.**
+- Should there be a time limit for retries? **Yes, rate limit to 10 attempts every 5 minutes.**
+- Should we charge/track each retry attempt? **Yes, track each retry attempt with the error returned and a timestamp.**
+- Should we suggest alternative providers if one consistently fails? **No.**
+- kraftId remains the same across all retry attempts. **Yes, kraftId remains the same.**
 
 **Impact**: Affects UX, business logic, and cost tracking.
 
 ### 3. Guide Editing Capability
 
-**Question**: Can users edit guide details after creation?
+**Status**: ✅ DECIDED - NOT PART OF MVP
+
+**Question**: Can users edit guide details after creation? **No, editing is not part of the current development scope.**
 
 - Before provider confirmation?
 - After provider confirmation?
@@ -795,7 +799,7 @@ The following questions need client input before finalizing implementation:
 - Does editing require provider API update or just our DB?
 - Does kraftId remain the same when guide is edited?
 
-**Impact**: Significant impact on data model and provider integration complexity.
+**Impact**: Significant impact on data model and provider integration complexity. Postponed for future consideration.
 
 ### 4. Error Message Display
 
