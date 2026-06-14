@@ -1,8 +1,10 @@
-# Order Tracking Database Research
+# Guide Tracking Database Research
 
 ## Overview
 
-This document outlines the high-level actions needed to implement order/guide tracking in the database. The system will transition from using external APIs as the sole source of truth to using the database as the primary storage, with external APIs serving as sync mechanisms.
+This document outlines the high-level actions needed to implement guide tracking in the database. The system will transition from using external APIs as the sole source of truth to using the database as the primary storage, with external APIs serving as sync mechanisms.
+
+**Note**: Throughout this document, "guide" and "order" are used interchangeably, referring to shipping guides/labels created with external providers.
 
 ## Current Architecture
 
@@ -37,15 +39,21 @@ This document outlines the high-level actions needed to implement order/guide tr
 **High-Level Actions**:
 
 - Create `Guide` entity/schema with Mongoose
-- Define order status lifecycle (created, failed, in-transit, delivered, cancelled, etc.)
+- Define guide status lifecycle (created, failed, in-transit, delivered, cancelled, etc.)
+- **Standardize guide creation payload** across all 4 providers:
+  - Accept FE payload as-is (shipping details, package info, addresses)
+  - Add `provider` property to specify which provider service to call
+  - Ensure consistent payload structure works for GuiaEnvia, T1, Pakke, and Manuable
 - Implement API-first creation logic:
-  1. Call external provider API with quote data
-  2. Save to DB regardless of API result
-  3. Store appropriate status based on API response
+  1. Extract provider from payload
+  2. Call appropriate external provider API with standardized payload
+  3. Save to DB regardless of API result
+  4. Store appropriate status based on API response
 - Handle success/failure scenarios from external APIs
-- Generate internal Kraft tracking number if provider fails to provide one
-- Replace internal tracking number when provider returns one (provider tracking is source of truth)
-- Support retry for failed orders by updating existing order record
+- **Always generate internal Kraft tracking number** (kraftId) regardless of API success/failure
+- **Store external provider tracking number** separately when provider returns one
+- **Never replace kraftId** - it remains constant for the life of the guide
+- Support retry for failed guides by updating existing guide record
 
 ### 2. User Guide Retrieval
 
@@ -63,23 +71,29 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### 3. Admin Access
 
-**Requirement**: Admin users can see all guides from all users including their own.
+**Requirement**: Admin users can see all guides from all users OR just their own guides.
 
 **High-Level Actions**:
 
 - Implement role-based query logic (admin vs user)
 - Create admin-specific endpoint or extend user endpoint with role check
-- Return all orders when user role is 'admin'
-- Return user-specific orders when role is 'user'
+- **Add request parameter/query to specify scope**: `scope: 'all' | 'own'`
+  - When `scope: 'all'` → Return all guides from all users
+  - When `scope: 'own'` → Return only admin's own guides
+  - Default behavior to be determined (likely 'all' for admin convenience)
+- Return user-specific guides when role is 'user' (no scope option)
 - Maintain proper authorization guards
 
 **Admin Capabilities** (confirmed for MVP):
 
-- View all guides from all users
+- View all guides from all users OR filter to their own guides
 - Cancel any guide
 - Manually update guide status
-- Same search/filter capabilities as users but across all guides
-- Fetch guides by month and year (defaults to current month if not specified)
+- Same search/filter capabilities as users but across all guides (when scope='all')
+- **Fetch guides by month and year** (required parameters for admin queries)
+  - Month: 1-12 (required)
+  - Year: e.g., 2026 (required)
+  - No default behavior - admin must explicitly specify month/year
 
 **Admin Features to Discuss with Client**:
 
@@ -93,25 +107,27 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ## Database Design Considerations
 
-### Order Entity Structure
+### Guide Entity Structure
 
 **Core Fields**:
 
 - `_id` (MongoDB ObjectId): Internal database identifier for relationships and queries
 - User reference (relationship to User entity)
 - Provider identifier (guia-envia, t1, pakke, manuable)
-- Order status (created, failed, in-transit, delivered, cancelled, etc.)
-- **Tracking Numbers** (Dual System):
-  - `kraftId` (string): Custom Kraft tracking number (e.g., "KFT-202605-000001")
-    - Always generated on order creation
+- Guide status (created, failed, in-transit, delivered, cancelled, etc.)
+- **Tracking Numbers** (Dual Reference System):
+  - `kraftId` (string): **Primary Kraft tracking number** (e.g., "KFT-202605-000001")
+    - **Always generated on guide creation** (regardless of provider success/failure)
     - User-facing, customer-friendly format
-    - Used for customer support and order searches
+    - Used for customer support and guide searches
+    - **Permanent - never replaced or changed**
     - Indexed and unique across entire system
   - `externalId` (string, optional): Provider's tracking number
-    - Initially null/undefined when order is created
+    - Initially null when guide is created
     - Set when provider API returns successful response
     - Used for tracking with provider and sync operations
     - Indexed for fast search
+    - **This is a reference only - kraftId remains the primary identifier**
   - `isProviderTrackingSynced` (boolean): Indicates if provider tracking number has been received
     - Initially false
     - Set to true when externalId is populated
@@ -126,15 +142,16 @@ This document outlines the high-level actions needed to implement order/guide tr
 - Last updated timestamp
 - Last sync timestamp (when status was last updated from provider)
 - Guide document URL / Label URL
-- **Full address storage** (origin and destination - embedded in order)
+- **Full address storage** (origin and destination - embedded in guide)
   - Origin: Complete address details
   - Destination: Complete address details
   - Store as embedded documents (not references) for historical accuracy
 - Package information (dimensions, weight, content)
 - Cost information (from quote)
 - Payment reference (optional - for future payment integration)
-- Error details (if order creation failed)
+- Error details (if guide creation failed)
 - Retry count (number of retry attempts)
+- **Original payload from FE** (store standardized payload with provider prop)
 - Cancellation details (if cancelled)
   - Cancelled by (user ID or admin ID)
   - Cancellation timestamp
@@ -142,9 +159,9 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### Relationships
 
-- **User ↔ Orders**: One-to-Many
-  - User has many orders
-  - Order belongs to one user
+- **User ↔ Guides**: One-to-Many
+  - User has many guides
+  - Guide belongs to one user
 
 ### Status Management
 
@@ -181,7 +198,7 @@ This document outlines the high-level actions needed to implement order/guide tr
 4. `in-transit` - Package in transit to destination
 5. `on-delivery` - Out for delivery
 6. `delivered` - Successfully delivered
-7. `cancelled` - Order cancelled (by user or admin)
+7. `cancelled` - Guide cancelled (by user or admin)
 8. `returned` - Package returned to sender
 9. `exception` - Delivery exception/issue
 
@@ -198,76 +215,89 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 ### New/Modified Modules
 
-#### 1. Orders Module (New)
+#### 1. Guides Module (New/Modify Existing)
 
-**Purpose**: Central order management
+**Purpose**: Central guide management and tracking
 
-- `orders.module.ts` - Module definition
-- `entities/order.entity.ts` - Order schema
-- `services/orders.service.ts` - Business logic
-- `controllers/orders.controller.ts` - API endpoints
-- `dtos/orders.dto.ts` - Data transfer objects
-- `orders.interface.ts` - TypeScript interfaces
+**Current State**: Guides module exists but only orchestrates external API calls
 
-#### 2. Guides Module (Modify)
+**Changes Needed**:
 
-**Current**: Orchestrates external API calls for guide retrieval
-**Future**: May be deprecated or repurposed for sync operations
+- `guides.module.ts` - Update to include database persistence
+- `entities/guide.entity.ts` - **NEW** - Guide schema for MongoDB
+- `services/guides.service.ts` - Enhance with DB operations and standardized payload handling
+- `controllers/guides.controller.ts` - Update endpoints for guide creation with provider prop
+- `dtos/guides.dto.ts` - **NEW** - Add DTOs for standardized guide creation payload
+- `dtos/guides-responses.dto.ts` - Update response DTOs
+- `guides.interface.ts` - Add TypeScript interfaces for guide entity
 
-#### 3. Provider Modules (Modify)
+#### 2. Provider Modules (Modify)
 
 **Modules**: guia-envia, t1, pakke, manuable
+
 **Changes**:
 
-- Update create-guide methods to work with Orders module
+- **Accept standardized payload** from Guides module with provider prop
+- Adapt standardized payload to provider-specific format
+- Update create-guide methods to work with Guides module persistence
 - Return structured responses for DB persistence
 - Handle idempotency
+- Ensure all 4 providers can process the same base payload structure
 
 ---
 
 ## API Endpoints Design
 
-### Order Creation
+### Guide Creation
 
-**Endpoint**: `POST /orders/create`
+**Endpoint**: `POST /guides/create` (existing endpoint, update implementation)
 **Request Body**:
 
 ```typescript
 {
+  provider: 'guia-envia' | 't1' | 'pakke' | 'manuable',  // NEW: Specify which provider to use
   quoteId: string | number,  // ID from the selected quote
-  provider: 'guia-envia' | 't1' | 'pakke' | 'manuable',
-  shippingDetails: { /* provider-specific payload from saved address */ }
+  // Standardized payload structure that works for all 4 providers:
+  origin: { /* address details */ },
+  destination: { /* address details */ },
+  package: { /* dimensions, weight, content */ },
+  // Additional fields as needed by providers
+  // FE sends current payload structure + provider prop
 }
 ```
 
 **Flow**:
 
 1. Extract user ID from JWT token
-2. Validate request payload
-3. Call external provider create-guide API
-4. Create order in DB with result:
-   - If API success: Save with status 'created' and provider tracking number
-   - If API fails: Save with status 'failed', generate internal Kraft tracking number, store error details
-5. Return order data to user
+2. **Generate kraftId immediately** (before calling provider API)
+3. Extract provider from payload
+4. Validate request payload for selected provider
+5. Call appropriate external provider create-guide API based on `provider` property
+6. Create guide in DB with result:
+   - **Always save kraftId** (already generated)
+   - If API success: Save with status 'created' and store external provider tracking number in `externalId`
+   - If API fails: Save with status 'failed', store error details, `externalId` remains null
+7. Return guide data to user with kraftId
 
-**Retry Flow** (for failed orders):
+**Retry Flow** (for failed guides):
 
-1. User triggers retry on failed order
-2. Retrieve order data from DB
+1. User triggers retry on failed guide
+2. Retrieve guide data from DB (includes kraftId and stored payload)
 3. Call external provider API again with stored data
-4. Update existing order record:
-   - If success: Update status to 'created', replace internal tracking with provider tracking
-   - If fail again: Keep as 'failed', increment retry count, update error details
+4. Update existing guide record:
+   - If success: Update status to 'created', store provider tracking in `externalId`, **kraftId unchanged**
+   - If fail again: Keep as 'failed', increment retry count, update error details, **kraftId unchanged**
 
-**Concurrent Orders**:
+**Concurrent Guides**:
 
-- Users CAN create multiple orders simultaneously
+- Users CAN create multiple guides simultaneously
 - No locking mechanism needed
-- Each order is independent
+- Each guide is independent
+- Each gets unique kraftId
 
-### User Orders Retrieval
+### User Guides Retrieval
 
-**Endpoint**: `GET /orders` or `GET /orders/my-orders`
+**Endpoint**: `GET /guides` or `GET /guides/my-guides`
 **Query Parameters**:
 
 - `page` - Pagination
@@ -277,45 +307,47 @@ This document outlines the high-level actions needed to implement order/guide tr
 - `startDate` - Filter by date range (Priority filter)
 - `endDate` - Filter by date range (Priority filter)
 - `trackingNumber` - Search by tracking number (Priority filter)
-  - Must search BOTH internal Kraft tracking number AND external provider tracking number
+  - Must search BOTH kraftId AND externalId
 
 **Authorization**:
 
 - Extracts user ID from JWT token
-- Returns orders belonging to authenticated user only (strict isolation)
-- Users cannot see orders from other users
+- Returns guides belonging to authenticated user only (strict isolation)
+- Users cannot see guides from other users
 
-### Admin Orders Retrieval
+### Admin Guides Retrieval
 
-**Endpoint**: `GET /orders/all` or same endpoint with role detection
-**Query Parameters**: Same as user orders, plus:
+**Endpoint**: `GET /guides/admin` or `GET /guides` with role detection
+**Query Parameters**: Same as user guides, plus:
 
-- `month` - Filter by month (1-12, optional)
-- `year` - Filter by year (e.g., 2026, optional)
-- **Default behavior**: If month/year not provided, returns orders from current month
-- Can specify year without month to get all orders for that year
-- Month requires year to be specified
+- **`scope`** - **REQUIRED**: `'all'` | `'own'`
+  - `'all'` → Returns guides from all users
+  - `'own'` → Returns only admin's own guides
+- **`month`** - **REQUIRED**: Filter by month (1-12)
+- **`year`** - **REQUIRED**: Filter by year (e.g., 2026)
+- Month and year are mandatory for admin queries (no defaults)
+- Optional user ID filter for admin queries when scope='all'
 
 **Authorization**:
 
 - Requires 'admin' role
-- Returns all orders from all users
-- Optional user ID filter for admin queries
+- Returns guides based on `scope` parameter
+- Month/year required to limit query size and improve performance
 
-### Single Order Detail
+### Single Guide Detail
 
-**Endpoint**: `GET /orders/:orderId`
+**Endpoint**: `GET /guides/:guideId`
 **Authorization**:
 
-- User can only view their own orders
-- Admin can view any order
+- User can only view their own guides
+- Admin can view any guide
 
 **On-Demand Sync Behavior**:
 
-- When user/admin views a specific order, trigger sync with provider
-- Call provider's get-guide API to fetch latest status
-- Update order in DB with latest information
-- Return updated order data
+- When user/admin views a specific guide, trigger sync with provider
+- Call provider's get-guide API to fetch latest status using externalId (if available)
+- Update guide in DB with latest information
+- Return updated guide data with both kraftId and externalId
 - This ensures users always see current status without constant polling
 
 ---
@@ -334,54 +366,61 @@ This document outlines the high-level actions needed to implement order/guide tr
   - `typeService`: 'standard' | 'nextDay'
   - `source`: Provider source (GE, T1, PKK, MANUABLE)
 
-### Quote-to-Order Flow
+### Quote-to-Guide Flow
 
 1. User requests quotes for a shipment
 2. System calls all providers and returns available quotes
 3. User selects a quote (which includes provider information)
-4. User clicks create order
-5. Frontend sends:
+4. User clicks create guide
+5. Frontend sends standardized payload:
+   - **Provider** (from selected quote) - NEW required field
    - Quote ID (from selected quote)
-   - Provider (from selected quote)
    - Shipping details (from saved address or manual input)
-6. Backend uses quote `total` as the order cost
+   - Current FE payload structure + provider prop
+6. Backend:
+   - Generates kraftId immediately
+   - Uses quote `total` as the guide cost
+   - Routes to appropriate provider service based on provider prop
 
-### Order Cost Strategy
+### Guide Cost Strategy
 
 - **Source of Truth**: Quote `total` field
-- Store quote information in order record:
+- Store quote information in guide record:
   - Quote ID
   - Quote total (cost)
   - Selected service
   - Selected courier
-- Do **NOT** rely on provider API response for cost in order record
+- Do **NOT** rely on provider API response for cost in guide record
 - Provider API response cost is for validation/audit only
 
 ---
 
 ## Service Layer Architecture
 
-### OrdersService
+### GuidesService
 
 **Responsibilities**:
 
-- Create orders via external API then persist to database
-- Query orders with filters and search
-- Update order status from provider sync
-- Coordinate with provider services
-- Handle order lifecycle events (creation, retry, cancellation, sync)
-- Generate internal Kraft tracking numbers when needed
+- **Accept standardized payload with provider prop** from controller
+- **Generate kraftId immediately** before any provider call
+- Create guides via external API then persist to database
+- Query guides with filters and search
+- Update guide status from provider sync
+- Coordinate with provider services based on provider prop
+- Handle guide lifecycle events (creation, retry, cancellation, sync)
+- Maintain dual tracking reference (kraftId + externalId)
 
 **Key Methods**:
 
-- `createOrder(userId, quoteData, provider, payload)` - Call ext API, then save to DB
-- `retryFailedOrder(orderId, userId)` - Retry failed order, update existing record
-- `syncOrderWithProvider(orderId)` - Fetch latest status from provider, update DB
-- `getOrdersByUser(userId, filters)` - Get user orders with search/filter
-- `getAllOrders(filters)` - Get all orders (admin) with search/filter
-- `getOrderById(orderId, userId, isAdmin)` - Get single order with on-demand sync
-- `updateOrderStatus(orderId, status, updatedBy)` - Manual status update (admin)
-- `cancelOrder(orderId, userId, isAdmin, reason)` - Cancel order
+- `createGuide(userId, payload)` - Extract provider, generate kraftId, call provider API, save to DB
+- `retryFailedGuide(guideId, userId)` - Retry failed guide, update existing record, keep kraftId
+- `syncGuideWithProvider(guideId)` - Fetch latest status from provider using externalId, update DB
+- `getGuidesByUser(userId, filters)` - Get user guides with search/filter
+- `getAllGuides(filters, scope)` - Get guides (admin) with search/filter and scope (all/own)
+- `getGuidesByMonthYear(month, year, scope, userId)` - Admin query by month/year
+- `getGuideById(guideId, userId, isAdmin)` - Get single guide with on-demand sync
+- `updateGuideStatus(guideId, status, updatedBy)` - Manual status update (admin)
+- `cancelGuide(guideId, userId, isAdmin, reason)` - Cancel guide
 - `generateKraftId()` - Generate custom Kraft tracking number (KFT-YYYYMM-XXXXXX format)
 - `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both kraftId and externalId
 
@@ -389,10 +428,13 @@ This document outlines the high-level actions needed to implement order/guide tr
 
 Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 
-- Method to format order for external API
+- **Accept standardized payload structure** from GuidesService
+- **Adapt standardized payload to provider-specific format**
+- Method to format guide data for external API
 - Method to parse external API response
 - Error handling for API failures
 - Retry logic (existing in some modules)
+- Return consistent response structure to GuidesService
 
 ---
 
@@ -406,10 +448,11 @@ Each provider service (GuiaEnvia, T1, Pakke, Manuable) needs:
 
 ### External API Errors
 
-- Store error details in order record
-- Mark order status as 'failed'
+- Store error details in guide record
+- Mark guide status as 'failed'
 - Provide retry mechanism
 - Maintain audit trail of attempts
+- **kraftId persists even when API fails**
 
 ### Authorization Errors
 
@@ -444,22 +487,23 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Initial Creation
 
-1. **API First**: Call external provider API
-2. **DB Persistence**: Save order to database regardless of API result
-3. **Status Assignment**: Set status based on API response
-   - Success: 'created' with provider tracking number
-   - Failure: 'failed' with internal Kraft tracking number and error details
+1. **Generate kraftId First**: Always generate Kraft tracking number before any provider call
+2. **API Call**: Call external provider API based on provider prop
+3. **DB Persistence**: Save guide to database regardless of API result
+4. **Status Assignment**: Set status based on API response
+   - Success: 'created' with provider tracking number in externalId, kraftId already set
+   - Failure: 'failed' with kraftId only, externalId null, store error details
 
 ### On-Demand Sync (Primary Strategy)
 
-- **Trigger**: When user/admin views a specific order detail
+- **Trigger**: When user/admin views a specific guide detail
 - **Process**:
-  1. Fetch order from DB
-  2. Call provider's get-guide API for latest status
+  1. Fetch guide from DB (includes kraftId and externalId)
+  2. If externalId exists, call provider's get-guide API for latest status
   3. Update DB with latest tracking information
-  4. Update order status if changed
+  4. Update guide status if changed
   5. Update lastSyncTimestamp
-  6. Return updated data to user
+  6. Return updated data with both tracking numbers
 - **Benefits**:
   - No polling overhead
   - Always fresh data when user needs it
@@ -468,9 +512,9 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Periodic Sync (Future Enhancement)
 
-- Background job to sync order status for recent/in-transit orders
-- Update tracking information for orders in active delivery states
-- Sync delivery status
+- Background job to sync guide status for recent/in-transit guides
+- Update tracking information for guides in active delivery states
+- Sync delivery status using externalId
 - Handle provider-initiated updates (webhooks if available)
 - Consider rate limiting to avoid hitting provider API limits
 
@@ -480,15 +524,16 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Backward Compatibility
 
-- Existing provider endpoints may remain functional
-- Gradual migration to new order-centric endpoints
+- Existing provider endpoints remain functional during transition
+- Guides module enhanced to support both old flow and new database persistence
+- Gradual migration to new guide-centric endpoints
 - Support both flows during transition period
 
 ### Historical Data
 
-- No historical orders exist in DB
-- All orders going forward will be persisted
-- Optional: Backfill historical data from external APIs
+- No historical guides exist in DB
+- All guides going forward will be persisted with kraftId and externalId
+- Optional: Backfill historical data from external APIs (if tracking numbers available)
 
 ---
 
@@ -496,15 +541,17 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Data Access Control
 
-- Users can only access their own orders
-- Admin role required for global access
+- Users can only access their own guides
+- Admin role required for global access (with scope parameter)
 - Proper JWT validation on all endpoints
+- Admin can choose to view all guides or only their own
 
 ### Sensitive Data
 
 - Secure storage of customer information
 - Address data protection
 - Payment/cost information security
+- Tracking numbers (both kraftId and externalId) properly indexed and secured
 
 ### API Key Management
 
@@ -522,18 +569,19 @@ For complete error code documentation, implementation guidelines, error code reg
 - Saved addresses contain all information needed for guide creation across all providers
 - Different providers require different fields from the saved address
 
-### Address-to-Order Flow
+### Address-to-Guide Flow
 
 1. User selects a saved address (or enters manually)
 2. Frontend formats address data according to provider requirements
-3. Provider-specific payload is sent to backend in order creation request
-4. Backend stores **full address data** (origin + destination) in order record
+3. **Provider-specific payload + provider prop** sent to backend in guide creation request
+4. Backend stores **full address data** (origin + destination) in guide record
+5. Backend uses standardized payload structure to call appropriate provider
 
-### Why Embed Address Data in Orders
+### Why Embed Address Data in Guides
 
-- **Historical Accuracy**: Address may be modified/deleted after order creation
+- **Historical Accuracy**: Address may be modified/deleted after guide creation
 - **Audit Trail**: Complete record of what address was used
-- **Independence**: Order data is self-contained
+- **Independence**: Guide data is self-contained
 - **Compliance**: Shipping records often required for legal purposes
 
 ### Address Data Storage Strategy
@@ -550,17 +598,19 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Unit Tests
 
-- Order service methods
-- Provider service integration
+- Guide service methods (including kraftId generation)
+- Provider service integration with standardized payloads
 - Status transition logic
-- Role-based access logic
+- Role-based access logic with scope parameter
+- Tracking number search (kraftId and externalId)
 
 ### Integration Tests
 
-- End-to-end order creation flow
-- Database persistence verification
+- End-to-end guide creation flow with standardized payload
+- Database persistence verification (kraftId always present)
 - External API mocking
-- Authorization scenarios
+- Authorization scenarios (including admin scope parameter)
+- Provider prop routing logic
 
 ### E2E Tests
 
@@ -574,13 +624,14 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Database Queries
 
-- Index on user ID for fast user order retrieval
+- Index on user ID for fast user guide retrieval
 - Index on status for status-based queries
 - Index on creation date for sorting
-- **Index on kraftId** (unique) for fast customer-facing searches
+- **Index on kraftId** (unique) for fast customer-facing searches - PRIMARY
 - **Index on externalId** (sparse, allows nulls) for provider tracking searches
 - Compound indexes for common query patterns (userId + status, userId + createdAt)
-- Consider text index if implementing full-text search across order fields
+- Consider text index if implementing full-text search across guide fields
+- Month/year indexes for admin queries
 
 ### API Response Times
 
@@ -603,24 +654,28 @@ For complete error code documentation, implementation guidelines, error code reg
 - Receive updates from providers
 - Real-time status updates
 - Automatic sync without polling
+- Update guide status via externalId
 
 ### Advanced Filtering
 
 - Multi-status filtering
 - Complex date range queries
 - Provider-specific filters
+- Combined kraftId/externalId search
 
 ### Reporting
 
-- Order analytics
+- Guide analytics
 - Provider performance metrics
 - User activity reports
+- kraftId vs externalId success rates
 
 ### Notifications
 
-- Email notifications on order status changes
+- Email notifications on guide status changes
 - SMS notifications for delivery
 - Push notifications
+- Include kraftId in all customer communications
 
 ---
 
@@ -628,29 +683,36 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Phase 1: Core Infrastructure
 
-- Create Order entity/schema
-- Set up Orders module structure
+- Update Guide entity/schema with kraftId and externalId fields
+- Add `provider` prop to payload DTOs
+- **Create standardized payload structure** that works across all 4 providers
+- Set up Guides module database integration
+- Implement kraftId generation logic
 - Implement basic CRUD operations
 
 ### Phase 2: Provider Integration
 
-- Update GuiaEnvia service
-- Update T1 service
-- Update Pakke service
-- Update Manuable service
+- **Define standardized payload interface** for all providers
+- Update GuiaEnvia service to accept standardized payload
+- Update T1 service to accept standardized payload
+- Update Pakke service to accept standardized payload
+- Update Manuable service to accept standardized payload
+- Ensure each provider service returns consistent response structure
+- Test provider prop routing logic
 
 ### Phase 3: API Endpoints
 
-- Implement order creation endpoint
-- Implement user orders retrieval
-- Implement admin orders retrieval
-- Implement single order detail
+- Update guide creation endpoint with standardized payload + provider prop
+- Implement user guides retrieval with tracking number search (kraftId + externalId)
+- Implement admin guides retrieval with scope parameter and month/year filters
+- Implement single guide detail with on-demand sync
 
 ### Phase 4: Authorization & Security
 
-- Role-based access control
+- Role-based access control with admin scope parameter
 - Proper error handling
-- Data validation
+- Data validation for standardized payload
+- Ensure kraftId is always generated and never replaced
 
 ### Phase 5: Testing & Documentation
 
@@ -663,41 +725,47 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ## Technical Decisions Needed
 
-1. **Order ID Format**: MongoDB ObjectId vs custom format?
-   - **✅ DECIDED**: Use both - MongoDB ObjectId for database operations + Custom kraftId for customer-facing operations
+1. **Guide ID Format**: MongoDB ObjectId vs custom format?
+   - **✅ DECIDED**: Use MongoDB ObjectId for database operations + Custom kraftId for customer-facing operations
    - **kraftId Format**: `KFT-{YEAR}{MONTH}-{SEQUENCE}` (e.g., KFT-202605-000001)
    - **Rationale**: Provides user-friendly tracking numbers while maintaining MongoDB efficiency
    - **Properties**:
      - `_id`: MongoDB ObjectId (internal use)
-     - `kraftId`: Custom sequential tracking number (always present, indexed, unique)
-     - `externalId`: Provider tracking number (optional, indexed)
+     - `kraftId`: Custom sequential tracking number (**ALWAYS PRESENT**, indexed, unique, **NEVER REPLACED**)
+     - `externalId`: Provider tracking number (optional, indexed, populated on provider success)
      - `isProviderTrackingSynced`: Boolean flag indicating if externalId is populated
 2. **Status Enum**: Comprehensive list of all possible statuses?
    - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, cancelled, returned, exception)
    - **Action**: Map provider statuses to Kraft statuses during implementation
 3. **Provider Data Storage**: Embed vs reference external provider data?
    - **✅ Decided**: Embed full provider response for audit and historical accuracy
-4. **Retry Logic**: Automatic vs manual retry for failed orders?
-   - **✅ Decided**: Manual retry triggered by user; updates existing order record
-5. **Soft Delete**: Should orders be soft-deleted or hard-deleted?
+4. **Retry Logic**: Automatic vs manual retry for failed guides?
+   - **✅ Decided**: Manual retry triggered by user; updates existing guide record, kraftId unchanged
+5. **Soft Delete**: Should guides be soft-deleted or hard-deleted?
    - **Recommendation**: Soft delete with `deletedAt` timestamp for audit purposes
-6. **Audit Trail**: Track all changes to order status?
+6. **Audit Trail**: Track all changes to guide status?
    - **Recommendation**: Yes, add `statusHistory` array field with timestamps and actors
 7. **Provider Selection**: How does user select provider during creation?
-   - **✅ Decided**: Provider is selected via quote selection; quote contains provider info
+   - **✅ Decided**: Provider is selected via quote selection AND included in payload as `provider` prop
 8. **Cost Calculation**: Store in DB or calculate on-demand?
-   - **✅ Decided**: Store cost from quote `total` field in order record
+   - **✅ Decided**: Store cost from quote `total` field in guide record
 9. **Tracking Number Generation**: Format for internal Kraft tracking numbers?
    - **✅ DECIDED**: Sequential format `KFT-{YEAR}{MONTH}-{SEQUENCE}`
    - Six-digit sequence resets monthly
    - User-friendly and professional appearance
    - Easy to communicate with customer support
+   - **Generated immediately, never replaced**
 10. **Duplicate Prevention**: Additional safeguards beyond FE button disable?
-    - **Need Decision**: Idempotency keys? Check for recent duplicate orders?
+    - **Need Decision**: Idempotency keys? Check for recent duplicate guides?
 11. **Error Message Display**: Show provider error or friendly message?
     - **Need Client Decision**: See Questions for Client section
-12. **Admin Audit Log**: Log all admin actions on orders?
-    - **Recommendation**: Yes, track who cancelled/updated orders
+12. **Admin Audit Log**: Log all admin actions on guides?
+    - **Recommendation**: Yes, track who cancelled/updated guides
+13. **Standardized Payload Structure**: What fields are required across all providers?
+    - **Need Decision**: Define minimal set of fields that work for all 4 providers
+    - **Priority**: Document current FE payload structure and map to provider requirements
+14. **Admin Default Scope**: When admin queries guides without scope parameter?
+    - **✅ DECIDED**: Scope is REQUIRED - admin must explicitly choose 'all' or 'own'
 
 ---
 
@@ -705,57 +773,62 @@ For complete error code documentation, implementation guidelines, error code reg
 
 The following questions need client input before finalizing implementation:
 
-### 1. Order Cancellation
+### 1. Guide Cancellation
 
-**Question**: Can users cancel orders after creation? If yes:
+**Question**: Can users cancel guides after creation? If yes:
 
-- At what point can orders no longer be cancelled?
+- At what point can guides no longer be cancelled?
 - Do we need to call the external provider's cancel API?
-- What happens to the order in our system (status change to 'cancelled')?
+- What happens to the guide in our system (status change to 'cancelled')?
 - Should cancellation be free or are there fees?
+- kraftId remains unchanged when guide is cancelled
 
 **Impact**: Affects API design, provider integration, and status workflow.
 
-### 2. Failed Order Retry Behavior
+### 2. Failed Guide Retry Behavior
 
-**Question**: When an order creation fails at the external provider:
+**Question**: When a guide creation fails at the external provider:
 
 - Should users be able to retry unlimited times?
 - Should there be a time limit for retries?
 - Should we charge/track each retry attempt?
 - Should we suggest alternative providers if one consistently fails?
+- kraftId remains the same across all retry attempts
 
 **Impact**: Affects UX, business logic, and cost tracking.
 
-### 3. Order Editing Capability
+### 3. Guide Editing Capability
 
-**Question**: Can users edit order details after creation?
+**Question**: Can users edit guide details after creation?
 
 - Before provider confirmation?
 - After provider confirmation?
 - What fields can be edited (address, package details, etc.)?
 - Does editing require provider API update or just our DB?
+- Does kraftId remain the same when guide is edited?
 
 **Impact**: Significant impact on data model and provider integration complexity.
 
 ### 4. Error Message Display
 
-**Question**: When order creation fails:
+**Question**: When guide creation fails:
 
 - Show technical error from provider to user?
 - Show user-friendly generic message?
 - Show different messages for different error types?
 - Provide troubleshooting suggestions?
+- Always show kraftId to user for reference?
 
 **Impact**: Affects UX and error handling strategy.
 
-### 5. Admin Order Creation
+### 5. Admin Guide Creation
 
-**Question**: Can admins create orders on behalf of users?
+**Question**: Can admins create guides on behalf of users?
 
 - If yes, how do they specify which user?
 - Are there special permissions or audit requirements?
-- Can admins modify order details that users cannot?
+- Can admins modify guide details that users cannot?
+- Admin-created guides also get kraftId?
 
 **Impact**: Affects admin API endpoints and authorization logic.
 
@@ -763,11 +836,12 @@ The following questions need client input before finalizing implementation:
 
 **Question**: What other admin capabilities are needed?
 
-- Add notes/comments to orders?
+- Add notes/comments to guides?
 - Issue refunds?
-- Override order status manually?
-- Delete orders permanently?
+- Override guide status manually?
+- Delete guides permanently?
 - View sensitive customer data (payment info)?
+- Search guides by kraftId or externalId?
 
 **Impact**: Affects admin API design and permission system.
 
@@ -782,14 +856,15 @@ The following questions need client input before finalizing implementation:
 
 **Impact**: Affects future notification system design.
 
-### 8. Order History and Retention
+### 8. Guide History and Retention
 
-**Question**: How long should order data be retained?
+**Question**: How long should guide data be retained?
 
-- Keep all orders indefinitely?
-- Archive old orders after X days/months?
+- Keep all guides indefinitely?
+- Archive old guides after X days/months?
 - Different retention for different statuses (e.g., delivered vs failed)?
 - Compliance or legal requirements?
+- kraftId must be preserved for audit trail?
 
 **Impact**: Affects database design, storage costs, and archival strategy.
 
@@ -797,20 +872,22 @@ The following questions need client input before finalizing implementation:
 
 **Question**: How are refunds and disputes handled?
 
-- Track refund status in order record?
+- Track refund status in guide record?
 - Allow users to request refunds through the system?
 - Admin approval required?
 - Integration with payment system?
+- Reference kraftId in refund records?
 
-**Impact**: Affects order schema and potential new module requirements.
+**Impact**: Affects guide schema and potential new module requirements.
 
-### 10. Multi-Package Orders
+### 10. Multi-Package Guides
 
-**Question**: Future consideration - will orders ever contain multiple packages?
+**Question**: Future consideration - will guides ever contain multiple packages?
 
 - If yes, when is this feature needed?
 - How would pricing work?
 - Same destination or different destinations?
+- One kraftId per guide or per package?
 
 **Impact**: May affect initial schema design if coming soon.
 
@@ -820,38 +897,41 @@ The following questions need client input before finalizing implementation:
 
 ### ✅ Confirmed Decisions
 
-1. **Order Creation Flow**: External API first → Save to DB (always, regardless of result)
-2. **Tracking Numbers**: Dual system with three properties:
-   - `kraftId`: Custom Kraft tracking (KFT-202605-XXXXXX) - always present
+1. **Guide Creation Flow**: Generate kraftId first → Call external API based on provider prop → Save to DB (always, regardless of result)
+2. **Tracking Numbers**: Dual reference system with three properties:
+   - `kraftId`: Custom Kraft tracking (KFT-202605-XXXXXX) - **ALWAYS PRESENT, NEVER REPLACED**
    - `externalId`: Provider tracking number - populated on successful provider response
    - `isProviderTrackingSynced`: Boolean flag for sync status
-3. **ID Strategy**: MongoDB ObjectId for DB operations, kraftId for customer-facing
+3. **ID Strategy**: MongoDB ObjectId for DB operations, kraftId for customer-facing (permanent identifier)
 4. **Cost Source**: Quote `total` field
-5. **Address Storage**: Full address data embedded in order
-6. **User Isolation**: Strict - users see only their orders
-7. **Admin Visibility**: Admins see all orders
-8. **Retry Strategy**: Manual retry, updates existing order
-9. **Concurrent Orders**: Allowed - no locking
-10. **Sync Strategy**: On-demand when viewing order detail
+5. **Address Storage**: Full address data embedded in guide
+6. **User Isolation**: Strict - users see only their guides
+7. **Admin Visibility**: Admins choose scope ('all' or 'own') with required month/year filters
+8. **Retry Strategy**: Manual retry, updates existing guide, **kraftId unchanged**
+9. **Concurrent Guides**: Allowed - no locking, each gets unique kraftId
+10. **Sync Strategy**: On-demand when viewing guide detail using externalId
 11. **Quote Storage**: Not stored in DB
 12. **Provider Credentials**: System-wide (not per-user)
 13. **Historical Data**: No backfill - start fresh
 14. **Payment Integration**: Optional payment reference field for future
-15. **Notifications**: Not implemented in MVP
+15. **Notifications**: Not implemented in MVP (kraftId will be used in all customer communications)
 16. **Admin Bulk Operations**: Not in MVP
+17. **Standardized Payload**: FE payload + provider prop, works across all 4 providers
+18. **Admin Month/Year Filters**: Required (no defaults) for performance
 
 ### ⏳ Pending Client Decisions
 
-1. Order cancellation workflow
-2. Failed order retry limits
-3. Order editing capability
+1. Guide cancellation workflow
+2. Failed guide retry limits
+3. Guide editing capability
 4. Error message display strategy
-5. Admin order creation on behalf of users
+5. Admin guide creation on behalf of users
 6. Additional admin capabilities
 7. Notification preferences
-8. Order retention policy
+8. Guide retention policy
 9. Refund and dispute process
-10. Multi-package orders timeline
+10. Multi-package guides timeline
+11. Standardized payload field requirements across providers
 
 ---
 
@@ -882,38 +962,49 @@ The following questions need client input before finalizing implementation:
 
 This implementation will transform the system from an API proxy to a data-centric application where:
 
-- **Database is source of truth** for order data
+- **Database is source of truth** for guide data
 - **External APIs serve as execution mechanisms** for guide creation
-- **Users have full visibility** of their order history with strict isolation
-- **Admins have comprehensive oversight** of all orders with enhanced permissions
-- **System is resilient** to external API failures (stores failed orders for retry)
+- **kraftId is generated immediately** and serves as permanent customer-facing identifier
+- **externalId references provider tracking** but never replaces kraftId
+- **Standardized payload with provider prop** enables consistent guide creation across all 4 providers (GuiaEnvia, T1, Pakke, Manuable)
+- **Users have full visibility** of their guide history with strict isolation
+- **Admins have flexible access** with scope parameter ('all' or 'own') and required month/year filters
+- **System is resilient** to external API failures (stores failed guides with kraftId for retry)
 - **Data is structured** for future analytics and reporting
-- **Dual tracking system** (internal Kraft + external provider) ensures no order is lost
-- **On-demand synchronization** keeps data fresh without excessive API calls
+- **Dual tracking reference system** (kraftId + externalId) ensures no guide is lost
+- **On-demand synchronization** keeps data fresh without excessive API calls using externalId
 - **Quote integration** provides accurate cost tracking from user selection
 - **Full address embedding** maintains historical accuracy and compliance
+- **Provider routing** via payload prop simplifies FE integration
 
 ### Key Implementation Principles
 
-1. **API-First Creation**: Call provider API before DB persistence
-2. **Always Persist**: Save orders regardless of API success/failure
-3. **User Isolation**: Strict data access control per user
-4. **Transparent Retry**: Failed orders can be retried using stored data
-5. **On-Demand Sync**: Fetch latest status when user views order details
-6. **Audit Trail**: Track status changes, cancellations, and admin actions
-7. **Provider Agnostic**: Design supports all four providers (GE, T1, Pakke, Manuable)
+1. **KraftId First**: Always generate Kraft tracking number (kraftId) before any provider call, never replace it
+2. **Standardized Payload**: Accept FE payload + provider prop, route to appropriate provider service
+3. **Always Persist**: Save guides regardless of API success/failure with kraftId
+4. **User Isolation**: Strict data access control per user
+5. **Transparent Retry**: Failed guides can be retried using stored data, kraftId remains constant
+6. **On-Demand Sync**: Fetch latest status via externalId when user views guide details
+7. **Audit Trail**: Track status changes, cancellations, and admin actions with kraftId reference
+8. **Provider Agnostic**: Design supports all four providers with standardized payload structure
+9. **Admin Scope Control**: Admins explicitly choose 'all' or 'own' guides with required month/year filters
+10. **Dual Tracking Reference**: kraftId (permanent) + externalId (reference only)
 
 ### Pending Client Decisions
 
-Before full implementation, the following must be confirmed with the client:
+Guide cancellation workflow and provider integration
 
-- Order cancellation workflow and provider integration
-- Failed order retry limits and policies
-- Order editing capabilities and restrictions
+- Failed guide retry limits and policies
+- Guide editing capabilities and restrictions
 - Error message display strategy (technical vs user-friendly)
-- Admin order creation on behalf of users
+- Admin guide creation on behalf of users
 - Additional admin capabilities and audit requirements
-- Order retention and archival policies
+- Guide retention and archival policies
+- Refund and dispute handling processes
+- Standardized payload field requirements for all 4 providers
+
+The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, API contracts, and **standardized payload structure definition**
+
 - Refund and dispute handling processes
 
 The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, and API contracts.
