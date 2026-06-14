@@ -775,115 +775,112 @@ The following questions need client input before finalizing implementation:
 
 ### 2. Failed Guide Retry Behavior
 
-**Status**: ✅ DECIDED
+**✅ DECIDED**:
 
-**Question**: When a guide creation fails at the external provider:
+- **Unlimited retry times**: Users can retry as many times as needed
+- **Rate limiting**: Maximum 10 retry attempts, with 5-minute cooldown between attempts
+- **Tracking**: Track each retry attempt with:
+  - Error returned from provider
+  - Timestamp of retry
+  - User who triggered retry
+- **Alternative providers**: Do NOT suggest alternative providers
+- **kraftId persistence**: kraftId remains the same across all retry attempts
 
-- Should users be able to retry unlimited times? **Yes, unlimited retry times.**
-- Should there be a time limit for retries? **Yes, rate limit to 10 attempts every 5 minutes.**
-- Should we charge/track each retry attempt? **Yes, track each retry attempt with the error returned and a timestamp.**
-- Should we suggest alternative providers if one consistently fails? **No.**
-- kraftId remains the same across all retry attempts. **Yes, kraftId remains the same.**
-
-**Impact**: Affects UX, business logic, and cost tracking.
+**Impact**: Requires retry attempt counter, cooldown tracking, and retry history in guide schema.
 
 ### 3. Guide Editing Capability
 
-**Status**: ✅ DECIDED - NOT PART OF MVP
+**✅ DECIDED**: NOT PART OF MVP
 
-**Question**: Can users edit guide details after creation? **No, editing is not part of the current development scope.**
+- Guide editing is not part of this development work
+- Users cannot edit guide details after creation
+- Future enhancement only
 
-- Before provider confirmation?
-- After provider confirmation?
-- What fields can be edited (address, package details, etc.)?
-- Does editing require provider API update or just our DB?
-- Does kraftId remain the same when guide is edited?
-
-**Impact**: Significant impact on data model and provider integration complexity. Postponed for future consideration.
+**Impact**: Simplifies MVP implementation - no edit endpoints or provider update logic needed.
 
 ### 4. Error Message Display
 
-**Question**: When guide creation fails:
+**✅ DECIDED**:
 
-- Show technical error from provider to user?
-- Show user-friendly generic message?
-- Show different messages for different error types?
-- Provide troubleshooting suggestions?
-- Always show kraftId to user for reference?
+- **DO NOT** show technical error from provider to user
+- **Show user-friendly generic message**: YES
+- **Different messages for different error types**: YES
+  - Provider API error
+  - Network error
+  - Validation error (invalid payload data)
+  - Timeout error (provider took too long)
+  - Rate limit error (too many requests to provider)
+  - Database error (rare, for saving guide data)
+- **Troubleshooting suggestions**: NO
+- **Always show kraftId**: YES (for user reference and support)
 
-**Impact**: Affects UX and error handling strategy.
+**Impact**: Requires error type classification and user-friendly message mapping in error handling system.
 
 ### 5. Admin Guide Creation
 
-**Question**: Can admins create guides on behalf of users?
+**✅ DECIDED**: NOT PART OF MVP
 
-- If yes, how do they specify which user?
-- Are there special permissions or audit requirements?
-- Can admins modify guide details that users cannot?
-- Admin-created guides also get kraftId?
+- Admins cannot create guides on behalf of users (adds complexity)
+- Future enhancement only
 
-**Impact**: Affects admin API endpoints and authorization logic.
+**Impact**: Simplifies MVP implementation - no admin guide creation endpoints needed.
 
 ### 6. Admin Actions and Permissions
 
-**Question**: What other admin capabilities are needed?
+**✅ DECIDED**:
 
-- Add notes/comments to guides?
-- Issue refunds?
-- Override guide status manually?
-- Delete guides permanently (hard delete)?
-- View sensitive customer data (payment info)?
-- Search guides by kraftId or externalId?
+- **Add notes/comments to guides**: YES
+  - Add `comments` property to guide schema
+  - Array of comment objects with timestamp, admin user, and text
+- **Issue refunds**: NOT part of MVP
+- **Override guide status manually**: YES
+  - Admin can manually update guide status
+  - Track who changed status and when
+- **Delete guides permanently (hard delete)**: YES
+  - Admins can hard delete
+  - Regular users can only soft delete
+- **View sensitive customer data**: NO sensitive data stored
+  - Only payment reference stored (not sensitive)
+- **Search guides by kraftId or externalId**: YES
+  - Search capability for BOTH tracking numbers
+  - Available for both admins and normal users
 
-**Note**: Hard delete capability is confirmed for admins; soft delete only for regular users.
-
-**Impact**: Affects admin API design and permission system.
+**Impact**: Requires comment system, manual status override endpoint, and dual tracking number search functionality.
 
 ### 7. Notification Preferences
 
-**Question**: What notifications should users receive (future feature)?
+**✅ DECIDED**: NOT PART OF MVP
 
-- Email, SMS, push notifications, or combination?
-- Which events trigger notifications (created, shipped, delivered, failed)?
-- Can users customize notification preferences?
-- Should admins receive notifications for failed orders?
+- Notification system is not part of this development work
+- **Future enhancement**: Email notifications only
+- Will be implemented in later development phase
 
-**Impact**: Affects future notification system design.
+**Impact**: No notification system implementation needed for MVP.
 
 ### 8. Guide History and Retention
 
-**Question**: How long should guide data be retained?
+**✅ DECIDED**:
 
-- Keep all guides indefinitely?
-- Archive old guides after X days/months?
-- Different retention for different statuses (e.g., delivered vs failed)?
-- Compliance or legal requirements?
-- kraftId must be preserved for audit trail?
+- **Keep all guides indefinitely**: YES
+- **Archive old guides**: After 1 year
+  - **Archival Strategy**: Use separate MongoDB collection (`guides_archive`)
+  - Move guides older than 1 year to archive collection via scheduled job
+  - Maintains data accessibility while improving main collection performance
+  - Alternative options: separate database, cold storage export to S3
+- **Different retention for different statuses**: NO (same retention for all)
+- **Compliance or legal requirements**: Not explored yet (to be determined)
+- **kraftId immutability**: kraftId must NEVER be modified after guide creation
 
-**Impact**: Affects database design, storage costs, and archival strategy.
+**Impact**: Requires archival job implementation, separate archive collection, and query logic for both collections.
 
 ### 9. Refund and Dispute Process
 
-**Question**: How are refunds and disputes handled?
+**✅ DECIDED**: NOT PART OF MVP
 
-- Track refund status in guide record?
-- Allow users to request refunds through the system?
-- Admin approval required?
-- Integration with payment system?
-- Reference kraftId in refund records?
+- Refund and dispute handling is not part of this development work
+- Future enhancement only
 
-**Impact**: Affects guide schema and potential new module requirements.
-
-### 10. Multi-Package Guides
-
-**Question**: Future consideration - will guides ever contain multiple packages?
-
-- If yes, when is this feature needed?
-- How would pricing work?
-- Same destination or different destinations?
-- One kraftId per guide or per package?
-
-**Impact**: May affect initial schema design if coming soon.
+**Impact**: No refund system implementation needed for MVP.
 
 ---
 
@@ -916,18 +913,32 @@ The following questions need client input before finalizing implementation:
     - **✅ DECIDED**: Regular users can only soft delete; admins can hard delete
 20. **Quote Price Audit**: What quote calculation data to store?
     - **✅ DECIDED**: Store complete price calculation data (qAdjMode, qBaseRef, qAdjFactor, qAdjBasis, qAdjSrcRef, total)
+21. **Failed Guide Retry Policy**: Retry limits and tracking?
+    - **✅ DECIDED**: Unlimited retries, max 10 attempts with 5-minute cooldown, track each attempt with error and timestamp
+22. **Guide Editing**: Can users edit guides after creation?
+    - **✅ DECIDED**: NOT part of MVP - future enhancement only
+23. **Error Message Display**: Technical vs user-friendly messages?
+    - **✅ DECIDED**: User-friendly messages only, different messages per error type (API, network, validation, timeout, rate limit, DB), always show kraftId
+24. **Admin Guide Creation**: Can admins create on behalf of users?
+    - **✅ DECIDED**: NOT part of MVP - too complex
+25. **Admin Comments**: Can admins add notes to guides?
+    - **✅ DECIDED**: YES - add comments array property with timestamp, admin user, and text
+26. **Manual Status Override**: Can admins change guide status?
+    - **✅ DECIDED**: YES - track who changed status and when
+27. **Tracking Number Search**: Search by kraftId or externalId?
+    - **✅ DECIDED**: BOTH - available for admins and normal users
+28. **Notifications**: Email/SMS for guide events?
+    - **✅ DECIDED**: NOT part of MVP - email notifications only in future development
+29. **Guide Retention**: How long to keep guide data?
+    - **✅ DECIDED**: Keep indefinitely, archive after 1 year to separate collection (`guides_archive`)
+30. **Refund System**: Track refunds in guide?
+    - **✅ DECIDED**: NOT part of MVP - future enhancement only
 
 ### ⏳ Pending Client Decisions
 
-- Failed guide retry limits and policies
-- Guide editing capabilities and restrictions
-- Error message display strategy (technical vs user-friendly)
-- Admin guide creation on behalf of users
-- Additional admin capabilities and audit requirements
-- Guide retention and archival policies
-- Refund and dispute handling processes
-- Standardized payload field requirements for all 4 providers
-- Guide cancellation workflow (future enhancement, not MVP)
+- **Standardized payload field requirements for all 4 providers** (Priority: Define minimal required fields)
+- Archival job schedule and implementation details (monthly vs quarterly)
+- Compliance or legal requirements for guide data retention
 
 ---
 
