@@ -39,7 +39,8 @@ This document outlines the high-level actions needed to implement guide tracking
 **High-Level Actions**:
 
 - Create `Guide` entity/schema with Mongoose
-- Define guide status lifecycle (created, failed, in-transit, delivered, cancelled, etc.)
+- Define guide status lifecycle (created, failed, in-transit, delivered, etc.)
+- **Note**: Guide cancellation is NOT part of MVP
 - **Standardize guide creation payload** across all 4 providers:
   - Accept FE payload as-is (shipping details, package info, addresses)
   - Add `provider` property to specify which provider service to call
@@ -87,13 +88,12 @@ This document outlines the high-level actions needed to implement guide tracking
 **Admin Capabilities** (confirmed for MVP):
 
 - View all guides from all users OR filter to their own guides
-- Cancel any guide
 - Manually update guide status
 - Same search/filter capabilities as users but across all guides (when scope='all')
-- **Fetch guides by month and year** (required parameters for admin queries)
-  - Month: 1-12 (required)
-  - Year: e.g., 2026 (required)
-  - No default behavior - admin must explicitly specify month/year
+- **Fetch guides by month and year** (optional parameters for admin queries)
+  - Month: 1-12 (optional, defaults to current month)
+  - Year: e.g., 2026 (optional, defaults to current year)
+  - Default behavior: Uses current month and year if not specified
 
 **Admin Features to Discuss with Client**:
 
@@ -102,6 +102,10 @@ This document outlines the high-level actions needed to implement guide tracking
 - Refund management
 - Dispute resolution
 - Audit log access
+
+**Admin Features NOT in MVP**:
+
+- Cancel guides (future enhancement)
 
 ---
 
@@ -113,8 +117,9 @@ This document outlines the high-level actions needed to implement guide tracking
 
 - `_id` (MongoDB ObjectId): Internal database identifier for relationships and queries
 - User reference (relationship to User entity)
-- Provider identifier (guia-envia, t1, pakke, manuable)
-- Guide status (created, failed, in-transit, delivered, cancelled, etc.)
+- Provider identifier: 'GE' | 'TONE' | 'Pkk' | 'Mn'
+- Guide status (created, failed, in-transit, delivered, etc.)
+- **Note**: Cancellation features not included in MVP
 - **Tracking Numbers** (Dual Reference System):
   - `kraftId` (string): **Primary Kraft tracking number** (e.g., "KFT-202605-000001")
     - **Always generated on guide creation** (regardless of provider success/failure)
@@ -132,9 +137,14 @@ This document outlines the high-level actions needed to implement guide tracking
     - Initially false
     - Set to true when externalId is populated
     - Used for UI display logic and retry flow decisions
-- Quote data reference (store selected quote information)
+- Quote data reference (store selected quote information for price calculation audit)
   - Quote ID from request
-  - Quote cost (total price shown to customer)
+  - `qAdjMode`: Adjustment mode applied (e.g., 'percentage', 'absolute')
+  - `qBaseRef`: Base quote total before profit margin adjustment
+  - `qAdjFactor`: Adjustment factor applied (profit margin value)
+  - `qAdjBasis`: Basis value for adjustment (margin configuration value)
+  - `qAdjSrcRef`: Source reference for adjustment (margin source identifier)
+  - `total`: Final total price shown to customer (after profit margin)
   - Service type selected
   - Courier selected
 - External provider response data (full API response)
@@ -151,11 +161,10 @@ This document outlines the high-level actions needed to implement guide tracking
 - Payment reference (optional - for future payment integration)
 - Error details (if guide creation failed)
 - Retry count (number of retry attempts)
-- **Original payload from FE** (store standardized payload with provider prop)
-- Cancellation details (if cancelled)
-  - Cancelled by (user ID or admin ID)
-  - Cancellation timestamp
-  - Cancellation reason
+- Soft delete support:
+  - `deletedAt`: Timestamp when guide was soft-deleted (null if not deleted)
+  - `deletedBy`: User ID or admin ID who deleted the guide
+  - Only admins can perform hard deletes; regular users can only soft delete
 
 ### Relationships
 
@@ -198,9 +207,10 @@ This document outlines the high-level actions needed to implement guide tracking
 4. `in-transit` - Package in transit to destination
 5. `on-delivery` - Out for delivery
 6. `delivered` - Successfully delivered
-7. `cancelled` - Guide cancelled (by user or admin)
-8. `returned` - Package returned to sender
-9. `exception` - Delivery exception/issue
+7. `returned` - Package returned to sender
+8. `exception` - Delivery exception/issue
+
+**Note**: Guide cancellation is not part of MVP. The `cancelled` status is reserved for future implementation.
 
 **Status Mapping Strategy**:
 
@@ -255,7 +265,7 @@ This document outlines the high-level actions needed to implement guide tracking
 
 ```typescript
 {
-  provider: 'guia-envia' | 't1' | 'pakke' | 'manuable',  // NEW: Specify which provider to use
+  provider: 'GE' | 'TONE' | 'Pkk' | 'Mn',  // NEW: Specify which provider to use
   quoteId: string | number,  // ID from the selected quote
   // Standardized payload structure that works for all 4 providers:
   origin: { /* address details */ },
@@ -297,7 +307,7 @@ This document outlines the high-level actions needed to implement guide tracking
 
 ### User Guides Retrieval
 
-**Endpoint**: `GET /guides` or `GET /guides/my-guides`
+**Endpoint**: `GET /guides/db` (NEW endpoint for database-persisted guides)
 **Query Parameters**:
 
 - `page` - Pagination
@@ -317,26 +327,26 @@ This document outlines the high-level actions needed to implement guide tracking
 
 ### Admin Guides Retrieval
 
-**Endpoint**: `GET /guides/admin` or `GET /guides` with role detection
+**Endpoint**: `GET /guides/db/admin` (NEW endpoint for admin database queries)
 **Query Parameters**: Same as user guides, plus:
 
 - **`scope`** - **REQUIRED**: `'all'` | `'own'`
   - `'all'` → Returns guides from all users
   - `'own'` → Returns only admin's own guides
-- **`month`** - **REQUIRED**: Filter by month (1-12)
-- **`year`** - **REQUIRED**: Filter by year (e.g., 2026)
-- Month and year are mandatory for admin queries (no defaults)
+- **`month`** - Optional: Filter by month (1-12, defaults to current month)
+- **`year`** - Optional: Filter by year (e.g., 2026, defaults to current year)
+- Defaults to current month/year if not specified
 - Optional user ID filter for admin queries when scope='all'
 
 **Authorization**:
 
 - Requires 'admin' role
 - Returns guides based on `scope` parameter
-- Month/year required to limit query size and improve performance
+- Month/year default to current values for performance
 
 ### Single Guide Detail
 
-**Endpoint**: `GET /guides/:guideId`
+**Endpoint**: `GET /guides/db/:guideId` (NEW endpoint for database-persisted guide detail)
 **Authorization**:
 
 - User can only view their own guides
@@ -407,8 +417,11 @@ This document outlines the high-level actions needed to implement guide tracking
 - Query guides with filters and search
 - Update guide status from provider sync
 - Coordinate with provider services based on provider prop
-- Handle guide lifecycle events (creation, retry, cancellation, sync)
+- Handle guide lifecycle events (creation, retry, sync)
 - Maintain dual tracking reference (kraftId + externalId)
+- Handle soft delete for regular users and hard delete for admins
+
+**Note**: This service will be implemented as `GuidesDbService` for retrocompatibility, keeping existing `GuidesService` intact for external API operations.
 
 **Key Methods**:
 
@@ -420,9 +433,10 @@ This document outlines the high-level actions needed to implement guide tracking
 - `getGuidesByMonthYear(month, year, scope, userId)` - Admin query by month/year
 - `getGuideById(guideId, userId, isAdmin)` - Get single guide with on-demand sync
 - `updateGuideStatus(guideId, status, updatedBy)` - Manual status update (admin)
-- `cancelGuide(guideId, userId, isAdmin, reason)` - Cancel guide
 - `generateKraftId()` - Generate custom Kraft tracking number (KFT-YYYYMM-XXXXXX format)
 - `searchByTrackingNumber(trackingNumber, userId, isAdmin)` - Search both kraftId and externalId
+- `softDeleteGuide(guideId, userId)` - Soft delete guide (users)
+- `hardDeleteGuide(guideId, adminId)` - Hard delete guide (admins only)
 
 ### Provider Service Updates
 
@@ -524,10 +538,18 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ### Backward Compatibility
 
-- Existing provider endpoints remain functional during transition
-- Guides module enhanced to support both old flow and new database persistence
-- Gradual migration to new guide-centric endpoints
-- Support both flows during transition period
+**Retrocompatibility Strategy**:
+
+- **Existing endpoints preserved**: Current `GET /guides` continues to fetch from external APIs (no changes)
+- **New endpoints created**:
+  - `POST /guides/db/create` - Create guide with DB persistence
+  - `GET /guides/db` - Fetch guides from database
+  - `GET /guides/db/admin` - Admin queries from database
+  - `GET /guides/db/:guideId` - Single guide detail from database
+- **New service layer**: Create `GuidesDbService` for database operations, separate from existing `GuidesService`
+- **Frontend flexibility**: FE can use old endpoints (external APIs) OR new endpoints (database)
+- **No breaking changes**: All existing functionality remains intact
+- **Gradual migration**: Teams can migrate features incrementally to database-backed endpoints
 
 ### Historical Data
 
@@ -679,50 +701,6 @@ For complete error code documentation, implementation guidelines, error code reg
 
 ---
 
-## Implementation Phases
-
-### Phase 1: Core Infrastructure
-
-- Update Guide entity/schema with kraftId and externalId fields
-- Add `provider` prop to payload DTOs
-- **Create standardized payload structure** that works across all 4 providers
-- Set up Guides module database integration
-- Implement kraftId generation logic
-- Implement basic CRUD operations
-
-### Phase 2: Provider Integration
-
-- **Define standardized payload interface** for all providers
-- Update GuiaEnvia service to accept standardized payload
-- Update T1 service to accept standardized payload
-- Update Pakke service to accept standardized payload
-- Update Manuable service to accept standardized payload
-- Ensure each provider service returns consistent response structure
-- Test provider prop routing logic
-
-### Phase 3: API Endpoints
-
-- Update guide creation endpoint with standardized payload + provider prop
-- Implement user guides retrieval with tracking number search (kraftId + externalId)
-- Implement admin guides retrieval with scope parameter and month/year filters
-- Implement single guide detail with on-demand sync
-
-### Phase 4: Authorization & Security
-
-- Role-based access control with admin scope parameter
-- Proper error handling
-- Data validation for standardized payload
-- Ensure kraftId is always generated and never replaced
-
-### Phase 5: Testing & Documentation
-
-- Unit tests
-- Integration tests
-- API documentation
-- Deployment
-
----
-
 ## Technical Decisions Needed
 
 1. **Guide ID Format**: MongoDB ObjectId vs custom format?
@@ -735,18 +713,20 @@ For complete error code documentation, implementation guidelines, error code reg
      - `externalId`: Provider tracking number (optional, indexed, populated on provider success)
      - `isProviderTrackingSynced`: Boolean flag indicating if externalId is populated
 2. **Status Enum**: Comprehensive list of all possible statuses?
-   - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, cancelled, returned, exception)
+   - **Defined**: See Status Management section (created, failed, waiting, in-transit, on-delivery, delivered, returned, exception)
+   - **Note**: `cancelled` status reserved for future (not MVP)
    - **Action**: Map provider statuses to Kraft statuses during implementation
 3. **Provider Data Storage**: Embed vs reference external provider data?
    - **✅ Decided**: Embed full provider response for audit and historical accuracy
 4. **Retry Logic**: Automatic vs manual retry for failed guides?
    - **✅ Decided**: Manual retry triggered by user; updates existing guide record, kraftId unchanged
 5. **Soft Delete**: Should guides be soft-deleted or hard-deleted?
-   - **Recommendation**: Soft delete with `deletedAt` timestamp for audit purposes
+   - **✅ DECIDED**: Regular users can only soft delete (sets `deletedAt` timestamp); only admins can hard delete
 6. **Audit Trail**: Track all changes to guide status?
    - **Recommendation**: Yes, add `statusHistory` array field with timestamps and actors
 7. **Provider Selection**: How does user select provider during creation?
    - **✅ Decided**: Provider is selected via quote selection AND included in payload as `provider` prop
+   - **Provider values**: 'GE' | 'TONE' | 'Pkk' | 'Mn'
 8. **Cost Calculation**: Store in DB or calculate on-demand?
    - **✅ Decided**: Store cost from quote `total` field in guide record
 9. **Tracking Number Generation**: Format for internal Kraft tracking numbers?
@@ -760,12 +740,18 @@ For complete error code documentation, implementation guidelines, error code reg
 11. **Error Message Display**: Show provider error or friendly message?
     - **Need Client Decision**: See Questions for Client section
 12. **Admin Audit Log**: Log all admin actions on guides?
-    - **Recommendation**: Yes, track who cancelled/updated guides
+    - **Recommendation**: Yes, track who updated/deleted guides
 13. **Standardized Payload Structure**: What fields are required across all providers?
     - **Need Decision**: Define minimal set of fields that work for all 4 providers
     - **Priority**: Document current FE payload structure and map to provider requirements
 14. **Admin Default Scope**: When admin queries guides without scope parameter?
     - **✅ DECIDED**: Scope is REQUIRED - admin must explicitly choose 'all' or 'own'
+15. **Admin Month/Year Parameters**: Default behavior for temporal filters?
+    - **✅ DECIDED**: Month and year are OPTIONAL - default to current month/year if not specified
+16. **Retrocompatibility**: How to support both old and new flows?
+    - **✅ DECIDED**: Create new endpoints (`/guides/db/*`) and new service (`GuidesDbService`), preserve existing endpoints
+17. **Guide Cancellation**: Part of MVP?
+    - **✅ DECIDED**: NOT part of MVP - future enhancement only
 
 ---
 
@@ -775,7 +761,9 @@ The following questions need client input before finalizing implementation:
 
 ### 1. Guide Cancellation
 
-**Question**: Can users cancel guides after creation? If yes:
+**Status**: NOT PART OF MVP - Future enhancement
+
+**Questions for Future Implementation**:
 
 - At what point can guides no longer be cancelled?
 - Do we need to call the external provider's cancel API?
@@ -839,9 +827,11 @@ The following questions need client input before finalizing implementation:
 - Add notes/comments to guides?
 - Issue refunds?
 - Override guide status manually?
-- Delete guides permanently?
+- Delete guides permanently (hard delete)?
 - View sensitive customer data (payment info)?
 - Search guides by kraftId or externalId?
+
+**Note**: Hard delete capability is confirmed for admins; soft delete only for regular users.
 
 **Impact**: Affects admin API design and permission system.
 
@@ -917,21 +907,23 @@ The following questions need client input before finalizing implementation:
 15. **Notifications**: Not implemented in MVP (kraftId will be used in all customer communications)
 16. **Admin Bulk Operations**: Not in MVP
 17. **Standardized Payload**: FE payload + provider prop, works across all 4 providers
-18. **Admin Month/Year Filters**: Required (no defaults) for performance
+18. **Admin Month/Year Filters**: Optional (defaults to current month/year) for performance
+19. **Delete Permissions**: Who can hard delete vs soft delete?
+    - **✅ DECIDED**: Regular users can only soft delete; admins can hard delete
+20. **Quote Price Audit**: What quote calculation data to store?
+    - **✅ DECIDED**: Store complete price calculation data (qAdjMode, qBaseRef, qAdjFactor, qAdjBasis, qAdjSrcRef, total)
 
 ### ⏳ Pending Client Decisions
 
-1. Guide cancellation workflow
-2. Failed guide retry limits
-3. Guide editing capability
-4. Error message display strategy
-5. Admin guide creation on behalf of users
-6. Additional admin capabilities
-7. Notification preferences
-8. Guide retention policy
-9. Refund and dispute process
-10. Multi-package guides timeline
-11. Standardized payload field requirements across providers
+- Failed guide retry limits and policies
+- Guide editing capabilities and restrictions
+- Error message display strategy (technical vs user-friendly)
+- Admin guide creation on behalf of users
+- Additional admin capabilities and audit requirements
+- Guide retention and archival policies
+- Refund and dispute handling processes
+- Standardized payload field requirements for all 4 providers
+- Guide cancellation workflow (future enhancement, not MVP)
 
 ---
 
@@ -966,9 +958,9 @@ This implementation will transform the system from an API proxy to a data-centri
 - **External APIs serve as execution mechanisms** for guide creation
 - **kraftId is generated immediately** and serves as permanent customer-facing identifier
 - **externalId references provider tracking** but never replaces kraftId
-- **Standardized payload with provider prop** enables consistent guide creation across all 4 providers (GuiaEnvia, T1, Pakke, Manuable)
+- **Standardized payload with provider prop** enables consistent guide creation across all 4 providers (GE, TONE, Pkk, Mn)
 - **Users have full visibility** of their guide history with strict isolation
-- **Admins have flexible access** with scope parameter ('all' or 'own') and required month/year filters
+- **Admins have flexible access** with scope parameter ('all' or 'own') and optional month/year filters (default to current)
 - **System is resilient** to external API failures (stores failed guides with kraftId for retry)
 - **Data is structured** for future analytics and reporting
 - **Dual tracking reference system** (kraftId + externalId) ensures no guide is lost
@@ -985,14 +977,12 @@ This implementation will transform the system from an API proxy to a data-centri
 4. **User Isolation**: Strict data access control per user
 5. **Transparent Retry**: Failed guides can be retried using stored data, kraftId remains constant
 6. **On-Demand Sync**: Fetch latest status via externalId when user views guide details
-7. **Audit Trail**: Track status changes, cancellations, and admin actions with kraftId reference
+7. **Audit Trail**: Track status changes and admin actions with kraftId reference
 8. **Provider Agnostic**: Design supports all four providers with standardized payload structure
-9. **Admin Scope Control**: Admins explicitly choose 'all' or 'own' guides with required month/year filters
+9. **Admin Scope Control**: Admins explicitly choose 'all' or 'own' guides with optional month/year filters (default to current)
 10. **Dual Tracking Reference**: kraftId (permanent) + externalId (reference only)
 
 ### Pending Client Decisions
-
-Guide cancellation workflow and provider integration
 
 - Failed guide retry limits and policies
 - Guide editing capabilities and restrictions
@@ -1002,9 +992,6 @@ Guide cancellation workflow and provider integration
 - Guide retention and archival policies
 - Refund and dispute handling processes
 - Standardized payload field requirements for all 4 providers
+- Guide cancellation workflow (future enhancement, not MVP)
 
-The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, API contracts, and **standardized payload structure definition**
-
-- Refund and dispute handling processes
-
-The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, and API contracts.
+The research provides a comprehensive foundation for implementation. Next step is to create a detailed technical plan with specific tasks, database schemas, API contracts, and **standardized payload structure definition**.
