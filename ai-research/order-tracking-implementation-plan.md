@@ -65,113 +65,125 @@ import { Document, Types } from 'mongoose';
 // Embedded sub-schemas
 @Schema({ _id: false })
 class Address {
-  @Prop({ required: true })
-  alias: string;
-
-  @Prop({ required: true })
-  name: string;
-
-  @Prop({ required: true })
-  lastName: string;
-
-  @Prop({ required: true })
-  phone: string;
-
-  @Prop({ required: true })
-  email: string;
-
-  @Prop({ required: true })
-  company: string;
-
-  @Prop({ required: true })
-  street1: string;
+  // Note: Fields are optional because different providers require different fields
+  // Pakke: name, email, phone, street1, isResidential, neighborhood, city, state, zipcode (company optional for origin, required for destination)
+  // T1: name, lastName, street1, neighborhood, external_number, town, state, phone, email, reference
+  // Manuable: name, street1, neighborhood, external_number, city, company, state, phone, email, country, reference
+  // GuiaEnvia: Only uses alias (looks up rest from saved addresses)
 
   @Prop()
-  street2?: string;
+  alias?: string; // Used by GuiaEnvia
 
-  @Prop({ default: false })
-  isResidential: boolean;
+  @Prop()
+  name?: string; // Used by all providers
 
-  @Prop({ required: true })
-  external_number: string;
+  @Prop()
+  lastName?: string; // Used by T1
 
-  @Prop({ required: true })
-  neighborhood: string;
+  @Prop()
+  phone?: string; // Used by Pakke, T1, Manuable
 
-  @Prop({ required: true })
-  city: string;
+  @Prop()
+  email?: string; // Used by Pakke, T1, Manuable
 
-  @Prop({ required: true })
-  town: string;
+  @Prop()
+  company?: string; // Used by Pakke (destination), Manuable
 
-  @Prop({ required: true })
-  state: string;
+  @Prop()
+  street1?: string; // Used by Pakke, T1, Manuable
 
-  @Prop({ required: true })
-  zipcode: string;
+  @Prop()
+  street2?: string; // Used by Pakke (optional)
 
-  @Prop({ required: true })
-  country: string;
+  @Prop()
+  isResidential?: boolean; // Used by Pakke
 
-  @Prop({ required: true })
-  reference: string;
+  @Prop()
+  external_number?: string; // Used by T1, Manuable
+
+  @Prop()
+  neighborhood?: string; // Used by Pakke, T1, Manuable
+
+  @Prop()
+  city?: string; // Used by Pakke, Manuable
+
+  @Prop()
+  town?: string; // Used by T1
+
+  @Prop()
+  state?: string; // Used by Pakke, T1, Manuable
+
+  @Prop()
+  zipcode?: string; // Used by Pakke
+
+  @Prop()
+  country?: string; // Used by Manuable
+
+  @Prop()
+  reference?: string; // Used by T1, Manuable
 }
 
 @Schema({ _id: false })
 class Parcel {
-  @Prop({ required: true })
-  length: string;
+  // Note: Fields are optional because different providers require different fields
+  // Pakke: content, length, width, height, weight
+  // T1: content only
+  // Manuable: satProductId, content, value, quantity (NO dimensions!)
+  // GuiaEnvia: length, width, height, weight, content, satProductId
 
-  @Prop({ required: true })
-  width: string;
+  @Prop()
+  length?: string; // Used by Pakke, GuiaEnvia
 
-  @Prop({ required: true })
-  height: string;
+  @Prop()
+  width?: string; // Used by Pakke, GuiaEnvia
 
-  @Prop({ required: true })
-  weight: string;
+  @Prop()
+  height?: string; // Used by Pakke, GuiaEnvia
 
-  @Prop({ required: true })
-  content: string;
+  @Prop()
+  weight?: string; // Used by Pakke, GuiaEnvia
 
-  @Prop({ required: true })
-  satProductId: string;
+  @Prop()
+  content?: string; // Used by all providers
 
-  @Prop({ required: true })
-  value: number;
+  @Prop()
+  satProductId?: string; // Used by Manuable, GuiaEnvia
 
-  @Prop({ required: true })
-  quantity: number;
+  @Prop()
+  value?: number; // Used by Manuable
+
+  @Prop()
+  quantity?: number; // Used by Manuable
 }
 
 @Schema({ _id: false })
 class QuoteData {
   @Prop({ required: true })
-  quoteId: string;
+  quoteId: string; // Always present
 
   @Prop()
-  qAdjMode?: string; // Adjustment mode (e.g., 'percentage')
+  qAdjMode?: string; // Adjustment mode (e.g., 'percentage') - Optional
 
   @Prop()
-  qBaseRef?: number; // Base quote total before adjustment
+  qBaseRef?: number; // Base quote total before adjustment - Optional
 
   @Prop()
-  qAdjFactor?: number; // Adjustment factor (profit margin)
+  qAdjFactor?: number; // Adjustment factor (profit margin) - Optional
 
   @Prop()
-  qAdjBasis?: number; // Basis for adjustment
+  qAdjBasis?: number; // Basis for adjustment - Optional
 
   @Prop()
-  qAdjSrcRef?: string; // Source reference for adjustment
-
-  @Prop({ required: true })
-  total: number; // Final total price
+  qAdjSrcRef?: string; // Source reference for adjustment - Optional
 
   @Prop()
-  service?: string; // Service type selected
+  total?: number; // Final total price - Optional (may not be available if quote lookup fails)
 
   @Prop()
-  courier?: string; // Courier selected
+  service?: string; // Service type selected - Optional
+
+  @Prop()
+  courier?: string; // Courier selected - Optional
 }
 
 @Schema({ _id: false })
@@ -273,22 +285,21 @@ export class Guide extends Document {
   @Prop({ required: true, type: QuoteData })
   quoteData: QuoteData;
 
-  // Provider-specific data
-  @Prop({ type: Object })
-  providerResponse?: Record<string, any>; // Full provider API response
-
+  // Success data (populated when guide creation succeeds)
   @Prop()
   providerStatus?: string; // Original provider status string
 
   @Prop()
   labelUrl?: string; // Guide/label document URL
 
-  // Error handling
-  @Prop()
-  errorDetails?: string; // Error message if creation failed
-
-  @Prop()
-  errorCode?: string; // Kraft error code if failed
+  // Failure information (only populated when guide creation fails)
+  @Prop({ type: Object })
+  failureInfo?: {
+    errorDetails: string; // Error message from provider
+    errorCode: string; // Kraft error code (GDE-XXX-###)
+    providerResponse: Record<string, any>; // Full provider API response for debugging
+    timestamp: Date; // When the failure occurred
+  };
 
   // Retry management
   @Prop({ type: Retries, default: () => ({}) })
@@ -329,6 +340,17 @@ GuideSchema.index({ deletedAt: 1 }); // Soft delete queries
 ### KraftId Counter Schema
 
 For generating sequential kraftId values:
+
+**Rationale**: We use a counter-based approach instead of random numbers because:
+
+- **Sequential IDs are user-friendly**: KFT-202605-000001, KFT-202605-000002 is easier to communicate and remember
+- **Professional appearance**: Looks more legitimate to customers and support teams
+- **Sortable by creation order**: Naturally ordered chronologically
+- **Collision-free**: Atomic MongoDB `findOneAndUpdate` with `$inc` ensures no duplicates
+- **Predictable format**: Makes customer support and debugging easier
+- **Monthly reset**: Keeps sequence numbers manageable (000001-999999 per month)
+
+Random numbers would lack these benefits and could still have collisions requiring retry logic.
 
 ```typescript
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
@@ -542,10 +564,7 @@ export class CreateGuideDto {
 **Response DTO**:
 
 ```typescript
-export class GuideResponseDto {
-  @ApiProperty()
-  id: string; // MongoDB _id
-
+export class GuideDataDto {
   @ApiProperty()
   kraftId: string; // Always present
 
@@ -562,12 +581,6 @@ export class GuideResponseDto {
   isProviderTrackingSynced: boolean;
 
   @ApiProperty({ required: false })
-  errorDetails?: string;
-
-  @ApiProperty({ required: false })
-  errorCode?: string;
-
-  @ApiProperty({ required: false })
   labelUrl?: string;
 
   @ApiProperty()
@@ -575,6 +588,29 @@ export class GuideResponseDto {
 
   @ApiProperty()
   updatedAt: Date;
+
+  // Failure info (only present if status is 'failed')
+  @ApiProperty({ required: false })
+  failureInfo?: {
+    errorDetails: string;
+    errorCode: string;
+    timestamp: Date;
+  };
+}
+
+// Standardized response format (consistent with quotes.service.ts)
+export class GuideResponseDto {
+  @ApiProperty()
+  version: string; // NPM version
+
+  @ApiProperty({ required: false })
+  message: string | null;
+
+  @ApiProperty({ required: false })
+  error: string | null;
+
+  @ApiProperty({ type: GuideDataDto })
+  data: GuideDataDto;
 }
 ```
 
@@ -661,9 +697,9 @@ export class GetGuidesQueryDto {
 **Response DTO**:
 
 ```typescript
-export class PaginatedGuidesResponseDto {
-  @ApiProperty({ type: [GuideResponseDto] })
-  data: GuideResponseDto[];
+export class PaginatedGuidesDataDto {
+  @ApiProperty({ type: [GuideDataDto] })
+  guides: GuideDataDto[];
 
   @ApiProperty()
   total: number;
@@ -676,6 +712,21 @@ export class PaginatedGuidesResponseDto {
 
   @ApiProperty()
   totalPages: number;
+}
+
+// Standardized response format
+export class PaginatedGuidesResponseDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ required: false })
+  message: string | null;
+
+  @ApiProperty({ required: false })
+  error: string | null;
+
+  @ApiProperty({ type: PaginatedGuidesDataDto })
+  data: PaginatedGuidesDataDto;
 }
 ```
 
@@ -917,7 +968,12 @@ async softDeleteGuide(
   @CurrentUser() user: User,
 ): Promise<{ message: string }> {
   await this.guidesDbService.softDeleteGuide(guideId, user._id);
-  return { message: 'Guide deleted successfully' };
+  return {
+    version: process.env.npm_package_version || '1.0.0',
+    message: 'Guide deleted successfully',
+    error: null,
+    data: null,
+  };
 }
 ```
 
@@ -941,7 +997,12 @@ async hardDeleteGuide(
   @CurrentUser() admin: User,
 ): Promise<{ message: string }> {
   await this.guidesDbService.hardDeleteGuide(guideId, admin._id);
-  return { message: 'Guide permanently deleted' };
+  return {
+    version: process.env.npm_package_version || '1.0.0',
+    message: 'Guide permanently deleted',
+    error: null,
+    data: null,
+  };
 }
 ```
 
@@ -990,10 +1051,14 @@ async createGuide(userId: string, payload: CreateGuideDto): Promise<GuideRespons
         quoteId: payload.quoteId,
         // ... extract quote data from quote lookup
       },
-      providerResponse: providerResult.response,
       labelUrl: providerResult.labelUrl,
-      errorDetails: providerResult.error || null,
-      errorCode: providerResult.errorCode || null,
+      // Only store failure info if creation failed
+      failureInfo: providerResult.success ? undefined : {
+        errorDetails: providerResult.error,
+        errorCode: providerResult.errorCode,
+        providerResponse: providerResult.response,
+        timestamp: new Date(),
+      },
       retries: {
         retryAttempts: [],
         retryCount: 0,
@@ -1059,8 +1124,19 @@ async retryFailedGuide(guideId: string, userId: string): Promise<GuideResponseDt
   guide.status = providerResult.success ? 'created' : 'failed';
   guide.externalId = providerResult.externalId || guide.externalId;
   guide.isProviderTrackingSynced = !!providerResult.externalId;
-  guide.errorDetails = providerResult.error || null;
-  guide.errorCode = providerResult.errorCode || null;
+
+  // Update failure info
+  if (!providerResult.success) {
+    guide.failureInfo = {
+      errorDetails: providerResult.error,
+      errorCode: providerResult.errorCode,
+      providerResponse: providerResult.response,
+      timestamp: new Date(),
+    };
+  } else {
+    // Clear failure info on success
+    guide.failureInfo = undefined;
+  }
 
   // 5. Add retry attempt to history
   guide.retries.retryAttempts.push({
