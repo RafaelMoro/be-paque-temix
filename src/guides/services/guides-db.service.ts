@@ -7,12 +7,13 @@ import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
 import { CreateGuideDto } from '../dtos/guides-db.dto';
 import { GuideResponseDto } from '../dtos/guides-db-responses.dto';
-import { ProviderResult, FormattedGuideData } from '../guides.interface';
+import { ProviderResult } from '../guides.interface';
 import { KraftError } from '../kraft-error';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
+import { UsersService } from '@/users/services/users.service';
 import config from '@/config';
 
 @Injectable()
@@ -25,19 +26,29 @@ export class GuidesDbService {
     private readonly t1Service: T1Service,
     private readonly pakkeService: PakkeService,
     private readonly manuableService: ManuableService,
+    private readonly usersService: UsersService,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
   async createGuide(
-    userId: string,
+    user: { email?: string } | undefined,
     payload: CreateGuideDto,
   ): Promise<GuideResponseDto> {
     try {
+      if (!user?.email) {
+        throw new KraftError('GDE-AUTH-001', 'User not authenticated');
+      }
+
+      const dbUser = await this.usersService.findByEmail(user.email);
+      if (!dbUser) {
+        throw new KraftError('GDE-AUTH-001', 'User not found');
+      }
+
       const kraftId = await this.generateKraftId();
       const providerResult = await this.callProviderApi(payload);
 
       const guide = await this.guideModel.create({
-        userId: new Types.ObjectId(userId),
+        userId: dbUser._id,
         kraftId,
         provider: payload.provider,
         status: providerResult.success ? 'created' : 'failed',
@@ -89,30 +100,57 @@ export class GuidesDbService {
     payload: CreateGuideDto,
   ): Promise<ProviderResult> {
     try {
-      switch (payload.provider) {
-        case 'GE':
-          return await this.guiaEnviaService.createGuideStandardized(payload);
-        case 'TONE':
-          return await this.t1Service.createGuideStandardized(payload);
-        case 'Pkk':
-          return await this.pakkeService.createGuideStandardized(payload);
-        case 'Mn':
-          return await this.manuableService.createGuideStandardized(payload);
-        default:
-          throw new KraftError('GDE-BUS-007', 'Invalid provider specified');
+      const response = await this.routeToProvider(payload);
+      const guide = response.data.guide;
+
+      if (!guide?.trackingNumber) {
+        return {
+          success: false,
+          error: 'Provider returned empty guide',
+          errorCode: 'GDE-PVR-002',
+        };
       }
+
+      return {
+        success: true,
+        externalId: guide.trackingNumber,
+        labelUrl: guide.labelUrl || guide.guideLink || undefined,
+      };
     } catch (error) {
       if (error instanceof KraftError) throw error;
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Provider error',
         errorCode: this.mapProviderErrorToKraftCode(error),
+        response:
+          error instanceof Error
+            ? { message: error.message }
+            : {},
       };
     }
   }
 
+  private async routeToProvider(payload: CreateGuideDto) {
+    switch (payload.provider) {
+      case 'GE':
+        return this.guiaEnviaService.createGuideStandardized(payload);
+      case 'TONE':
+        return this.t1Service.createGuideStandardized(payload);
+      case 'Pkk':
+        return this.pakkeService.createGuideStandardized(payload);
+      case 'Mn':
+        return this.manuableService.createGuideStandardized(payload);
+      default:
+        throw new KraftError('GDE-BUS-007', 'Invalid provider specified');
+    }
+  }
+
   private mapProviderErrorToKraftCode(error: unknown): string {
-    const err = error as { code?: string; message?: string; response?: { status?: number } };
+    const err = error as {
+      code?: string;
+      message?: string;
+      response?: { status?: number };
+    };
     if (err.code === 'ENOTFOUND') return 'GDE-NET-001';
     if (err.code === 'ETIMEDOUT') return 'GDE-TMOT-001';
     if (err.message?.includes('rate limit')) return 'GDE-RLIM-003';
@@ -122,7 +160,7 @@ export class GuidesDbService {
   }
 
   formatGuideResponse(guide: GuideDoc): GuideResponseDto {
-    const data: FormattedGuideData = {
+    const data = {
       kraftId: guide.kraftId,
       externalId: guide.externalId || undefined,
       status: guide.status,
@@ -131,15 +169,14 @@ export class GuidesDbService {
       labelUrl: guide.labelUrl || undefined,
       createdAt: guide.createdAt,
       updatedAt: guide.updatedAt,
+      failureInfo: guide.failureInfo
+        ? {
+            errorDetails: guide.failureInfo.errorDetails,
+            errorCode: guide.failureInfo.errorCode,
+            timestamp: guide.failureInfo.timestamp,
+          }
+        : undefined,
     };
-
-    if (guide.failureInfo) {
-      data.failureInfo = {
-        errorDetails: guide.failureInfo.errorDetails,
-        errorCode: guide.failureInfo.errorCode,
-        timestamp: guide.failureInfo.timestamp,
-      };
-    }
 
     return {
       version: this.configService.version || '1.0.0',

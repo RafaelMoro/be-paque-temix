@@ -34,7 +34,6 @@ import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
-import { ProviderResult } from '@/guides/guides.interface';
 import { GetGuideDataResponse } from '@/guides/guides.interface';
 
 @Injectable()
@@ -219,67 +218,45 @@ export class PakkeService {
     }
   }
 
-  async createGuideStandardized(payload: CreateGuideDto): Promise<ProviderResult> {
-    try {
-      const pkkPayload: PkkCreateGuideRequest = {
-        parcel: {
-          content: payload.parcel.content,
-          length: payload.parcel.length,
-          width: payload.parcel.width,
-          height: payload.parcel.height,
-          weight: payload.parcel.weight,
-        },
-        origin: {
-          name: payload.origin.name,
-          email: payload.origin.email,
-          phone: payload.origin.phone,
-          company: payload.origin.company,
-          street1: payload.origin.street1,
-          isResidential: payload.origin.isResidential ?? false,
-          street2: payload.origin.street2,
-          neighborhood: payload.origin.neighborhood,
-          city: payload.origin.city,
-          state: payload.origin.state,
-          zipcode: payload.origin.zipcode,
-        },
-        destination: {
-          name: payload.destination.name,
-          email: payload.destination.email,
-          phone: payload.destination.phone,
-          company: payload.destination.company,
-          street1: payload.destination.street1,
-          isResidential: payload.destination.isResidential ?? false,
-          street2: payload.destination.street2,
-          neighborhood: payload.destination.neighborhood,
-          city: payload.destination.city,
-          state: payload.destination.state,
-          zipcode: payload.destination.zipcode,
-        },
-      };
+  async createGuideStandardized(
+    payload: CreateGuideDto,
+  ): Promise<CreateGuidePkkDataResponse> {
+    const pkkPayload: PkkCreateGuideRequest = {
+      parcel: {
+        content: payload.parcel.content,
+        length: payload.parcel.length,
+        width: payload.parcel.width,
+        height: payload.parcel.height,
+        weight: payload.parcel.weight,
+      },
+      origin: {
+        name: payload.origin.name,
+        email: payload.origin.email,
+        phone: payload.origin.phone,
+        company: payload.origin.company,
+        street1: payload.origin.street1,
+        isResidential: payload.origin.isResidential ?? false,
+        street2: payload.origin.street2,
+        neighborhood: payload.origin.neighborhood,
+        city: payload.origin.city,
+        state: payload.origin.state,
+        zipcode: payload.origin.zipcode,
+      },
+      destination: {
+        name: payload.destination.name,
+        email: payload.destination.email,
+        phone: payload.destination.phone,
+        company: payload.destination.company,
+        street1: payload.destination.street1,
+        isResidential: payload.destination.isResidential ?? false,
+        street2: payload.destination.street2,
+        neighborhood: payload.destination.neighborhood,
+        city: payload.destination.city,
+        state: payload.destination.state,
+        zipcode: payload.destination.zipcode,
+      },
+    };
 
-      const response = await this.createGuidePakke(pkkPayload);
-      const guide = response.data.guide;
-
-      if (!guide) {
-        return {
-          success: false,
-          error: 'Provider returned empty guide',
-          errorCode: 'GDE-PVR-002',
-        };
-      }
-
-      return {
-        success: true,
-        externalId: guide.trackingNumber,
-        labelUrl: guide.labelUrl || undefined,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Pakke error',
-        errorCode: 'GDE-PVR-001',
-        response: error instanceof Error ? { message: error.message } : {},
-      };
-    }
+    return this.createGuidePakke(pkkPayload);
   }
 }

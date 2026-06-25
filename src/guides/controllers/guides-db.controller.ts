@@ -1,4 +1,10 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -7,7 +13,6 @@ import {
 } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { JwtGuard } from '@/auth/guards/jwt-guard/jwt-guard.guard';
-import { UsersService } from '@/users/services/users.service';
 import { GuidesDbService } from '../services/guides-db.service';
 import { CreateGuideDto } from '../dtos/guides-db.dto';
 import { GuideResponseDto } from '../dtos/guides-db-responses.dto';
@@ -16,10 +21,7 @@ import { GuideResponseDto } from '../dtos/guides-db-responses.dto';
 @UseGuards(JwtGuard)
 @Controller('guides/db')
 export class GuidesDbController {
-  constructor(
-    private readonly guidesDbService: GuidesDbService,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly guidesDbService: GuidesDbService) {}
 
   @Post('create')
   @ApiBearerAuth()
@@ -29,15 +31,6 @@ export class GuidesDbController {
     @Body() createGuideDto: CreateGuideDto,
     @Request() req: ExpressRequest,
   ): Promise<GuideResponseDto> {
-    const email = req.user?.email as string;
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      // ponytail: reuse HTTP exception instead of KraftError filter until Phase 6
-      throw new Error('User not found');
-    }
-    return this.guidesDbService.createGuide(
-      user._id.toString(),
-      createGuideDto,
-    );
+    return this.guidesDbService.createGuide(req.user, createGuideDto);
   }
 }

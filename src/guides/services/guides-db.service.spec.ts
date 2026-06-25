@@ -1,3 +1,11 @@
+jest.mock('@/users/services/users.service', () => {
+  return {
+    UsersService: jest.fn().mockImplementation(() => ({
+      findByEmail: jest.fn(),
+    })),
+  };
+});
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
@@ -8,6 +16,7 @@ import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
+import { UsersService } from '@/users/services/users.service';
 import config from '@/config';
 
 const mockGuideModel = {
@@ -41,6 +50,7 @@ const mockManuableService = {
 
 describe('GuidesDbService', () => {
   let service: GuidesDbService;
+  const mockUsersService = { findByEmail: jest.fn() };
 
   beforeEach(async () => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -73,6 +83,10 @@ describe('GuidesDbService', () => {
         {
           provide: ManuableService,
           useValue: mockManuableService,
+        },
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
         },
         {
           provide: config.KEY,
@@ -114,7 +128,7 @@ describe('GuidesDbService', () => {
   });
 
   describe('createGuide', () => {
-    const userId = new Types.ObjectId().toString();
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
     const payload = {
       provider: 'GE' as const,
       quoteId: 'quote-123',
@@ -165,16 +179,34 @@ describe('GuidesDbService', () => {
       notifyMe: false,
     };
 
+    const buildProviderResponse = (trackingNumber: string | null) => ({
+      version: '1.0.0',
+      message: null,
+      error: null,
+      data: {
+        guide: trackingNumber
+          ? {
+              trackingNumber,
+              carrier: 'Carrier',
+              price: '100',
+              guideLink: null,
+              labelUrl: 'http://label',
+              source: 'GE',
+              file: null,
+            }
+          : null,
+      },
+    });
+
     it('should create guide with successful provider response', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
       mockCounterModel.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
-      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
-        success: true,
-        externalId: 'EXT-123',
-        labelUrl: 'http://label',
-      });
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue(
+        buildProviderResponse('EXT-123'),
+      );
       mockGuideModel.create.mockResolvedValue({
         ...payload,
-        userId: new Types.ObjectId(userId),
+        userId: user._id,
         kraftId: 'KFT-202606-000001',
         externalId: 'EXT-123',
         status: 'created',
@@ -184,41 +216,48 @@ describe('GuidesDbService', () => {
         updatedAt: new Date(),
       });
 
-      const result = await service.createGuide(userId, payload);
+      const result = await service.createGuide({ email: user.email }, payload);
 
       expect(result.data.kraftId).toMatch(/^KFT-/);
       expect(result.data.status).toBe('created');
       expect(result.data.externalId).toBe('EXT-123');
     });
 
-    it('should save failed guide when provider fails', async () => {
+    it('should save failed guide when provider returns no tracking number', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
       mockCounterModel.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
-      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
-        success: false,
-        error: 'Provider error',
-        errorCode: 'GDE-PVR-001',
-      });
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue(
+        buildProviderResponse(null),
+      );
       mockGuideModel.create.mockResolvedValue({
         ...payload,
-        userId: new Types.ObjectId(userId),
+        userId: user._id,
         kraftId: 'KFT-202606-000001',
         externalId: null,
         status: 'failed',
         isProviderTrackingSynced: false,
         failureInfo: {
-          errorDetails: 'Provider error',
-          errorCode: 'GDE-PVR-001',
+          errorDetails: 'Provider returned empty guide',
+          errorCode: 'GDE-PVR-002',
           timestamp: new Date(),
         },
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const result = await service.createGuide(userId, payload);
+      const result = await service.createGuide({ email: user.email }, payload);
 
       expect(result.data.status).toBe('failed');
       expect(result.data.kraftId).toBeDefined();
       expect(result.data.failureInfo).toBeDefined();
+    });
+
+    it('should throw KraftError when user is not found', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.createGuide({ email: 'missing@example.com' }, payload),
+      ).rejects.toThrow('User not found');
     });
   });
 });
