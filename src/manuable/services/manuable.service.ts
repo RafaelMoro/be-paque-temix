@@ -38,6 +38,8 @@ import {
   formatGetGuidesResponseMn,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderResult } from '@/guides/guides.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
@@ -175,6 +177,62 @@ export class ManuableService {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuideStandardized(payload: CreateGuideDto): Promise<ProviderResult> {
+    try {
+      const mnPayload: CreateGuideMnRequest = {
+        quoteId: payload.quoteId,
+        parcel: {
+          satProductId: payload.parcel.satProductId,
+          content: payload.parcel.content,
+          value: payload.parcel.value,
+          quantity: payload.parcel.quantity,
+        },
+        origin: {
+          name: payload.origin.name,
+          street1: payload.origin.street1,
+          neighborhood: payload.origin.neighborhood,
+          external_number: payload.origin.external_number,
+          city: payload.origin.city,
+          company: payload.origin.company,
+          state: payload.origin.state,
+          phone: payload.origin.phone,
+          email: payload.origin.email,
+          country: payload.origin.country,
+          reference: payload.origin.reference,
+        },
+        destination: {
+          name: payload.destination.name,
+          street1: payload.destination.street1,
+          neighborhood: payload.destination.neighborhood,
+          external_number: payload.destination.external_number,
+          city: payload.destination.city,
+          company: payload.destination.company,
+          state: payload.destination.state,
+          phone: payload.destination.phone,
+          email: payload.destination.email,
+          country: payload.destination.country,
+          reference: payload.destination.reference,
+        },
+      };
+
+      const response = await this.createGuideWithAutoRetry(mnPayload);
+      const guide = response.data.guide;
+
+      return {
+        success: true,
+        externalId: guide?.trackingNumber,
+        labelUrl: guide?.labelUrl || undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Manuable error',
+        errorCode: 'GDE-PVR-001',
+        response: error instanceof Error ? { message: error.message } : {},
+      };
     }
   }
 

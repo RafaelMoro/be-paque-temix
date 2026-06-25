@@ -33,6 +33,8 @@ import {
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderResult } from '@/guides/guides.interface';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { DEV_ENV, PROD_ENV } from '@/app.constant';
@@ -299,6 +301,64 @@ export class T1Service {
         guide: standardGuide,
       },
     };
+  }
+
+  async createGuideStandardized(payload: CreateGuideDto): Promise<ProviderResult> {
+    try {
+      const t1Payload: T1CreateGuideRequest = {
+        parcel: { content: payload.parcel.content },
+        origin: {
+          name: payload.origin.name,
+          lastName: payload.origin.lastName,
+          street1: payload.origin.street1,
+          neighborhood: payload.origin.neighborhood,
+          external_number: payload.origin.external_number,
+          town: payload.origin.town,
+          state: payload.origin.state,
+          phone: payload.origin.phone,
+          email: payload.origin.email,
+          reference: payload.origin.reference,
+        },
+        destination: {
+          name: payload.destination.name,
+          lastName: payload.destination.lastName,
+          street1: payload.destination.street1,
+          neighborhood: payload.destination.neighborhood,
+          external_number: payload.destination.external_number,
+          town: payload.destination.town,
+          state: payload.destination.state,
+          phone: payload.destination.phone,
+          email: payload.destination.email,
+          reference: payload.destination.reference,
+        },
+        notifyMe: payload.notifyMe,
+        quoteToken: payload.quoteId,
+      };
+
+      const response = await this.createGuide(t1Payload);
+      const guide = response.data.guide;
+
+      if (!guide) {
+        return {
+          success: false,
+          error: 'Provider returned empty guide',
+          errorCode: 'GDE-PVR-002',
+        };
+      }
+
+      return {
+        success: true,
+        externalId: guide.trackingNumber,
+        labelUrl: guide.labelUrl || guide.guideLink || undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'T1 error',
+        errorCode: 'GDE-PVR-001',
+        response: error instanceof Error ? { message: error.message } : {},
+      };
+    }
   }
 
   async retrieveT1Guides() {

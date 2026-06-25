@@ -1627,9 +1627,9 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 ### Service Layer Tasks
 
-- [ ] Create GuidesDbService
-- [ ] Implement generateKraftId()
-- [ ] Implement createGuide()
+- [x] Create GuidesDbService
+- [x] Implement generateKraftId()
+- [x] Implement createGuide()
 - [ ] Implement retryFailedGuide()
 - [ ] Implement checkRetryEligibility()
 - [ ] Implement getGuidesByUser()
@@ -1641,22 +1641,22 @@ private mapProviderErrorToKraftCode(error: any): string {
 - [ ] Implement softDeleteGuide()
 - [ ] Implement hardDeleteGuide()
 - [ ] Implement searchByTrackingNumber()
-- [ ] Implement callProviderApi() routing
-- [ ] Implement provider error mapping
+- [x] Implement callProviderApi() routing
+- [x] Implement provider error mapping
 
 ### Provider Integration Tasks
 
-- [ ] Update GuiaEnviaService to accept standardized payload
-- [ ] Update T1Service to accept standardized payload
-- [ ] Update PakkeService to accept standardized payload
-- [ ] Update ManuableService to accept standardized payload
-- [ ] Standardize provider response format
-- [ ] Test provider integrations
+- [x] Update GuiaEnviaService to accept standardized payload
+- [x] Update T1Service to accept standardized payload
+- [x] Update PakkeService to accept standardized payload
+- [x] Update ManuableService to accept standardized payload
+- [x] Standardize provider response format
+- [x] Test provider integrations
 
 ### Controller Tasks
 
-- [ ] Create GuidesDbController
-- [ ] Implement POST /guides/db/create
+- [x] Create GuidesDbController
+- [x] Implement POST /guides/db/create
 - [ ] Implement GET /guides/db
 - [ ] Implement GET /guides/db/admin
 - [ ] Implement GET /guides/db/:guideId
@@ -1665,20 +1665,20 @@ private mapProviderErrorToKraftCode(error: any): string {
 - [ ] Implement PATCH /guides/db/:guideId/status
 - [ ] Implement DELETE /guides/db/:guideId
 - [ ] Implement DELETE /guides/db/:guideId/hard
-- [ ] Add Swagger documentation
+- [x] Add Swagger documentation
 
 ### DTO Tasks
 
-- [ ] Create CreateGuideDto
-- [ ] Create CreateGuideAddressDto
-- [ ] Create ParcelDto
+- [x] Create CreateGuideDto
+- [x] Create CreateGuideAddressDto
+- [x] Create ParcelDto
 - [ ] Create GetGuidesQueryDto
 - [ ] Create GetAdminGuidesQueryDto
-- [ ] Create GuideResponseDto
+- [x] Create GuideResponseDto
 - [ ] Create PaginatedGuidesResponseDto
 - [ ] Create AddCommentDto
 - [ ] Create UpdateStatusDto
-- [ ] Add validation decorators
+- [x] Add validation decorators
 
 ### Error Handling Tasks
 

@@ -153,7 +153,6 @@ export const GuideSchema = SchemaFactory.createForClass(Guide);
 GuideSchema.index({ userId: 1, status: 1 });
 GuideSchema.index({ userId: 1, createdAt: -1 });
 GuideSchema.index({ userId: 1, provider: 1 });
-GuideSchema.index({ kraftId: 1 }, { unique: true });
-GuideSchema.index({ externalId: 1 }, { sparse: true });
+// ponytail: @Prop unique/index on kraftId/externalId already creates indexes
 GuideSchema.index({ createdAt: -1 });
 GuideSchema.index({ deletedAt: 1 });

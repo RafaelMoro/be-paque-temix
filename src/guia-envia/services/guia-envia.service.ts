@@ -34,6 +34,8 @@ import {
   ExtGetGuidesGEResponse,
 } from '../guia-envia.interface';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
+import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderResult } from '@/guides/guides.interface';
 import {
   formatAddressesGE,
   formatCreateAddressPayloadGE,
@@ -421,6 +423,48 @@ export class GuiaEnviaService {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async createGuideStandardized(payload: CreateGuideDto): Promise<ProviderResult> {
+    try {
+      const gePayload: CreateGuideGeRequest = {
+        quoteId: payload.quoteId,
+        parcel: {
+          length: payload.parcel.length,
+          width: payload.parcel.width,
+          height: payload.parcel.height,
+          weight: payload.parcel.weight,
+          content: payload.parcel.content,
+          satProductId: payload.parcel.satProductId,
+        },
+        origin: { alias: payload.origin.alias },
+        destination: { alias: payload.destination.alias },
+      };
+
+      const response = await this.createGuideGe(gePayload);
+      const guide = response.data.guide;
+
+      if (!guide) {
+        return {
+          success: false,
+          error: 'Provider returned empty guide',
+          errorCode: 'GDE-PVR-002',
+        };
+      }
+
+      return {
+        success: true,
+        externalId: guide.trackingNumber,
+        labelUrl: guide.labelUrl || undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'GuiaEnvia error',
+        errorCode: 'GDE-PVR-001',
+        response: error instanceof Error ? { message: error.message } : {},
+      };
     }
   }
 

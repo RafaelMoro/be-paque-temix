@@ -13,6 +13,7 @@ import { GuiaEnviaModule } from '@/guia-envia/guia-envia.module';
 import { T1Module } from '@/t1/t1.module';
 import { PakkeModule } from '@/pakke/pakke.module';
 import { ManuableModule } from '@/manuable/manuable.module';
+import { UsersModule } from '@/users/users.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ManuableModule } from '@/manuable/manuable.module';
     T1Module,
     PakkeModule,
     ManuableModule,
+    UsersModule,
   ],
   controllers: [GuidesController, GuidesDbController],
   providers: [GuidesService, GuidesDbService],
