@@ -46,3 +46,34 @@ export class GuideResponseDto {
   @ApiProperty({ type: GuideDataDto })
   data: GuideDataDto;
 }
+
+export class PaginatedGuidesDataDto {
+  @ApiProperty({ type: [GuideDataDto] })
+  guides: GuideDataDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  limit: number;
+
+  @ApiProperty()
+  totalPages: number;
+}
+
+export class PaginatedGuidesResponseDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ required: false })
+  message: string | null;
+
+  @ApiProperty({ required: false })
+  error: string | null;
+
+  @ApiProperty({ type: PaginatedGuidesDataDto })
+  data: PaginatedGuidesDataDto;
+}

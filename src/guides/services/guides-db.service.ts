@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
 import { Inject } from '@nestjs/common';
 import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
 import { CreateGuideDto } from '../dtos/guides-db.dto';
-import { GuideResponseDto } from '../dtos/guides-db-responses.dto';
+import {
+  GuideResponseDto,
+  PaginatedGuidesResponseDto,
+} from '../dtos/guides-db-responses.dto';
+import { GetAdminGuidesQueryDto, GetGuidesQueryDto } from '../dtos/guides-db.dto';
 import { ProviderResult } from '../guides.interface';
 import { KraftError } from '../kraft-error';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
@@ -76,6 +80,148 @@ export class GuidesDbService {
       if (error instanceof KraftError) throw error;
       throw new KraftError('GDE-BDN-001', 'Failed to create guide', error);
     }
+  }
+
+  async getGuidesByUser(
+    user: { email?: string } | undefined,
+    filters: GetGuidesQueryDto,
+  ): Promise<PaginatedGuidesResponseDto> {
+    const userId = await this.getUserId(user);
+    const query = this.buildBaseQuery(filters);
+    query.userId = userId;
+    return this.executePaginatedQuery(query, filters);
+  }
+
+  async getAllGuides(
+    filters: GetAdminGuidesQueryDto,
+    adminUser: { email?: string } | undefined,
+  ): Promise<PaginatedGuidesResponseDto> {
+    const query = this.buildBaseQuery(filters);
+
+    if (filters.scope === 'own') {
+      const adminId = await this.getUserId(adminUser);
+      query.userId = adminId;
+    } else if (filters.scope === 'all' && filters.userId) {
+      query.userId = new Types.ObjectId(filters.userId);
+    }
+
+    const now = new Date();
+    const targetMonth = filters.month || now.getMonth() + 1;
+    const targetYear = filters.year || now.getFullYear();
+    const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+    query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
+
+    return this.executePaginatedQuery(query, filters);
+  }
+
+  async getGuideById(
+    guideId: string,
+    user: { email?: string } | undefined,
+    isAdmin: boolean,
+  ): Promise<GuideResponseDto> {
+    const userId = await this.getUserId(user);
+    const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
+
+    // ponytail: on-demand sync is Phase 4; skip here
+    return this.formatGuideResponse(guide);
+  }
+
+  private async getUserId(
+    user: { email?: string } | undefined,
+  ): Promise<Types.ObjectId> {
+    if (!user?.email) {
+      throw new KraftError('GDE-AUTH-001', 'User not authenticated');
+    }
+    const dbUser = await this.usersService.findByEmail(user.email);
+    if (!dbUser) {
+      throw new KraftError('GDE-AUTH-001', 'User not found');
+    }
+    return dbUser._id;
+  }
+
+  private buildBaseQuery(
+    filters: GetGuidesQueryDto,
+  ): FilterQuery<GuideDoc> & Record<string, unknown> {
+    const query: FilterQuery<GuideDoc> & Record<string, unknown> = {
+      deletedAt: null,
+    };
+
+    if (filters.status) query.status = filters.status;
+    if (filters.provider) query.provider = filters.provider;
+    if (filters.trackingNumber) {
+      query.$or = [
+        { kraftId: new RegExp(filters.trackingNumber, 'i') },
+        { externalId: new RegExp(filters.trackingNumber, 'i') },
+      ];
+    }
+    if (filters.startDate || filters.endDate) {
+      query.createdAt = {};
+      if (filters.startDate) (query.createdAt as Record<string, Date>).$gte = filters.startDate;
+      if (filters.endDate) (query.createdAt as Record<string, Date>).$lte = filters.endDate;
+    }
+
+    return query;
+  }
+
+  private async executePaginatedQuery(
+    query: FilterQuery<GuideDoc>,
+    filters: GetGuidesQueryDto,
+  ): Promise<PaginatedGuidesResponseDto> {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const [guides, total] = await Promise.all([
+      this.guideModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.guideModel.countDocuments(query),
+    ]);
+
+    return {
+      version: this.configService.version || '1.0.0',
+      message: null,
+      error: null,
+      data: {
+        guides: guides.map((g) =>
+          this.formatGuideResponse(g as unknown as GuideDoc).data,
+        ),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  private async findAccessibleGuide(
+    guideId: string,
+    userId: Types.ObjectId,
+    isAdmin: boolean,
+  ): Promise<GuideDoc> {
+    const query: FilterQuery<GuideDoc> & Record<string, unknown> = {
+      deletedAt: null,
+    };
+
+    if (Types.ObjectId.isValid(guideId)) {
+      query.$or = [{ _id: new Types.ObjectId(guideId) }, { kraftId: guideId }];
+    } else {
+      query.kraftId = guideId;
+    }
+
+    if (!isAdmin) {
+      query.userId = userId;
+    }
+
+    const guide = await this.guideModel.findOne(query);
+    if (!guide) {
+      throw new KraftError('GDE-NF-001', 'Guide not found');
+    }
+    return guide;
   }
 
   async generateKraftId(): Promise<string> {

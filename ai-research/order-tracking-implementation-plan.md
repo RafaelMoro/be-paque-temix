@@ -1632,15 +1632,15 @@ private mapProviderErrorToKraftCode(error: any): string {
 - [x] Implement createGuide()
 - [ ] Implement retryFailedGuide()
 - [ ] Implement checkRetryEligibility()
-- [ ] Implement getGuidesByUser()
-- [ ] Implement getAllGuides()
-- [ ] Implement getGuideById()
+- [x] Implement getGuidesByUser()
+- [x] Implement getAllGuides()
+- [x] Implement getGuideById()
 - [ ] Implement syncGuideWithProvider()
 - [ ] Implement addComment()
 - [ ] Implement updateGuideStatus()
 - [ ] Implement softDeleteGuide()
 - [ ] Implement hardDeleteGuide()
-- [ ] Implement searchByTrackingNumber()
+- [x] Implement searchByTrackingNumber()
 - [x] Implement callProviderApi() routing
 - [x] Implement provider error mapping
 
@@ -1657,9 +1657,9 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 - [x] Create GuidesDbController
 - [x] Implement POST /guides/db/create
-- [ ] Implement GET /guides/db
-- [ ] Implement GET /guides/db/admin
-- [ ] Implement GET /guides/db/:guideId
+- [x] Implement GET /guides/db
+- [x] Implement GET /guides/db/admin
+- [x] Implement GET /guides/db/:guideId
 - [ ] Implement POST /guides/db/:guideId/retry
 - [ ] Implement POST /guides/db/:guideId/comments
 - [ ] Implement PATCH /guides/db/:guideId/status
@@ -1672,10 +1672,10 @@ private mapProviderErrorToKraftCode(error: any): string {
 - [x] Create CreateGuideDto
 - [x] Create CreateGuideAddressDto
 - [x] Create ParcelDto
-- [ ] Create GetGuidesQueryDto
-- [ ] Create GetAdminGuidesQueryDto
+- [x] Create GetGuidesQueryDto
+- [x] Create GetAdminGuidesQueryDto
 - [x] Create GuideResponseDto
-- [ ] Create PaginatedGuidesResponseDto
+- [x] Create PaginatedGuidesResponseDto
 - [ ] Create AddCommentDto
 - [ ] Create UpdateStatusDto
 - [x] Add validation decorators

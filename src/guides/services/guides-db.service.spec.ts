@@ -260,4 +260,91 @@ describe('GuidesDbService', () => {
       ).rejects.toThrow('User not found');
     });
   });
+
+  describe('getGuidesByUser', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should return paginated guides for user', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              lean: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      });
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      const result = await service.getGuidesByUser(
+        { email: user.email },
+        { page: 1, limit: 10 },
+      );
+
+      expect(result.data.guides).toEqual([]);
+      expect(result.data.total).toBe(0);
+      expect(result.data.totalPages).toBe(0);
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: user._id, deletedAt: null }),
+      );
+    });
+  });
+
+  describe('getAllGuides', () => {
+    const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
+
+    it('should apply scope=all and month filter', async () => {
+      mockGuideModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              lean: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      });
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      const result = await service.getAllGuides(
+        { scope: 'all', month: 6, year: 2026 },
+        { email: admin.email },
+      );
+
+      expect(result.data.total).toBe(0);
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({ deletedAt: null }),
+      );
+    });
+  });
+
+  describe('getGuideById', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should return guide by kraftId for owner', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockResolvedValue({
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.getGuideById(
+        'KFT-202606-000001',
+        { email: user.email },
+        false,
+      );
+
+      expect(result.data.kraftId).toBe('KFT-202606-000001');
+      expect(mockGuideModel.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kraftId: 'KFT-202606-000001',
+          userId: user._id,
+          deletedAt: null,
+        }),
+      );
+    });
+  });
 });

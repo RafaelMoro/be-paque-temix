@@ -10,6 +10,69 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+export class GetGuidesQueryDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  page?: number = 1;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  limit?: number = 10;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsEnum(['GE', 'TONE', 'Pkk', 'Mn'])
+  provider?: 'GE' | 'TONE' | 'Pkk' | 'Mn';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  trackingNumber?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Type(() => Date)
+  endDate?: Date;
+}
+
+export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
+  @ApiProperty({ enum: ['all', 'own'], required: true })
+  @IsEnum(['all', 'own'])
+  scope: 'all' | 'own';
+
+  @ApiProperty({ required: false, minimum: 1, maximum: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  month?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  year?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+}
+
+
 export class CreateGuideAddressDto {
   @ApiProperty()
   @IsString()
