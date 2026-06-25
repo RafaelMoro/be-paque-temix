@@ -24,16 +24,20 @@ export interface CreateUserData {
   role: Role[];
 }
 
-export interface CreateUserResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateUserResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     user: CreateUserData;
   };
 }
 
-export interface DeleteUserResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface DeleteUserResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     user: {
@@ -44,14 +48,18 @@ export interface DeleteUserResponse
   };
 }
 
-export interface ForgotResetPasswordResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface ForgotResetPasswordResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: null;
 }
 
-export interface ResetPasswordResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface ResetPasswordResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: null;
 }

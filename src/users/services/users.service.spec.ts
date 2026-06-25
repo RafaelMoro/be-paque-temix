@@ -716,7 +716,7 @@ describe('UsersService', () => {
         email,
       };
 
-      userModel.findOneAndDelete.mockResolvedValue(deletedUser as any);
+      userModel.findOneAndDelete.mockResolvedValue(deletedUser);
 
       const result = await service.deleteUser(email);
 

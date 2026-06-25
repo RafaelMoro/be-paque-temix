@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { Test, TestingModule } from '@nestjs/testing';
@@ -53,7 +52,7 @@ describe('JwtGuard', () => {
         getType: jest.fn(),
         getArgs: jest.fn(),
         getArgByIndex: jest.fn(),
-      } as any;
+      };
     });
 
     it('should return true for public routes', () => {

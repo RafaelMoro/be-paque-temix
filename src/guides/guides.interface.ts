@@ -1,7 +1,9 @@
 import { GeneralResponse, GetGuideResponse } from '@/global.interface';
 
-export interface GetGuidesDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetGuidesDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {
@@ -9,8 +11,10 @@ export interface GetGuidesDataResponse
   };
 }
 
-export interface GetGuideDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetGuideDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {

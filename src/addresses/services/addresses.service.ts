@@ -119,7 +119,7 @@ export class AddressesService {
         const addressObj = addr.toObject();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { _id, email: emailProp, ...addressData } = addressObj;
-        return addressData as AddressData;
+        return addressData;
       });
       return {
         version: npmVersion,

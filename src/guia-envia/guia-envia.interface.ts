@@ -38,8 +38,10 @@ export interface Neighborhood {
   city: string;
 }
 
-export interface GetAddressInfoResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetAddressInfoResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     neighborhoods: Neighborhood[];
@@ -144,8 +146,10 @@ export interface CreateAddressResponseGE {
   alias: string;
 }
 
-export interface GetAliasesGEDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetAliasesGEDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     aliases: string[];
@@ -157,15 +161,19 @@ export interface GetAliasesGEDataResponse
 
 //#endregion
 
-export interface DeleteAddressGEDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error' | 'message'> {
+export interface DeleteAddressGEDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error' | 'message'
+> {
   error: null;
   data: null;
   message: string;
 }
 
-export interface EditAddressGEDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error' | 'message'> {
+export interface EditAddressGEDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error' | 'message'
+> {
   error: null;
   data: CreateAddressResponseGE;
   message: string;
@@ -267,8 +275,10 @@ export interface ExtGetGuidesGEResponse {
   data: ExtGetGuideGE[];
 }
 
-export interface CreateGuideGEDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateGuideGEDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     guide: GlobalCreateGuideResponse | null;

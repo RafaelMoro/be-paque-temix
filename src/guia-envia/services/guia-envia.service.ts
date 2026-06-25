@@ -168,9 +168,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const transformedPayload = formatCreateAddressPayloadGE(
-        payload as CreateAddressPayload,
-      );
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.post(url, transformedPayload, {
@@ -210,9 +208,7 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
-      const transformedPayload = formatCreateAddressPayloadGE(
-        payload as CreateAddressPayload,
-      );
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
       const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.put(editUri, transformedPayload, {

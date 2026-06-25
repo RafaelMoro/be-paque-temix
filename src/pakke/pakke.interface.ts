@@ -354,8 +354,10 @@ export interface PakkeExternalGetGuide {
   DispatchIndications: string | null;
 }
 
-export interface CreateGuidePkkDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateGuidePkkDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {
