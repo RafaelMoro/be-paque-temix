@@ -29,6 +29,13 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GeneralAppExceptionFilter());
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port).catch((err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`Port ${port} in use, retrying on dynamic port...`);
+      return app.listen(0);
+    }
+    throw err;
+  });
 }
 bootstrap();
