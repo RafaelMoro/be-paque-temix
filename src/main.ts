@@ -30,12 +30,18 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new GeneralAppExceptionFilter());
   const port = process.env.PORT ?? 3000;
-  await app.listen(port).catch((err: NodeJS.ErrnoException) => {
-    if (err.code === 'EADDRINUSE') {
+  let server;
+  try {
+    server = await app.listen(port);
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
+    if (e.code === 'EADDRINUSE') {
       console.warn(`Port ${port} in use, retrying on dynamic port...`);
-      return app.listen(0);
+      server = await app.listen(0);
+    } else {
+      throw e;
     }
-    throw err;
-  });
+  }
+  console.log(`Application listening on port ${server.address().port}`);
 }
 bootstrap();
