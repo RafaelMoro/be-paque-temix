@@ -113,6 +113,7 @@ nest g co order/order
 - Controllers are automatically added to the `controllers` array in the module
 - Place controllers in the `controllers/` subdirectory
 - Use route prefixes that match the module name (e.g., `@Controller('orders')`)
+- **Controllers must stay thin**: no direct service orchestration, no business logic, and no conditional logic beyond extracting the authenticated user from the request. Pass the raw request user to the service and let the service own all decisions.
 
 ---
 
