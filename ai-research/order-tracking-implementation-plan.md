@@ -1397,7 +1397,7 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 **Deliverables**:
 
-- MongoDB schemas (Guide, KraftIdCounter)
+- MongoDB schemas (Guide, KraftIdCounter)wait
 - Database connection and configuration
 - Basic service structure
 - KraftId generation logic
