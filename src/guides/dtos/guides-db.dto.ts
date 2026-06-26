@@ -72,6 +72,12 @@ export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeDeleted?: boolean = false;
 }
 
 export class CreateGuideAddressDto {

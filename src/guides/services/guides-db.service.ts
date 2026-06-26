@@ -118,6 +118,10 @@ export class GuidesDbService {
   ): Promise<PaginatedGuidesResponseDto> {
     const query = this.buildBaseQuery(filters);
 
+    if (filters.includeDeleted) {
+      delete query.deletedAt;
+    }
+
     if (filters.scope === 'own') {
       const adminId = await this.getUserId(adminUser);
       query.userId = adminId;
