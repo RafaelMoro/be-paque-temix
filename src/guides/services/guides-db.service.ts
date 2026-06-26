@@ -134,7 +134,7 @@ export class GuidesDbService {
     isAdmin: boolean,
   ): Promise<GuideResponseDto> {
     const userId = await this.getUserId(user);
-    const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
+    const guide = await this.findAccessibleGuide({ guideId, userId, isAdmin });
 
     return this.formatGuideResponse(guide);
   }
@@ -149,7 +149,11 @@ export class GuidesDbService {
     user: { email?: string } | undefined,
   ): Promise<GuideResponseDto> {
     const userId = await this.getUserId(user);
-    const guide = await this.findAccessibleGuide(guideId, userId, false);
+    const guide = await this.findAccessibleGuide({
+      guideId,
+      userId,
+      isAdmin: false,
+    });
 
     const eligibility = this.checkRetryEligibility(guide);
     if (!eligibility.eligible) {
@@ -247,7 +251,7 @@ export class GuidesDbService {
     isAdmin: boolean,
   ): Promise<GuideResponseDto> {
     const userId = await this.getUserId(user);
-    const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
+    const guide = await this.findAccessibleGuide({ guideId, userId, isAdmin });
 
     if (!guide.externalId) {
       throw new KraftError(CONST.GDE_NF_002, CONST.MSG_NO_EXTERNAL_TRACKING_ID);
@@ -280,7 +284,11 @@ export class GuidesDbService {
   ): Promise<GuideResponseDto> {
     const adminId = await this.getUserId(adminUser);
 
-    const guide = await this.findAccessibleGuide(guideId, adminId, true);
+    const guide = await this.findAccessibleGuide({
+      guideId,
+      userId: adminId,
+      isAdmin: true,
+    });
 
     await this.guideModel.findByIdAndUpdate(guide._id, {
       $push: {
@@ -306,7 +314,7 @@ export class GuidesDbService {
   ): Promise<GuideResponseDto> {
     await this.getUserId(adminUser);
 
-    const guide = await this.findAccessibleGuide(guideId, null as any, true);
+    const guide = await this.findAccessibleGuide({ guideId, isAdmin: true });
 
     await this.guideModel.findByIdAndUpdate(guide._id, {
       $set: { status: dto.status },
@@ -324,7 +332,11 @@ export class GuidesDbService {
     user: { email?: string } | undefined,
   ): Promise<GuideResponseDto> {
     const userId = await this.getUserId(user);
-    const guide = await this.findAccessibleGuide(guideId, userId, false);
+    const guide = await this.findAccessibleGuide({
+      guideId,
+      userId,
+      isAdmin: false,
+    });
 
     await this.guideModel.findByIdAndUpdate(guide._id, {
       $set: {
@@ -345,7 +357,7 @@ export class GuidesDbService {
     adminUser: { email?: string } | undefined,
   ): Promise<void> {
     await this.getUserId(adminUser);
-    const guide = await this.findAccessibleGuide(guideId, null as any, true);
+    const guide = await this.findAccessibleGuide({ guideId, isAdmin: true });
 
     await this.guideModel.findByIdAndDelete(guide._id);
   }
@@ -462,11 +474,15 @@ export class GuidesDbService {
    * Finds a guide by kraftId or ObjectId.
    * Non-admin users can only access their own guides.
    */
-  private async findAccessibleGuide(
-    guideId: string,
-    userId: Types.ObjectId | null,
-    isAdmin: boolean,
-  ): Promise<GuideDoc> {
+  private async findAccessibleGuide({
+    guideId,
+    userId = null,
+    isAdmin = false,
+  }: {
+    guideId: string;
+    userId?: Types.ObjectId | null;
+    isAdmin?: boolean;
+  }): Promise<GuideDoc> {
     const query: FilterQuery<GuideDoc> & Record<string, unknown> = {
       deletedAt: null,
     };
