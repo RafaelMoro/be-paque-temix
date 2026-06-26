@@ -6,6 +6,8 @@ import {
   IsNumber,
   IsOptional,
   ValidateNested,
+  Matches,
+  IsEmail,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -72,7 +74,6 @@ export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
   userId?: string;
 }
 
-
 export class CreateGuideAddressDto {
   @ApiProperty()
   @IsString()
@@ -92,11 +93,13 @@ export class CreateGuideAddressDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{10}$/, { message: 'phone must be exactly 10 digits' })
   phone: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  @IsEmail()
   email: string;
 
   @ApiProperty()
@@ -193,11 +196,13 @@ export class ParcelDto {
 
   @ApiProperty()
   @IsNumber()
-  value: number;
+  @IsOptional()
+  value: number = 1;
 
   @ApiProperty()
   @IsNumber()
-  quantity: number;
+  @IsOptional()
+  quantity: number = 1;
 }
 
 export class CreateGuideDto {
@@ -238,7 +243,35 @@ export class AddCommentDto {
 }
 
 export class UpdateGuideStatusDto {
-  @ApiProperty({ enum: ['created', 'failed', 'waiting', 'in-transit', 'on-delivery', 'delivered', 'returned', 'exception'] })
-  @IsEnum(['created', 'failed', 'waiting', 'in-transit', 'on-delivery', 'delivered', 'returned', 'exception'])
-  status: 'created' | 'failed' | 'waiting' | 'in-transit' | 'on-delivery' | 'delivered' | 'returned' | 'exception';
+  @ApiProperty({
+    enum: [
+      'created',
+      'failed',
+      'waiting',
+      'in-transit',
+      'on-delivery',
+      'delivered',
+      'returned',
+      'exception',
+    ],
+  })
+  @IsEnum([
+    'created',
+    'failed',
+    'waiting',
+    'in-transit',
+    'on-delivery',
+    'delivered',
+    'returned',
+    'exception',
+  ])
+  status:
+    | 'created'
+    | 'failed'
+    | 'waiting'
+    | 'in-transit'
+    | 'on-delivery'
+    | 'delivered'
+    | 'returned'
+    | 'exception';
 }
