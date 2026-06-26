@@ -13,6 +13,8 @@ import {
 import {
   GetAdminGuidesQueryDto,
   GetGuidesQueryDto,
+  AddCommentDto,
+  UpdateGuideStatusDto,
 } from '../dtos/guides-db.dto';
 import { ProviderResult, RetryPayload } from '../guides.interface';
 import { KraftError } from '../kraft-error';
@@ -268,6 +270,86 @@ export class GuidesDbService {
     return this.formatGuideResponse(updated!);
   }
 
+  /**
+   * Adds an admin comment to a guide.
+   */
+  async addComment(
+    guideId: string,
+    adminUser: { email?: string } | undefined,
+    dto: AddCommentDto,
+  ): Promise<GuideResponseDto> {
+    const adminId = await this.getUserId(adminUser);
+
+    const guide = await this.findAccessibleGuide(guideId, adminId, true);
+
+    await this.guideModel.findByIdAndUpdate(guide._id, {
+      $push: {
+        comments: {
+          text: dto.text,
+          adminId,
+          timestamp: new Date(),
+        },
+      },
+    });
+
+    const updated = await this.guideModel.findById(guide._id);
+    return this.formatGuideResponse(updated!);
+  }
+
+  /**
+   * Updates a guide's status manually (admin only).
+   */
+  async updateGuideStatus(
+    guideId: string,
+    adminUser: { email?: string } | undefined,
+    dto: UpdateGuideStatusDto,
+  ): Promise<GuideResponseDto> {
+    await this.getUserId(adminUser);
+
+    const guide = await this.findAccessibleGuide(guideId, null as any, true);
+
+    await this.guideModel.findByIdAndUpdate(guide._id, {
+      $set: { status: dto.status },
+    });
+
+    const updated = await this.guideModel.findById(guide._id);
+    return this.formatGuideResponse(updated!);
+  }
+
+  /**
+   * Soft deletes a guide (sets deletedAt, deletedBy).
+   */
+  async softDeleteGuide(
+    guideId: string,
+    user: { email?: string } | undefined,
+  ): Promise<GuideResponseDto> {
+    const userId = await this.getUserId(user);
+    const guide = await this.findAccessibleGuide(guideId, userId, false);
+
+    await this.guideModel.findByIdAndUpdate(guide._id, {
+      $set: {
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
+    });
+
+    const updated = await this.guideModel.findById(guide._id);
+    return this.formatGuideResponse(updated!);
+  }
+
+  /**
+   * Permanently deletes a guide (admin only).
+   */
+  async hardDeleteGuide(
+    guideId: string,
+    adminUser: { email?: string } | undefined,
+  ): Promise<void> {
+    await this.getUserId(adminUser);
+    const guide = await this.findAccessibleGuide(guideId, null as any, true);
+
+    await this.guideModel.findByIdAndDelete(guide._id);
+  }
+
   private async fetchProviderStatus(
     provider: string,
     trackingNumber: string,
@@ -382,7 +464,7 @@ export class GuidesDbService {
    */
   private async findAccessibleGuide(
     guideId: string,
-    userId: Types.ObjectId,
+    userId: Types.ObjectId | null,
     isAdmin: boolean,
   ): Promise<GuideDoc> {
     const query: FilterQuery<GuideDoc> & Record<string, unknown> = {
@@ -395,7 +477,7 @@ export class GuidesDbService {
       query.kraftId = guideId;
     }
 
-    if (!isAdmin) {
+    if (!isAdmin && userId) {
       query.userId = userId;
     }
 

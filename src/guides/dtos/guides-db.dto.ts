@@ -229,3 +229,16 @@ export class CreateGuideDto {
   @IsBoolean()
   notifyMe: boolean;
 }
+
+export class AddCommentDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+}
+
+export class UpdateGuideStatusDto {
+  @ApiProperty({ enum: ['created', 'failed', 'waiting', 'in-transit', 'on-delivery', 'delivered', 'returned', 'exception'] })
+  @IsEnum(['created', 'failed', 'waiting', 'in-transit', 'on-delivery', 'delivered', 'returned', 'exception'])
+  status: 'created' | 'failed' | 'waiting' | 'in-transit' | 'on-delivery' | 'delivered' | 'returned' | 'exception';
+}

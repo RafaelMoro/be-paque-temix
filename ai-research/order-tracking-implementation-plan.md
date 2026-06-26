@@ -1513,21 +1513,21 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 **Tasks**:
 
-1. Implement addComment()
-2. Implement updateGuideStatus()
-3. Implement softDeleteGuide()
-4. Implement hardDeleteGuide()
-5. Create admin endpoints
-6. Add admin guards
-7. Write admin feature tests
+- [x] Implement addComment()
+- [x] Implement updateGuideStatus()
+- [x] Implement softDeleteGuide()
+- [x] Implement hardDeleteGuide()
+- [x] Create admin endpoints
+- [x] Add admin guards
+- [x] Write admin feature tests
 
 **Success Criteria**:
 
-- Admins can add comments
-- Status can be manually changed
-- Soft delete hides guides
-- Hard delete removes permanently
-- Only admins can hard delete
+- [x] Admins can add comments
+- [x] Status can be manually changed
+- [x] Soft delete hides guides
+- [x] Hard delete removes permanently
+- [x] Only admins can hard delete
 
 ---
 

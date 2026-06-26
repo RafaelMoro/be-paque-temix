@@ -26,6 +26,7 @@ const mockGuideModel = {
   countDocuments: jest.fn(),
   findById: jest.fn(),
   findByIdAndUpdate: jest.fn(),
+  findByIdAndDelete: jest.fn(),
 };
 
 const mockCounterModel = {
@@ -422,6 +423,123 @@ describe('GuidesDbService', () => {
       await expect(
         service.syncGuideWithProvider('KFT-202606-000001', { email: user.email }, false),
       ).rejects.toThrow('no external tracking ID');
+    });
+  });
+
+  describe('addComment', () => {
+    const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
+
+    it('should add comment to guide', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(admin);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        comments: [],
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        comments: [{ text: 'Test comment', adminId: admin._id, timestamp: new Date() }],
+      });
+
+      const result = await service.addComment(
+        'KFT-202606-000001',
+        { email: admin.email },
+        { text: 'Test comment' },
+      );
+
+      expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        { $push: { comments: expect.objectContaining({ text: 'Test comment' }) } },
+      );
+      expect(result.data.kraftId).toBe('KFT-202606-000001');
+    });
+  });
+
+  describe('updateGuideStatus', () => {
+    const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
+
+    it('should update guide status', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(admin);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'failed',
+        provider: 'GE',
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'delivered',
+        provider: 'GE',
+      });
+
+      const result = await service.updateGuideStatus(
+        'KFT-202606-000001',
+        { email: admin.email },
+        { status: 'delivered' },
+      );
+
+      expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        { $set: { status: 'delivered' } },
+      );
+      expect(result.data.status).toBe('delivered');
+    });
+  });
+
+  describe('softDeleteGuide', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should soft delete a guide', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        deletedAt: new Date(),
+      });
+
+      const result = await service.softDeleteGuide('KFT-202606-000001', { email: user.email });
+
+      expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        { $set: { deletedAt: expect.any(Date), deletedBy: user._id } },
+      );
+      expect(result.data.kraftId).toBe('KFT-202606-000001');
+    });
+  });
+
+  describe('hardDeleteGuide', () => {
+    const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
+
+    it('should permanently delete a guide', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(admin);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+      });
+      mockGuideModel.findByIdAndDelete.mockResolvedValue({});
+
+      await service.hardDeleteGuide('KFT-202606-000001', { email: admin.email });
+
+      expect(mockGuideModel.findByIdAndDelete).toHaveBeenCalled();
     });
   });
 });

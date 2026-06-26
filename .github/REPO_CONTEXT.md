@@ -181,6 +181,10 @@ Email sending capabilities (using Resend API).
 - `GET /guides/db/:guideId` - Get single guide detail
 - `POST /guides/db/:guideId/retry` - Retry a failed guide
 - `POST /guides/db/:guideId/sync` - Sync guide status with provider (GE only)
+- `POST /guides/db/:guideId/comments` - Add admin comment (admin only)
+- `PATCH /guides/db/:guideId/status` - Update guide status (admin only)
+- `DELETE /guides/db/:guideId` - Soft delete a guide
+- `DELETE /guides/db/:guideId/hard` - Permanently delete guide (admin only)
 
 **GuidesDbService**:
 - `generateKraftId()` - Generates sequential kraftId (e.g., KFT-202606-000001)
@@ -191,6 +195,10 @@ Email sending capabilities (using Resend API).
 - `checkRetryEligibility()` - Checks 10-attempt limit and 5-min cooldown
 - `retryFailedGuide()` - Re-calls provider API for failed guides
 - `syncGuideWithProvider()` - Fetches current status from provider
+- `addComment()` - Adds admin comment to guide
+- `updateGuideStatus()` - Updates guide status manually
+- `softDeleteGuide()` - Soft deletes guide (sets deletedAt, deletedBy)
+- `hardDeleteGuide()` - Permanently deletes guide
 
 ---
 

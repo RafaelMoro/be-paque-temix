@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Request,
@@ -23,6 +25,8 @@ import {
   CreateGuideDto,
   GetAdminGuidesQueryDto,
   GetGuidesQueryDto,
+  AddCommentDto,
+  UpdateGuideStatusDto,
 } from '../dtos/guides-db.dto';
 import {
   GuideResponseDto,
@@ -103,5 +107,57 @@ export class GuidesDbController {
   ): Promise<GuideResponseDto> {
     const isAdmin = req.user?.role?.includes('admin') ?? false;
     return this.guidesDbService.syncGuideWithProvider(guideId, req.user, isAdmin);
+  }
+
+  @Post(':guideId/comments')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Add admin comment to guide' })
+  @ApiResponse({ status: 201, type: GuideResponseDto })
+  async addComment(
+    @Param('guideId') guideId: string,
+    @Body() dto: AddCommentDto,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    return this.guidesDbService.addComment(guideId, req.user, dto);
+  }
+
+  @Patch(':guideId/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update guide status (admin only)' })
+  @ApiResponse({ status: 200, type: GuideResponseDto })
+  async updateStatus(
+    @Param('guideId') guideId: string,
+    @Body() dto: UpdateGuideStatusDto,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    return this.guidesDbService.updateGuideStatus(guideId, req.user, dto);
+  }
+
+  @Delete(':guideId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Soft delete a guide' })
+  @ApiResponse({ status: 200, type: GuideResponseDto })
+  async softDelete(
+    @Param('guideId') guideId: string,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    return this.guidesDbService.softDeleteGuide(guideId, req.user);
+  }
+
+  @Delete(':guideId/hard')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Permanently delete a guide (admin only)' })
+  @ApiResponse({ status: 204 })
+  async hardDelete(
+    @Param('guideId') guideId: string,
+    @Request() req: ExpressRequest,
+  ): Promise<void> {
+    return this.guidesDbService.hardDeleteGuide(guideId, req.user);
   }
 }
