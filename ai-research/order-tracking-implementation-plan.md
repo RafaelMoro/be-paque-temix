@@ -1542,20 +1542,20 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 **Tasks**:
 
-1. Implement KraftError class
-2. Create error filter
-3. Add error code mapping for all scenarios
-4. Map provider errors to Kraft codes
-5. Add user-friendly messages
-6. Update Swagger documentation
-7. Write error handling tests
+- [x] Implement KraftError class
+- [x] Create error filter
+- [x] Add error code mapping for all scenarios
+- [x] Map provider errors to Kraft codes
+- [x] Add user-friendly messages
+- [x] Update Swagger documentation
+- [x] Write error handling tests
 
 **Success Criteria**:
 
-- All errors have Kraft codes
-- User-friendly messages shown
-- Technical details logged
-- Error codes documented
+- [x] All errors have Kraft codes
+- [x] User-friendly messages shown
+- [x] Technical details logged
+- [x] Error codes documented
 
 ---
 
