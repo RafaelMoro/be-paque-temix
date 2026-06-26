@@ -106,7 +106,11 @@ export class GuidesDbController {
     @Request() req: ExpressRequest,
   ): Promise<GuideResponseDto> {
     const isAdmin = req.user?.role?.includes('admin') ?? false;
-    return this.guidesDbService.syncGuideWithProvider(guideId, req.user, isAdmin);
+    return this.guidesDbService.syncGuideWithProvider(
+      guideId,
+      req.user,
+      isAdmin,
+    );
   }
 
   @Post(':guideId/comments')
