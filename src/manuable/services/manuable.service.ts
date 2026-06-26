@@ -171,7 +171,10 @@ export class ManuableService {
         },
       };
     } catch (error) {
-      console.log(error);
+      // Re-throw HttpException (e.g. BadRequestException with structured response) as-is
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
@@ -462,29 +465,18 @@ export class ManuableService {
         guide,
       };
     } catch (error) {
-      const messages: string[] = [];
+      // 401: signal retry by returning MANUABLE_ERROR_UNAUTHORIZED message
       if (error instanceof Error) {
-        // The service createGuide returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
-          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
           return {
-            messages,
+            messages: [MANUABLE_ERROR_UNAUTHORIZED],
             guide: null,
           };
         }
-
-        messages.push(`Mn: ${error.message}`);
-        return {
-          messages,
-          guide: null,
-        };
+        // Validation/other errors: bubble up with structured response preserved
+        throw error;
       }
-
-      messages.push('Mn: An unknown error occurred');
-      return {
-        messages,
-        guide: null,
-      };
+      throw new BadRequestException('Mn: An unknown error occurred');
     }
   }
 
@@ -623,6 +615,10 @@ export class ManuableService {
           },
         });
       const guide = response?.data?.data;
+      const mnResponseErrors = (response as any)?.data?.errors;
+      if (!guide && mnResponseErrors) {
+        throw new BadRequestException({ errors: mnResponseErrors });
+      }
       return guide;
     } catch (error) {
       if (axios.isAxiosError(error)) {

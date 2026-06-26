@@ -537,7 +537,6 @@ export class GuidesDbService {
     try {
       const response = await this.routeToProvider(payload);
       const guide = response.data.guide;
-      console.log('guide', guide);
 
       if (!guide?.trackingNumber) {
         return {
@@ -555,9 +554,14 @@ export class GuidesDbService {
     } catch (error) {
       if (error instanceof KraftError) throw error;
       const isAxiosError = axios.isAxiosError(error);
-      const axiosData = isAxiosError ? error.response?.data : null;
-      const errMsg =
-        axiosData?.errors || axiosData?.message || error instanceof Error
+      let axiosData = isAxiosError ? error.response?.data : null;
+      if (!axiosData && typeof error.getResponse === 'function') {
+        const resp = error.getResponse();
+        axiosData = typeof resp === 'object' ? resp : null;
+      }
+      const errMsg = axiosData?.errors
+        ? JSON.stringify(axiosData.errors)
+        : axiosData?.message || error instanceof Error
           ? error.message
           : CONST.MSG_PROVIDER_ERROR;
       return {
