@@ -44,12 +44,15 @@ export class GuidesDbService {
   ): Promise<GuideResponseDto> {
     try {
       if (!user?.email) {
-        throw new KraftError('GDE-AUTH-001', 'User not authenticated');
+        throw new KraftError(
+          CONST.GDE_AUTH_001,
+          CONST.MSG_USER_NOT_AUTHENTICATED,
+        );
       }
 
       const dbUser = await this.usersService.findByEmail(user.email);
       if (!dbUser) {
-        throw new KraftError('GDE-AUTH-001', 'User not found');
+        throw new KraftError(CONST.GDE_AUTH_001, CONST.MSG_USER_NOT_FOUND);
       }
 
       const kraftId = await this.generateKraftId();
@@ -70,7 +73,7 @@ export class GuidesDbService {
         failureInfo: providerResult.success
           ? undefined
           : {
-              errorDetails: providerResult.error || 'Provider error',
+              errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
               errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
               providerResponse: providerResult.response || {},
               timestamp: new Date(),
@@ -82,7 +85,11 @@ export class GuidesDbService {
       return this.formatGuideResponse(guide);
     } catch (error) {
       if (error instanceof KraftError) throw error;
-      throw new KraftError(CONST.GDE_BDN_001, 'Failed to create guide', error);
+      throw new KraftError(
+        CONST.GDE_BDN_001,
+        CONST.MSG_FAILED_CREATE_GUIDE,
+        error,
+      );
     }
   }
 
@@ -146,7 +153,7 @@ export class GuidesDbService {
     if (!eligibility.eligible) {
       throw new KraftError(
         CONST.GDE_RTL_001,
-        eligibility.reason || 'Not eligible for retry',
+        eligibility.reason || CONST.MSG_NOT_ELIGIBLE_RETRY,
       );
     }
 
@@ -167,7 +174,7 @@ export class GuidesDbService {
       attemptNumber: guide.retries.retryCount + 1,
       timestamp: new Date(),
       userId,
-      error: providerResult.error || 'Retry failed',
+      error: providerResult.error || CONST.MSG_RETRY_FAILED,
       errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
     };
 
@@ -241,10 +248,7 @@ export class GuidesDbService {
     const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
 
     if (!guide.externalId) {
-      throw new KraftError(
-        CONST.GDE_NF_002,
-        'Guide has no external tracking ID to sync',
-      );
+      throw new KraftError(CONST.GDE_NF_002, CONST.MSG_NO_EXTERNAL_TRACKING_ID);
     }
 
     const providerStatus = await this.fetchProviderStatus(
@@ -292,16 +296,23 @@ export class GuidesDbService {
     return found?.status || 'not-found';
   }
 
+  /**
+   * Resolves a user email to their MongoDB ObjectId.
+   * Throws GDE-AUTH-001 if user is not authenticated or not found.
+   */
   private async getUserId(
     user: { email?: string } | undefined,
   ): Promise<Types.ObjectId> {
-      if (!user?.email) {
-        throw new KraftError(CONST.GDE_AUTH_001, 'User not authenticated');
-      }
-      const dbUser = await this.usersService.findByEmail(user.email);
-      if (!dbUser) {
-        throw new KraftError(CONST.GDE_AUTH_001, 'User not found');
-      }
+    if (!user?.email) {
+      throw new KraftError(
+        CONST.GDE_AUTH_001,
+        CONST.MSG_USER_NOT_AUTHENTICATED,
+      );
+    }
+    const dbUser = await this.usersService.findByEmail(user.email);
+    if (!dbUser) {
+      throw new KraftError(CONST.GDE_AUTH_001, CONST.MSG_USER_NOT_FOUND);
+    }
     return dbUser._id;
   }
 
@@ -365,6 +376,10 @@ export class GuidesDbService {
     };
   }
 
+  /**
+   * Finds a guide by kraftId or ObjectId.
+   * Non-admin users can only access their own guides.
+   */
   private async findAccessibleGuide(
     guideId: string,
     userId: Types.ObjectId,
@@ -386,7 +401,7 @@ export class GuidesDbService {
 
     const guide = await this.guideModel.findOne(query);
     if (!guide) {
-      throw new KraftError(CONST.GDE_NF_001, 'Guide not found');
+      throw new KraftError(CONST.GDE_NF_001, CONST.MSG_GUIDE_NOT_FOUND);
     }
     return guide;
   }
@@ -405,10 +420,18 @@ export class GuidesDbService {
       const sequence = counter.sequence.toString().padStart(6, '0');
       return `KFT-${yearMonth}-${sequence}`;
     } catch (error) {
-      throw new KraftError(CONST.GDE_BDN_008, 'Failed to generate kraftId', error);
+      throw new KraftError(
+        CONST.GDE_BDN_008,
+        CONST.MSG_FAILED_GENERATE_KRAFT_ID,
+        error,
+      );
     }
   }
 
+  /**
+   * Calls the appropriate provider API to create a guide.
+   * Returns success/failure result with tracking info or error details.
+   */
   private async callProviderApi(
     payload: CreateGuideDto,
   ): Promise<ProviderResult> {
@@ -419,7 +442,7 @@ export class GuidesDbService {
       if (!guide?.trackingNumber) {
         return {
           success: false,
-          error: 'Provider returned empty guide',
+          error: CONST.MSG_PROVIDER_RETURNED_EMPTY,
           errorCode: CONST.GDE_PVR_002,
         };
       }
@@ -433,7 +456,8 @@ export class GuidesDbService {
       if (error instanceof KraftError) throw error;
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Provider error',
+        error:
+          error instanceof Error ? error.message : CONST.MSG_PROVIDER_ERROR,
         errorCode: this.mapProviderErrorToKraftCode(error),
         response: error instanceof Error ? { message: error.message } : {},
       };
@@ -451,7 +475,7 @@ export class GuidesDbService {
       case 'Mn':
         return this.manuableService.createGuideStandardized(payload);
       default:
-        throw new KraftError(CONST.GDE_BUS_007, 'Invalid provider specified');
+        throw new KraftError(CONST.GDE_BUS_007, CONST.MSG_INVALID_PROVIDER);
     }
   }
 
