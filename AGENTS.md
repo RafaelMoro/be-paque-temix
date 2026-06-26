@@ -66,3 +66,38 @@
 ## Email templates
 
 - React Email templates live in `emails/` (e.g. `ResetPassword.tsx`). `tsconfig.json` sets `jsx: react` to support them.
+
+## DTOs are the source of truth — derive types, don't duplicate
+
+**Rule:** When a service or interface needs a type that mirrors a response DTO, do **not** create a parallel interface. Instead, use a type alias that extends the DTO class.
+
+**Pattern:**
+```typescript
+// In dtos/responses.dto.ts
+export class GuideDataDto {
+  @ApiProperty()
+  kraftId: string;
+  // ... other fields
+}
+
+// In <module>.interface.ts — derive a type from the DTO
+import { GuideDataDto } from './dtos/responses.dto';
+export type FormattedGuideData = GuideDataDto;
+
+// In <module>.entity.ts — same pattern for entities
+export type GuideDoc = Guide;
+```
+
+**Why:**
+- DTOs already carry `@ApiProperty` metadata, class-validator decorators, and the canonical response shape.
+- Parallel interfaces drift over time — adding a field to the DTO requires also updating the interface.
+- TypeScript catches mismatches at compile time when service code assigns to the DTO-derived type.
+
+**Where to apply:**
+- Any `<module>.interface.ts` that defines a type mirroring a DTO.
+- Any service method that constructs a response object — type the literal with the DTO-derived alias so missing/extra fields fail the build.
+- Same pattern applies to entities: `export type XxxDoc = Xxx;` (see `src/guides/entities/guide.entity.ts:149`).
+
+**Already applied in:**
+- `src/guides/guides.interface.ts` — `FormattedGuideData = GuideDataDto`
+- `src/guides/entities/guide.entity.ts` — `GuideDoc = Guide`
