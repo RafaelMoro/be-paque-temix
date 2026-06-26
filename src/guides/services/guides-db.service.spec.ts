@@ -347,4 +347,81 @@ describe('GuidesDbService', () => {
       );
     });
   });
+
+  describe('checkRetryEligibility', () => {
+    it('should return eligible when no retries yet', () => {
+      const guide = {
+        retries: { retryCount: 0, retryAttempts: [], lastRetryAt: undefined },
+      } as any;
+
+      const result = service.checkRetryEligibility(guide);
+
+      expect(result.eligible).toBe(true);
+    });
+
+    it('should return not eligible when max retries reached', () => {
+      const guide = {
+        retries: { retryCount: 10, retryAttempts: [], lastRetryAt: new Date() },
+      } as any;
+
+      const result = service.checkRetryEligibility(guide);
+
+      expect(result.eligible).toBe(false);
+      expect(result.reason).toContain('Maximum retry attempts');
+    });
+
+    it('should return not eligible when cooldown active', () => {
+      const recentRetry = new Date(Date.now() - 60 * 1000);
+      const guide = {
+        retries: { retryCount: 1, retryAttempts: [], lastRetryAt: recentRetry },
+      } as any;
+
+      const result = service.checkRetryEligibility(guide);
+
+      expect(result.eligible).toBe(false);
+      expect(result.reason).toContain('Cooldown period active');
+    });
+  });
+
+  describe('retryFailedGuide', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should throw when not eligible for retry', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'failed',
+        provider: 'GE',
+        retries: { retryCount: 10, retryAttempts: [] },
+        quoteData: { quoteId: 'q1' },
+        origin: { alias: 'o1' },
+        destination: { alias: 'd1' },
+        parcel: { length: '10' },
+      });
+
+      await expect(
+        service.retryFailedGuide('KFT-202606-000001', { email: user.email }),
+      ).rejects.toThrow('Maximum retry attempts');
+    });
+  });
+
+  describe('syncGuideWithProvider', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should throw when guide has no externalId', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        externalId: null,
+      });
+
+      await expect(
+        service.syncGuideWithProvider('KFT-202606-000001', { email: user.email }, false),
+      ).rejects.toThrow('no external tracking ID');
+    });
+  });
 });

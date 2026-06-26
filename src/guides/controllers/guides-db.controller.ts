@@ -81,4 +81,27 @@ export class GuidesDbController {
     const isAdmin = req.user?.role?.includes('admin') ?? false;
     return this.guidesDbService.getGuideById(guideId, req.user, isAdmin);
   }
+
+  @Post(':guideId/retry')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Retry a failed guide' })
+  @ApiResponse({ status: 200, type: GuideResponseDto })
+  async retryGuide(
+    @Param('guideId') guideId: string,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    return this.guidesDbService.retryFailedGuide(guideId, req.user);
+  }
+
+  @Post(':guideId/sync')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Sync guide status with provider' })
+  @ApiResponse({ status: 200, type: GuideResponseDto })
+  async syncGuide(
+    @Param('guideId') guideId: string,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    const isAdmin = req.user?.role?.includes('admin') ?? false;
+    return this.guidesDbService.syncGuideWithProvider(guideId, req.user, isAdmin);
+  }
 }

@@ -1485,21 +1485,21 @@ private mapProviderErrorToKraftCode(error: any): string {
 
 **Tasks**:
 
-1. Implement checkRetryEligibility()
-2. Implement retryFailedGuide()
-3. Add retry attempt tracking
-4. Implement syncGuideWithProvider()
-5. Create POST /guides/db/:guideId/retry endpoint
-6. Add rate limiting logic
-7. Write retry tests
+- [x] Implement checkRetryEligibility()
+- [x] Implement retryFailedGuide()
+- [x] Add retry attempt tracking
+- [x] Implement syncGuideWithProvider()
+- [x] Create POST /guides/db/:guideId/retry endpoint
+- [x] Add rate limiting logic
+- [x] Write retry tests
 
 **Success Criteria**:
 
-- Retry respects 10-attempt limit
-- 5-minute cooldown enforced
-- Retry history captured
-- KraftId unchanged after retry
-- Sync updates status from provider
+- [x] Retry respects 10-attempt limit
+- [x] 5-minute cooldown enforced
+- [x] Retry history captured
+- [x] KraftId unchanged after retry
+- [x] Sync updates status from provider (GE only; T1/Pkk/Mn return 'unsupported')
 
 ---
 

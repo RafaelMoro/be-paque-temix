@@ -1,6 +1,6 @@
 # Repository Context - be-paque-temix
 
-**Last Updated:** 2026-06-14
+**Last Updated:** 2026-06-25
 
 This document describes the architecture, modules, services, guards, and how they connect within the be-paque-temix NestJS backend application.
 
@@ -170,6 +170,27 @@ Email sending capabilities (using Resend API).
 
 **Providers:** `GuidesService` - Orchestrates guide creation with specific provider
 **Controllers:** `GuidesController` (route: `/guides`)
+
+**Sub-modules:**
+- `GuidesDbModule` - Database-persisted guide tracking with full CRUD
+
+**GuidesDbController** (route: `/guides/db`):
+- `POST /guides/db/create` - Create guide with database persistence
+- `GET /guides/db` - Get user's guides (paginated)
+- `GET /guides/db/admin` - Admin: get all guides with filters (admin only)
+- `GET /guides/db/:guideId` - Get single guide detail
+- `POST /guides/db/:guideId/retry` - Retry a failed guide
+- `POST /guides/db/:guideId/sync` - Sync guide status with provider (GE only)
+
+**GuidesDbService**:
+- `generateKraftId()` - Generates sequential kraftId (e.g., KFT-202606-000001)
+- `createGuide()` - Creates guide, calls provider API, persists result
+- `getGuidesByUser()` - Paginated user guide listing
+- `getAllGuides()` - Admin paginated listing with month/user filters
+- `getGuideById()` - Single guide retrieval
+- `checkRetryEligibility()` - Checks 10-attempt limit and 5-min cooldown
+- `retryFailedGuide()` - Re-calls provider API for failed guides
+- `syncGuideWithProvider()` - Fetches current status from provider
 
 ---
 
@@ -405,6 +426,7 @@ AuthService
 | `UsersController`         | `/users`          | `JwtGuard`                               | User CRUD operations                   |
 | `QuotesController`        | `/quotes`         | `JwtGuard`                               | Get shipping quotes from all providers |
 | `GuidesController`        | `/guides`         | `JwtGuard`                               | Create shipping guides                 |
+| `GuidesDbController`      | `/guides/db`      | `JwtGuard`                               | DB-persisted guides with retry/sync    |
 | `AddressesController`     | `/addresses`      | `JwtGuard`                               | Manage user addresses                  |
 | `GlobalConfigsController` | `/global-configs` | `JwtGuard` + `RolesGuard` (likely admin) | System configuration                   |
 | `GuiaEnviaController`     | `/ge`             | `JwtGuard`                               | Direct Guia Envia API access           |

@@ -10,7 +10,10 @@ import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
 } from '../dtos/guides-db-responses.dto';
-import { GetAdminGuidesQueryDto, GetGuidesQueryDto } from '../dtos/guides-db.dto';
+import {
+  GetAdminGuidesQueryDto,
+  GetGuidesQueryDto,
+} from '../dtos/guides-db.dto';
 import { ProviderResult } from '../guides.interface';
 import { KraftError } from '../kraft-error';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
@@ -123,8 +126,157 @@ export class GuidesDbService {
     const userId = await this.getUserId(user);
     const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
 
-    // ponytail: on-demand sync is Phase 4; skip here
     return this.formatGuideResponse(guide);
+  }
+
+  async retryFailedGuide(
+    guideId: string,
+    user: { email?: string } | undefined,
+  ): Promise<GuideResponseDto> {
+    const userId = await this.getUserId(user);
+    const guide = await this.findAccessibleGuide(guideId, userId, false);
+
+    const eligibility = this.checkRetryEligibility(guide);
+    if (!eligibility.eligible) {
+      throw new KraftError(
+        'GDE-RTL-001',
+        eligibility.reason || 'Not eligible for retry',
+      );
+    }
+
+    const retryPayload: CreateGuideDto = {
+      provider: guide.provider as 'GE' | 'TONE' | 'Pkk' | 'Mn',
+      quoteId: guide.quoteData.quoteId,
+      origin: guide.origin as any,
+      destination: guide.destination as any,
+      parcel: guide.parcel as any,
+      notifyMe: false,
+    };
+
+    const providerResult = await this.callProviderApi(retryPayload);
+
+    const retryAttempt = {
+      attemptNumber: guide.retries.retryCount + 1,
+      timestamp: new Date(),
+      userId,
+      error: providerResult.error || 'Retry failed',
+      errorCode: providerResult.errorCode || 'GDE-PVR-001',
+    };
+
+    if (providerResult.success) {
+      await this.guideModel.findByIdAndUpdate(guide._id, {
+        $set: {
+          status: 'created',
+          externalId: providerResult.externalId || guide.externalId,
+          labelUrl: providerResult.labelUrl || guide.labelUrl,
+          isProviderTrackingSynced: !!providerResult.externalId,
+          failureInfo: undefined,
+          providerStatus: undefined,
+          'retries.lastRetryAt': new Date(),
+        },
+        $push: { 'retries.retryAttempts': retryAttempt },
+        $inc: { 'retries.retryCount': 1 },
+      });
+    } else {
+      await this.guideModel.findByIdAndUpdate(guide._id, {
+        $set: { 'retries.lastRetryAt': new Date() },
+        $push: { 'retries.retryAttempts': retryAttempt },
+        $inc: { 'retries.retryCount': 1 },
+      });
+    }
+
+    const updated = await this.guideModel.findById(guide._id);
+    return this.formatGuideResponse(updated!);
+  }
+
+  checkRetryEligibility(guide: GuideDoc): {
+    eligible: boolean;
+    reason?: string;
+  } {
+    const MAX_RETRIES = 10;
+    const COOLDOWN_MS = 5 * 60 * 1000;
+
+    if (guide.retries.retryCount >= MAX_RETRIES) {
+      return {
+        eligible: false,
+        reason: `Maximum retry attempts (${MAX_RETRIES}) reached`,
+      };
+    }
+
+    if (guide.retries.lastRetryAt) {
+      const timeSinceLastRetry =
+        Date.now() - guide.retries.lastRetryAt.getTime();
+      if (timeSinceLastRetry < COOLDOWN_MS) {
+        const remainingMs = COOLDOWN_MS - timeSinceLastRetry;
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        return {
+          eligible: false,
+          reason: `Cooldown period active. Retry available in ${remainingSec} seconds`,
+        };
+      }
+    }
+
+    return { eligible: true };
+  }
+
+  async syncGuideWithProvider(
+    guideId: string,
+    user: { email?: string } | undefined,
+    isAdmin: boolean,
+  ): Promise<GuideResponseDto> {
+    const userId = await this.getUserId(user);
+    const guide = await this.findAccessibleGuide(guideId, userId, isAdmin);
+
+    if (!guide.externalId) {
+      throw new KraftError(
+        'GDE-NF-002',
+        'Guide has no external tracking ID to sync',
+      );
+    }
+
+    const providerStatus = await this.fetchProviderStatus(
+      guide.provider,
+      guide.externalId,
+    );
+
+    await this.guideModel.findByIdAndUpdate(guide._id, {
+      $set: {
+        providerStatus,
+        isProviderTrackingSynced: true,
+        lastSyncTimestamp: new Date(),
+      },
+    });
+
+    const updated = await this.guideModel.findById(guide._id);
+    return this.formatGuideResponse(updated!);
+  }
+
+  private async fetchProviderStatus(
+    provider: string,
+    trackingNumber: string,
+  ): Promise<string> {
+    try {
+      switch (provider) {
+        case 'GE':
+          return await this.fetchGEStatus(trackingNumber);
+        case 'TONE':
+          return 'unsupported';
+        case 'Pkk':
+          return 'unsupported';
+        case 'Mn':
+          return 'unsupported';
+        default:
+          return 'unknown';
+      }
+    } catch {
+      return 'sync-error';
+    }
+  }
+
+  private async fetchGEStatus(trackingNumber: string): Promise<string> {
+    const guides = await this.guiaEnviaService.getGuides();
+    const found = guides.find((g: any) => g.trackingNumber === trackingNumber);
+    return found?.status || 'not-found';
   }
 
   private async getUserId(
@@ -157,8 +309,10 @@ export class GuidesDbService {
     }
     if (filters.startDate || filters.endDate) {
       query.createdAt = {};
-      if (filters.startDate) (query.createdAt as Record<string, Date>).$gte = filters.startDate;
-      if (filters.endDate) (query.createdAt as Record<string, Date>).$lte = filters.endDate;
+      if (filters.startDate)
+        (query.createdAt as Record<string, Date>).$gte = filters.startDate;
+      if (filters.endDate)
+        (query.createdAt as Record<string, Date>).$lte = filters.endDate;
     }
 
     return query;
@@ -187,8 +341,8 @@ export class GuidesDbService {
       message: null,
       error: null,
       data: {
-        guides: guides.map((g) =>
-          this.formatGuideResponse(g as unknown as GuideDoc).data,
+        guides: guides.map(
+          (g) => this.formatGuideResponse(g as unknown as GuideDoc).data,
         ),
         total,
         page,
@@ -268,10 +422,7 @@ export class GuidesDbService {
         success: false,
         error: error instanceof Error ? error.message : 'Provider error',
         errorCode: this.mapProviderErrorToKraftCode(error),
-        response:
-          error instanceof Error
-            ? { message: error.message }
-            : {},
+        response: error instanceof Error ? { message: error.message } : {},
       };
     }
   }
@@ -301,7 +452,8 @@ export class GuidesDbService {
     if (err.code === 'ETIMEDOUT') return 'GDE-TMOT-001';
     if (err.message?.includes('rate limit')) return 'GDE-RLIM-003';
     if (err.response?.status === 401) return 'GDE-PVR-003';
-    if (err.response?.status && err.response.status >= 500) return 'GDE-PVR-004';
+    if (err.response?.status && err.response.status >= 500)
+      return 'GDE-PVR-004';
     return 'GDE-PVR-001';
   }
 
