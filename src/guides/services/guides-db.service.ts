@@ -553,26 +553,98 @@ export class GuidesDbService {
       };
     } catch (error) {
       if (error instanceof KraftError) throw error;
-      const isAxiosError = axios.isAxiosError(error);
-      let axiosData = isAxiosError ? error.response?.data : null;
-      if (!axiosData && typeof error.getResponse === 'function') {
-        const resp = error.getResponse();
-        axiosData = typeof resp === 'object' ? resp : null;
-      }
-      const errMsg = axiosData?.errors
-        ? JSON.stringify(axiosData.errors)
-        : axiosData?.message || error instanceof Error
-          ? error.message
-          : CONST.MSG_PROVIDER_ERROR;
-      return {
-        success: false,
-        error: errMsg,
-        errorCode: this.mapProviderErrorToKraftCode(error),
-        response:
-          axiosData ||
-          (error instanceof Error ? { message: error.message } : {}),
-      };
+      return this.buildProviderErrorResult(error);
     }
+  }
+
+  /**
+   * Converts a thrown error from a provider into a failure ProviderResult.
+   * Extracts structured response data (axios or Nest HttpException) so the
+   * client can see what went wrong (e.g. { errors: { reason: '...' } }).
+   */
+  private buildProviderErrorResult(error: unknown): ProviderResult {
+    const responseData = this.extractProviderResponseData(error);
+    const errorDetails = this.formatErrorDetails(error, responseData);
+
+    return {
+      success: false,
+      error: errorDetails,
+      errorCode: this.mapProviderErrorToKraftCode(error),
+      response: responseData ?? this.fallbackResponse(error),
+    };
+  }
+
+  /**
+   * Pulls the structured payload from an axios error (response.data) or
+   * a Nest HttpException (getResponse()). Returns null if neither applies.
+   */
+  private extractProviderResponseData(
+    error: unknown,
+  ): Record<string, unknown> | null {
+    if (axios.isAxiosError(error)) {
+      const data = error.response?.data;
+      return this.asObject(data);
+    }
+
+    if (this.isHttpExceptionWithObject(error)) {
+      return error.getResponse() as Record<string, unknown>;
+    }
+
+    return null;
+  }
+
+  /**
+   * Builds a human-readable error string. Prefers the provider's structured
+   * `errors` object (e.g. { reason: 'Rate request already has a label' })
+   * over the generic exception message.
+   */
+  private formatErrorDetails(
+    error: unknown,
+    responseData: Record<string, unknown> | null,
+  ): string {
+    if (responseData?.errors) {
+      return JSON.stringify(responseData.errors);
+    }
+    if (typeof responseData?.message === 'string') {
+      return responseData.message;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return CONST.MSG_PROVIDER_ERROR;
+  }
+
+  /**
+   * Last-resort response payload when the error has no structured data
+   * (e.g. plain Error or unknown throw).
+   */
+  private fallbackResponse(error: unknown): Record<string, unknown> {
+    if (error instanceof Error) {
+      return { message: error.message };
+    }
+    return {};
+  }
+
+  /**
+   * Type guard for Nest HttpException (or subclass) carrying an object body.
+   */
+  private isHttpExceptionWithObject(
+    error: unknown,
+  ): error is Error & { getResponse: () => unknown } {
+    return (
+      error instanceof Error &&
+      'getResponse' in error &&
+      typeof (error as { getResponse?: unknown }).getResponse === 'function'
+    );
+  }
+
+  /**
+   * Narrows an unknown value to a plain object record, or null.
+   */
+  private asObject(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : null;
   }
 
   private async routeToProvider(payload: CreateGuideDto) {
