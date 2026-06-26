@@ -1,4 +1,8 @@
-import { GeneralResponse, GetGuideResponse } from '@/global.interface';
+import {
+  GeneralResponse,
+  GetGuideResponse,
+  GlobalCreateGuideResponse,
+} from '@/global.interface';
 
 export interface GetGuidesDataResponse extends Omit<
   GeneralResponse,
@@ -26,6 +30,7 @@ export interface ProviderResult {
   success: boolean;
   externalId?: string;
   labelUrl?: string;
+  guide?: GlobalCreateGuideResponse | null;
   error?: string;
   errorCode?: string;
   response?: Record<string, unknown>;

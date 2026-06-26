@@ -86,7 +86,7 @@ export class GuidesDbService {
         comments: [],
       });
 
-      return this.formatGuideResponse(guide);
+      return this.formatGuideResponse(guide, providerResult);
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -551,6 +551,7 @@ export class GuidesDbService {
         success: true,
         externalId: guide.trackingNumber,
         labelUrl: guide.labelUrl || guide.guideLink || undefined,
+        guide,
       };
     } catch (error) {
       if (error instanceof KraftError) throw error;
@@ -683,14 +684,28 @@ export class GuidesDbService {
     return CONST.GDE_PVR_001;
   }
 
-  formatGuideResponse(guide: GuideDoc): GuideResponseDto {
+  formatGuideResponse(
+    guide: GuideDoc,
+    providerResult?: ProviderResult,
+  ): GuideResponseDto {
+    const providerGuide = providerResult?.guide;
+    const hasProviderGuide = providerResult?.success && !!providerGuide;
+
     const data = {
       kraftId: guide.kraftId,
-      externalId: guide.externalId || undefined,
+      externalId: guide.externalId || null,
+      shipmentNumber: providerGuide?.shipmentNumber ?? null,
       status: guide.status,
       provider: guide.provider as ProviderSource,
+      source: hasProviderGuide
+        ? providerGuide.source
+        : (guide.provider as ProviderSource),
+      carrier: providerGuide?.carrier ?? null,
+      price: providerGuide?.price ?? null,
+      guideLink: providerGuide?.guideLink ?? guide.labelUrl ?? null,
       isProviderTrackingSynced: guide.isProviderTrackingSynced,
-      labelUrl: guide.labelUrl || undefined,
+      labelUrl: providerGuide?.labelUrl || guide.labelUrl || null,
+      file: providerGuide?.file ?? null,
       createdAt: guide.createdAt,
       updatedAt: guide.updatedAt,
       failureInfo: guide.failureInfo
@@ -699,7 +714,7 @@ export class GuidesDbService {
             errorCode: guide.failureInfo.errorCode,
             timestamp: guide.failureInfo.timestamp,
           }
-        : undefined,
+        : null,
     };
 
     return {
