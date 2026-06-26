@@ -1,0 +1,26 @@
+{
+  "name": "copy-ref",
+  "displayName": "Copy opencode reference",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": { "vscode": "^1.85.0" },
+  "activationEvents": ["onCommand:copyRef.copy"],
+  "main": "./extension.js",
+  "contributes": {
+    "keybindings": [
+      {
+        "command": "copyRef.copy",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "commands": [
+      {
+        "command": "copyRef.copy",
+        "title": "Copy opencode reference"
+      }
+    ]
+  },
+  "scripts": { "package": "vsce package --no-dependencies" }
+}
