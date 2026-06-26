@@ -15,8 +15,6 @@ export class GeneralAppExceptionFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
 
-    const exceptionResponse = exception.getResponse();
-
     if (exception instanceof KraftError) {
       const errorResponse: GeneralResponse = {
         version: VERSION_RESPONSE ?? 'v1.0.0',
@@ -28,7 +26,7 @@ export class GeneralAppExceptionFilter implements ExceptionFilter {
           technicalDetails: exception.technicalDetails,
         },
       };
-      response.status(400).send(errorResponse);
+      response.status(exception.getStatus()).send(errorResponse);
       return;
     }
 
@@ -36,7 +34,7 @@ export class GeneralAppExceptionFilter implements ExceptionFilter {
       version: VERSION_RESPONSE ?? 'v1.0.0',
       data: null,
       message: null,
-      error: exceptionResponse,
+      error: exception.getResponse(),
     };
 
     response.status(exception.getStatus()).send(errorResponse);
