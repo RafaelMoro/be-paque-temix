@@ -3,6 +3,7 @@ import {
   GetGuideResponse,
   GlobalCreateGuideResponse,
 } from '@/global.interface';
+import { GuideDataDto } from './dtos/guides-db-responses.dto';
 
 export interface GetGuidesDataResponse extends Omit<
   GeneralResponse,
@@ -90,18 +91,9 @@ export interface RetryPayload {
   notifyMe: boolean;
 }
 
-export interface FormattedGuideData {
-  kraftId: string;
-  externalId?: string;
-  status: string;
-  provider: string;
-  isProviderTrackingSynced: boolean;
-  labelUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  failureInfo?: {
-    errorDetails: string;
-    errorCode: string;
-    timestamp: Date;
-  };
-}
+// ponytail: DTOs are the source of truth for response shape. When a service
+// needs a type for data construction, derive it from the DTO via type alias
+// (e.g. `export type FormattedGuideData = GuideDataDto;`) so adding/removing
+// fields in the DTO doesn't require keeping a parallel interface in sync.
+// Same pattern as `export type GuideDoc = Guide;` in guide.entity.ts.
+export type FormattedGuideData = GuideDataDto;

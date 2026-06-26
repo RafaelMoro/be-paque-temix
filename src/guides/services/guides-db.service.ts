@@ -17,7 +17,11 @@ import {
   AddCommentDto,
   UpdateGuideStatusDto,
 } from '../dtos/guides-db.dto';
-import { ProviderResult, RetryPayload } from '../guides.interface';
+import {
+  FormattedGuideData,
+  ProviderResult,
+  RetryPayload,
+} from '../guides.interface';
 import { KraftError } from '../kraft-error';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
@@ -689,17 +693,13 @@ export class GuidesDbService {
     providerResult?: ProviderResult,
   ): GuideResponseDto {
     const providerGuide = providerResult?.guide;
-    const hasProviderGuide = providerResult?.success && !!providerGuide;
 
-    const data = {
+    const data: FormattedGuideData = {
       kraftId: guide.kraftId,
       externalId: guide.externalId || null,
       shipmentNumber: providerGuide?.shipmentNumber ?? null,
       status: guide.status,
       provider: guide.provider as ProviderSource,
-      source: hasProviderGuide
-        ? providerGuide.source
-        : (guide.provider as ProviderSource),
       carrier: providerGuide?.carrier ?? null,
       price: providerGuide?.price ?? null,
       guideLink: providerGuide?.guideLink ?? guide.labelUrl ?? null,

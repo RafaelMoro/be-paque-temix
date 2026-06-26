@@ -17,9 +17,6 @@ export class GuideDataDto {
   @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
   provider: ProviderSource;
 
-  @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
-  source: ProviderSource;
-
   @ApiProperty({ required: false, nullable: true })
   carrier: string | null = null;
 
