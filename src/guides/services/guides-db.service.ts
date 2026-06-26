@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
 import { Inject } from '@nestjs/common';
+import axios from 'axios';
 import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
 import { CreateGuideDto } from '../dtos/guides-db.dto';
@@ -536,6 +537,7 @@ export class GuidesDbService {
     try {
       const response = await this.routeToProvider(payload);
       const guide = response.data.guide;
+      console.log('guide', guide);
 
       if (!guide?.trackingNumber) {
         return {
@@ -552,12 +554,19 @@ export class GuidesDbService {
       };
     } catch (error) {
       if (error instanceof KraftError) throw error;
+      const isAxiosError = axios.isAxiosError(error);
+      const axiosData = isAxiosError ? error.response?.data : null;
+      const errMsg =
+        axiosData?.errors || axiosData?.message || error instanceof Error
+          ? error.message
+          : CONST.MSG_PROVIDER_ERROR;
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : CONST.MSG_PROVIDER_ERROR,
+        error: errMsg,
         errorCode: this.mapProviderErrorToKraftCode(error),
-        response: error instanceof Error ? { message: error.message } : {},
+        response:
+          axiosData ||
+          (error instanceof Error ? { message: error.message } : {}),
       };
     }
   }
@@ -581,12 +590,17 @@ export class GuidesDbService {
     const err = error as {
       code?: string;
       message?: string;
-      response?: { status?: number };
+      response?: {
+        status?: number;
+        data?: { errors?: Record<string, unknown> };
+      };
     };
     if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
     if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
     if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
     if (err.response?.status === 401) return CONST.GDE_PVR_003;
+    if (err.response?.status === 400 && err.response?.data?.errors)
+      return CONST.GDE_PVR_005;
     if (err.response?.status && err.response.status >= 500)
       return CONST.GDE_PVR_004;
     return CONST.GDE_PVR_001;

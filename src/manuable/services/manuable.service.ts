@@ -625,6 +625,14 @@ export class ManuableService {
       const guide = response?.data?.data;
       return guide;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log(
+          'Error in createGuide Mn:',
+          error?.response?.data || error.message,
+        );
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      // console.log('createGuide error', error);
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }

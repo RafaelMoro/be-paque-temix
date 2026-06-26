@@ -24,6 +24,8 @@ export const GDE_PVR_002 = 'GDE-PVR-002';
 export const GDE_PVR_003 = 'GDE-PVR-003';
 /** Used when provider returns 5xx server error */
 export const GDE_PVR_004 = 'GDE-PVR-004';
+/** Used when provider returns validation/fields error (400) */
+export const GDE_PVR_005 = 'GDE-PVR-005';
 
 /** Used for DNS/network errors (ENOTFOUND) */
 export const GDE_NET_001 = 'GDE-NET-001';
@@ -49,3 +51,5 @@ export const MSG_FAILED_CREATE_GUIDE = 'Failed to create guide';
 export const MSG_FAILED_GENERATE_KRAFT_ID = 'Failed to generate kraftId';
 export const MSG_PROVIDER_RETURNED_EMPTY = 'Provider returned empty guide';
 export const MSG_INVALID_PROVIDER = 'Invalid provider specified';
+export const MSG_PROVIDER_VALIDATION_ERROR =
+  'Provider validation error - check response for details';
