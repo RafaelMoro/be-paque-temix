@@ -1,9 +1,6 @@
 import { ProfitMargin } from '@/global-configs/global-configs.interface';
-import {
-  CalculateTotalQuotesResponse,
-  GetQuoteData,
-  ProviderSource,
-} from './quotes.interface';
+import { CalculateTotalQuotesResponse, GetQuoteData } from './quotes.interface';
+import { ProviderSource } from '@/global.interface';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 
 export const orderQuotesByPrice = (quotes: GetQuoteData[]) => {

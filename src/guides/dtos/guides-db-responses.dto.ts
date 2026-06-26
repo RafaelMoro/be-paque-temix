@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ProviderSource } from '@/global.interface';
 
 export class GuideDataDto {
   @ApiProperty()
@@ -10,8 +11,8 @@ export class GuideDataDto {
   @ApiProperty()
   status: string;
 
-  @ApiProperty()
-  provider: string;
+  @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
+  provider: ProviderSource;
 
   @ApiProperty()
   isProviderTrackingSynced: boolean;

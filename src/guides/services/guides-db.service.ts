@@ -24,6 +24,7 @@ import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
+import { ProviderSource } from '@/global.interface';
 import config from '@/config';
 import * as CONST from '../guides-db.constants';
 
@@ -687,7 +688,7 @@ export class GuidesDbService {
       kraftId: guide.kraftId,
       externalId: guide.externalId || undefined,
       status: guide.status,
-      provider: guide.provider,
+      provider: guide.provider as ProviderSource,
       isProviderTrackingSynced: guide.isProviderTrackingSynced,
       labelUrl: guide.labelUrl || undefined,
       createdAt: guide.createdAt,
