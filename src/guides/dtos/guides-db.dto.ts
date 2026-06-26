@@ -232,7 +232,8 @@ export class CreateGuideDto {
 
   @ApiProperty()
   @IsBoolean()
-  notifyMe: boolean;
+  @IsOptional()
+  notifyMe: boolean = false;
 }
 
 export class AddCommentDto {
