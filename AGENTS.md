@@ -58,6 +58,11 @@
 - Target: AWS Lambda `nodejs22.x` in `us-east-1`, API Gateway.
 - Serverless packages only `.bundle/**`; `dist/` and `node_modules/` are excluded. Do not deploy without running `pnpm bundle` first.
 
+## Code references with line ranges
+
+- When the user gives a reference like `@path:start-end`, prefer `sed -n 'start,endp' path` via Bash over the Read tool. This reads only the requested lines and is cheaper than Read's offset/limit path. (`sed -n '565,575p' src/...service.ts`)
+- For `@path` with no line numbers, keep using Read (whole-file context is the point).
+
 ## Email templates
 
 - React Email templates live in `emails/` (e.g. `ResetPassword.tsx`). `tsconfig.json` sets `jsx: react` to support them.
