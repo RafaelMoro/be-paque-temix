@@ -31,6 +31,60 @@ export interface ProviderResult {
   response?: Record<string, unknown>;
 }
 
+export interface RetryPayload {
+  provider: 'GE' | 'TONE' | 'Pkk' | 'Mn';
+  quoteId: string;
+  origin: {
+    alias?: string;
+    name?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    company?: string;
+    street1?: string;
+    street2?: string;
+    isResidential?: boolean;
+    external_number?: string;
+    neighborhood?: string;
+    city?: string;
+    town?: string;
+    state?: string;
+    zipcode?: string;
+    country?: string;
+    reference?: string;
+  };
+  destination: {
+    alias?: string;
+    name?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    company?: string;
+    street1?: string;
+    street2?: string;
+    isResidential?: boolean;
+    external_number?: string;
+    neighborhood?: string;
+    city?: string;
+    town?: string;
+    state?: string;
+    zipcode?: string;
+    country?: string;
+    reference?: string;
+  };
+  parcel: {
+    length?: string;
+    width?: string;
+    height?: string;
+    weight?: string;
+    content?: string;
+    satProductId?: string;
+    value?: number;
+    quantity?: number;
+  };
+  notifyMe: boolean;
+}
+
 export interface FormattedGuideData {
   kraftId: string;
   externalId?: string;

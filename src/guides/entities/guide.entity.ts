@@ -119,7 +119,7 @@ export class Guide extends Document {
   @Prop({ required: true, type: QuoteData })
   quoteData: QuoteData;
 
-  @Prop() providerStatus?: string;
+  @Prop({ type: String }) providerStatus?: string | null;
   @Prop() labelUrl?: string;
 
   @Prop({ type: Object })
@@ -128,7 +128,7 @@ export class Guide extends Document {
     errorCode: string;
     providerResponse: Record<string, unknown>;
     timestamp: Date;
-  };
+  } | null;
 
   @Prop({ type: Retries, default: () => ({}) })
   retries: Retries;

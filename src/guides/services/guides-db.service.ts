@@ -14,7 +14,7 @@ import {
   GetAdminGuidesQueryDto,
   GetGuidesQueryDto,
 } from '../dtos/guides-db.dto';
-import { ProviderResult } from '../guides.interface';
+import { ProviderResult, RetryPayload } from '../guides.interface';
 import { KraftError } from '../kraft-error';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
@@ -22,6 +22,7 @@ import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
 import config from '@/config';
+import * as CONST from '../guides-db.constants';
 
 @Injectable()
 export class GuidesDbService {
@@ -70,7 +71,7 @@ export class GuidesDbService {
           ? undefined
           : {
               errorDetails: providerResult.error || 'Provider error',
-              errorCode: providerResult.errorCode || 'GDE-PVR-001',
+              errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
               providerResponse: providerResult.response || {},
               timestamp: new Date(),
             },
@@ -81,7 +82,7 @@ export class GuidesDbService {
       return this.formatGuideResponse(guide);
     } catch (error) {
       if (error instanceof KraftError) throw error;
-      throw new KraftError('GDE-BDN-001', 'Failed to create guide', error);
+      throw new KraftError(CONST.GDE_BDN_001, 'Failed to create guide', error);
     }
   }
 
@@ -129,6 +130,11 @@ export class GuidesDbService {
     return this.formatGuideResponse(guide);
   }
 
+  /**
+   * Retries a failed guide by re-calling the provider API.
+   * Validates eligibility (max attempts, cooldown) before retrying.
+   * Updates guide status on success or records retry attempt on failure.
+   */
   async retryFailedGuide(
     guideId: string,
     user: { email?: string } | undefined,
@@ -139,28 +145,30 @@ export class GuidesDbService {
     const eligibility = this.checkRetryEligibility(guide);
     if (!eligibility.eligible) {
       throw new KraftError(
-        'GDE-RTL-001',
+        CONST.GDE_RTL_001,
         eligibility.reason || 'Not eligible for retry',
       );
     }
 
-    const retryPayload: CreateGuideDto = {
+    const retryPayload: RetryPayload = {
       provider: guide.provider as 'GE' | 'TONE' | 'Pkk' | 'Mn',
       quoteId: guide.quoteData.quoteId,
-      origin: guide.origin as any,
-      destination: guide.destination as any,
-      parcel: guide.parcel as any,
+      origin: guide.origin,
+      destination: guide.destination,
+      parcel: guide.parcel,
       notifyMe: false,
     };
 
-    const providerResult = await this.callProviderApi(retryPayload);
+    const providerResult = await this.callProviderApi(
+      retryPayload as unknown as CreateGuideDto,
+    );
 
     const retryAttempt = {
       attemptNumber: guide.retries.retryCount + 1,
       timestamp: new Date(),
       userId,
       error: providerResult.error || 'Retry failed',
-      errorCode: providerResult.errorCode || 'GDE-PVR-001',
+      errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
     };
 
     if (providerResult.success) {
@@ -170,8 +178,8 @@ export class GuidesDbService {
           externalId: providerResult.externalId || guide.externalId,
           labelUrl: providerResult.labelUrl || guide.labelUrl,
           isProviderTrackingSynced: !!providerResult.externalId,
-          failureInfo: undefined,
-          providerStatus: undefined,
+          failureInfo: null,
+          providerStatus: null,
           'retries.lastRetryAt': new Date(),
         },
         $push: { 'retries.retryAttempts': retryAttempt },
@@ -189,25 +197,26 @@ export class GuidesDbService {
     return this.formatGuideResponse(updated!);
   }
 
+  /**
+   * Checks if a guide is eligible for retry.
+   * Enforces max retry attempts (10) and cooldown period (5 minutes).
+   */
   checkRetryEligibility(guide: GuideDoc): {
     eligible: boolean;
     reason?: string;
   } {
-    const MAX_RETRIES = 10;
-    const COOLDOWN_MS = 5 * 60 * 1000;
-
-    if (guide.retries.retryCount >= MAX_RETRIES) {
+    if (guide.retries.retryCount >= CONST.RETRY_MAX_ATTEMPTS) {
       return {
         eligible: false,
-        reason: `Maximum retry attempts (${MAX_RETRIES}) reached`,
+        reason: `Maximum retry attempts (${CONST.RETRY_MAX_ATTEMPTS}) reached`,
       };
     }
 
     if (guide.retries.lastRetryAt) {
       const timeSinceLastRetry =
         Date.now() - guide.retries.lastRetryAt.getTime();
-      if (timeSinceLastRetry < COOLDOWN_MS) {
-        const remainingMs = COOLDOWN_MS - timeSinceLastRetry;
+      if (timeSinceLastRetry < CONST.RETRY_COOLDOWN_MS) {
+        const remainingMs = CONST.RETRY_COOLDOWN_MS - timeSinceLastRetry;
         const remainingSec = Math.ceil(remainingMs / 1000);
         return {
           eligible: false,
@@ -219,6 +228,10 @@ export class GuidesDbService {
     return { eligible: true };
   }
 
+  /**
+   * Syncs guide status from the provider (GE only).
+   * Updates providerStatus, isProviderTrackingSynced, and lastSyncTimestamp.
+   */
   async syncGuideWithProvider(
     guideId: string,
     user: { email?: string } | undefined,
@@ -229,7 +242,7 @@ export class GuidesDbService {
 
     if (!guide.externalId) {
       throw new KraftError(
-        'GDE-NF-002',
+        CONST.GDE_NF_002,
         'Guide has no external tracking ID to sync',
       );
     }
@@ -282,13 +295,13 @@ export class GuidesDbService {
   private async getUserId(
     user: { email?: string } | undefined,
   ): Promise<Types.ObjectId> {
-    if (!user?.email) {
-      throw new KraftError('GDE-AUTH-001', 'User not authenticated');
-    }
-    const dbUser = await this.usersService.findByEmail(user.email);
-    if (!dbUser) {
-      throw new KraftError('GDE-AUTH-001', 'User not found');
-    }
+      if (!user?.email) {
+        throw new KraftError(CONST.GDE_AUTH_001, 'User not authenticated');
+      }
+      const dbUser = await this.usersService.findByEmail(user.email);
+      if (!dbUser) {
+        throw new KraftError(CONST.GDE_AUTH_001, 'User not found');
+      }
     return dbUser._id;
   }
 
@@ -373,7 +386,7 @@ export class GuidesDbService {
 
     const guide = await this.guideModel.findOne(query);
     if (!guide) {
-      throw new KraftError('GDE-NF-001', 'Guide not found');
+      throw new KraftError(CONST.GDE_NF_001, 'Guide not found');
     }
     return guide;
   }
@@ -392,7 +405,7 @@ export class GuidesDbService {
       const sequence = counter.sequence.toString().padStart(6, '0');
       return `KFT-${yearMonth}-${sequence}`;
     } catch (error) {
-      throw new KraftError('GDE-BDN-008', 'Failed to generate kraftId', error);
+      throw new KraftError(CONST.GDE_BDN_008, 'Failed to generate kraftId', error);
     }
   }
 
@@ -407,7 +420,7 @@ export class GuidesDbService {
         return {
           success: false,
           error: 'Provider returned empty guide',
-          errorCode: 'GDE-PVR-002',
+          errorCode: CONST.GDE_PVR_002,
         };
       }
 
@@ -438,7 +451,7 @@ export class GuidesDbService {
       case 'Mn':
         return this.manuableService.createGuideStandardized(payload);
       default:
-        throw new KraftError('GDE-BUS-007', 'Invalid provider specified');
+        throw new KraftError(CONST.GDE_BUS_007, 'Invalid provider specified');
     }
   }
 
@@ -448,13 +461,13 @@ export class GuidesDbService {
       message?: string;
       response?: { status?: number };
     };
-    if (err.code === 'ENOTFOUND') return 'GDE-NET-001';
-    if (err.code === 'ETIMEDOUT') return 'GDE-TMOT-001';
-    if (err.message?.includes('rate limit')) return 'GDE-RLIM-003';
-    if (err.response?.status === 401) return 'GDE-PVR-003';
+    if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
+    if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
+    if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
+    if (err.response?.status === 401) return CONST.GDE_PVR_003;
     if (err.response?.status && err.response.status >= 500)
-      return 'GDE-PVR-004';
-    return 'GDE-PVR-001';
+      return CONST.GDE_PVR_004;
+    return CONST.GDE_PVR_001;
   }
 
   formatGuideResponse(guide: GuideDoc): GuideResponseDto {
