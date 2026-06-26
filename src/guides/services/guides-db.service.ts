@@ -337,22 +337,31 @@ export class GuidesDbService {
     guideId: string,
     user: { email?: string } | undefined,
   ): Promise<GuideResponseDto> {
-    const userId = await this.getUserId(user);
-    const guide = await this.findAccessibleGuide({
-      guideId,
-      userId,
-      isAdmin: false,
-    });
+    try {
+      const userId = await this.getUserId(user);
+      const guide = await this.findAccessibleGuide({
+        guideId,
+        userId,
+        isAdmin: false,
+      });
 
-    await this.guideModel.findByIdAndUpdate(guide._id, {
-      $set: {
-        deletedAt: new Date(),
-        deletedBy: userId,
-      },
-    });
+      await this.guideModel.findByIdAndUpdate(guide._id, {
+        $set: {
+          deletedAt: new Date(),
+          deletedBy: userId,
+        },
+      });
 
-    const updated = await this.guideModel.findById(guide._id);
-    return this.formatGuideResponse(updated!);
+      const updated = await this.guideModel.findById(guide._id);
+      return this.formatGuideResponse(updated!);
+    } catch (error) {
+      if (error instanceof KraftError) throw error;
+      throw new KraftError(
+        CONST.GDE_BDN_010,
+        CONST.MSG_FAILED_SOFT_DELETE,
+        error,
+      );
+    }
   }
 
   /**
@@ -362,10 +371,19 @@ export class GuidesDbService {
     guideId: string,
     adminUser: { email?: string } | undefined,
   ): Promise<void> {
-    await this.getUserId(adminUser);
-    const guide = await this.findAccessibleGuide({ guideId, isAdmin: true });
+    try {
+      await this.getUserId(adminUser);
+      const guide = await this.findAccessibleGuide({ guideId, isAdmin: true });
 
-    await this.guideModel.findByIdAndDelete(guide._id);
+      await this.guideModel.findByIdAndDelete(guide._id);
+    } catch (error) {
+      if (error instanceof KraftError) throw error;
+      throw new KraftError(
+        CONST.GDE_BDN_011,
+        CONST.MSG_FAILED_HARD_DELETE,
+        error,
+      );
+    }
   }
 
   private async fetchProviderStatus(

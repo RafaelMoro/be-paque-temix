@@ -15,6 +15,10 @@ export const GDE_BDN_001 = 'GDE-BDN-001';
 export const GDE_BDN_008 = 'GDE-BDN-008';
 /** Used when a generic/unknown backend error occurs */
 export const GDE_BDN_009 = 'GDE-BDN-009';
+/** Used when soft delete of a guide fails */
+export const GDE_BDN_010 = 'GDE-BDN-010';
+/** Used when hard delete of a guide fails */
+export const GDE_BDN_011 = 'GDE-BDN-011';
 
 /** Default provider error when no specific mapping exists */
 export const GDE_PVR_001 = 'GDE-PVR-001';
@@ -49,6 +53,8 @@ export const MSG_NO_EXTERNAL_TRACKING_ID =
   'Guide has no external tracking ID to sync';
 export const MSG_FAILED_CREATE_GUIDE = 'Failed to create guide';
 export const MSG_FAILED_GENERATE_KRAFT_ID = 'Failed to generate kraftId';
+export const MSG_FAILED_SOFT_DELETE = 'Failed to soft delete guide';
+export const MSG_FAILED_HARD_DELETE = 'Failed to hard delete guide';
 export const MSG_PROVIDER_RETURNED_EMPTY = 'Provider returned empty guide';
 export const MSG_INVALID_PROVIDER = 'Invalid provider specified';
 export const MSG_PROVIDER_VALIDATION_ERROR =

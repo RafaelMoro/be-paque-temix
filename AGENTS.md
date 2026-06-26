@@ -47,6 +47,34 @@
 - `pnpm test` currently has **2 failing suites**: `src/mail/services/mail.service.spec.ts` (React/jsx-runtime load issue) and `src/auth/guards/jwt-guard/jwt-guard.guard.spec.ts` (imports missing `IS_PUBLIC_KEY` from `@/auth/auth.constant`). 542 tests otherwise pass.
 - Tests import source with the `@/*` alias mapped to `src/*` in both `tsconfig.json` and Jest config.
 
+## Error handling — never return 500 Internal Server Error
+
+All service methods that perform async operations (database, external API calls) **must** wrap their logic in try-catch. Errors must be converted to `KraftError` (or re-thrown as-is if already a `KraftError`). Unhandled exceptions propagate to NestJS and return a raw 500 to the client, which leaks internals and is unhelpful.
+
+**Pattern — every async service method:**
+```typescript
+async myServiceMethod(args): Promise<SomeDto> {
+  try {
+    // business logic
+    return result;
+  } catch (error) {
+    if (error instanceof KraftError) throw error;
+    throw new KraftError(
+      CONST.MY_ERROR_CODE,
+      'Human-readable message',
+      error,
+    );
+  }
+}
+```
+
+**Why this matters:**
+- Clients receive structured `{ code, message, technicalDetails }` responses instead of 500
+- Error codes map to specific user-facing remediation messages
+- Technical details (original error, stack) are preserved for debugging but not leaked
+
+**Already applied in:** all guides-db service methods. When adding new service methods, always use this pattern.
+
 ## Code style
 
 - Prettier: `singleQuote: true`, `trailingComma: all`.
