@@ -10,6 +10,7 @@ import { CreateGuideDto } from '../dtos/guides-db.dto';
 import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
+  DeleteGuideResponseDto,
 } from '../dtos/guides-db-responses.dto';
 import {
   GetAdminGuidesQueryDto,
@@ -336,8 +337,9 @@ export class GuidesDbService {
   async softDeleteGuide(
     guideId: string,
     user: { email?: string } | undefined,
-  ): Promise<GuideResponseDto> {
+  ): Promise<DeleteGuideResponseDto> {
     try {
+      const npmVersion: string = this.configService.version!;
       const userId = await this.getUserId(user);
       const guide = await this.findAccessibleGuide({
         guideId,
@@ -352,8 +354,14 @@ export class GuidesDbService {
         },
       });
 
-      const updated = await this.guideModel.findById(guide._id);
-      return this.formatGuideResponse(updated!);
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          guide: { kraftId: guide.kraftId },
+        },
+      };
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -370,12 +378,22 @@ export class GuidesDbService {
   async hardDeleteGuide(
     guideId: string,
     adminUser: { email?: string } | undefined,
-  ): Promise<void> {
+  ): Promise<DeleteGuideResponseDto> {
     try {
+      const npmVersion: string = this.configService.version!;
       await this.getUserId(adminUser);
       const guide = await this.findAccessibleGuide({ guideId, isAdmin: true });
 
       await this.guideModel.findByIdAndDelete(guide._id);
+
+      return {
+        version: npmVersion,
+        message: null,
+        error: null,
+        data: {
+          guide: { kraftId: guide.kraftId },
+        },
+      };
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(

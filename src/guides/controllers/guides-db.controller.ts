@@ -31,6 +31,7 @@ import {
 import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
+  DeleteGuideResponseDto,
 } from '../dtos/guides-db-responses.dto';
 
 @ApiTags('Guides DB')
@@ -144,11 +145,11 @@ export class GuidesDbController {
   @Delete(':guideId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft delete a guide' })
-  @ApiResponse({ status: 200, type: GuideResponseDto })
+  @ApiResponse({ status: 200, type: DeleteGuideResponseDto })
   async softDelete(
     @Param('guideId') guideId: string,
     @Request() req: ExpressRequest,
-  ): Promise<GuideResponseDto> {
+  ): Promise<DeleteGuideResponseDto> {
     return this.guidesDbService.softDeleteGuide(guideId, req.user);
   }
 
@@ -157,11 +158,11 @@ export class GuidesDbController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({ summary: 'Permanently delete a guide (admin only)' })
-  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 200, type: DeleteGuideResponseDto })
   async hardDelete(
     @Param('guideId') guideId: string,
     @Request() req: ExpressRequest,
-  ): Promise<void> {
+  ): Promise<DeleteGuideResponseDto> {
     return this.guidesDbService.hardDeleteGuide(guideId, req.user);
   }
 }

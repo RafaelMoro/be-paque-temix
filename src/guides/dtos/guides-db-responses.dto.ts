@@ -93,3 +93,27 @@ export class PaginatedGuidesResponseDto {
   @ApiProperty({ type: PaginatedGuidesDataDto })
   data: PaginatedGuidesDataDto;
 }
+
+export class DeleteGuideDataDto {
+  @ApiProperty({ example: 'KFT-202606-000001' })
+  kraftId: string;
+}
+
+export class DeleteGuideDataWrapperDto {
+  @ApiProperty({ type: DeleteGuideDataDto })
+  guide: DeleteGuideDataDto;
+}
+
+export class DeleteGuideResponseDto {
+  @ApiProperty({ example: '1.0.0' })
+  version: string;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  message: string | null;
+
+  @ApiProperty({ type: DeleteGuideDataWrapperDto })
+  data: DeleteGuideDataWrapperDto;
+
+  @ApiProperty({ type: 'null', nullable: true, example: null })
+  error: null;
+}

@@ -634,7 +634,7 @@ describe('GuidesDbService', () => {
         expect.anything(),
         { $set: { deletedAt: expect.any(Date), deletedBy: user._id } },
       );
-      expect(result.data.kraftId).toBe('KFT-202606-000001');
+      expect(result.data.guide.kraftId).toBe('KFT-202606-000001');
     });
   });
 

@@ -530,6 +530,75 @@ async myServiceMethod(args): Promise<SomeDto> {
 
 ---
 
+## Service Return Shape — Always Return A Response Envelope
+
+Service methods (including delete/mutate operations) must return a structured response envelope — never `void`. The envelope matches the global `GeneralResponse` shape:
+
+```typescript
+{
+  version: string;
+  data: { <entity>: { ...payload } };
+  message: string | null;
+  error: string | object | null;
+}
+```
+
+**Reference pattern — `addresses.service.ts:156-165` (deleteAddressByAliasAndEmail):**
+```typescript
+return {
+  version: npmVersion,
+  message: null,
+  error: null,
+  data: {
+    address: {
+      alias: address.alias,
+    },
+  },
+};
+```
+
+**Pattern — every mutating service method:**
+```typescript
+async deleteSomething(id: string): Promise<DeleteResponseDto> {
+  try {
+    const npmVersion: string = this.configService.version!;
+    const entity = await this.findEntity(id);
+
+    await this.entityModel.findByIdAndDelete(entity._id);
+
+    return {
+      version: npmVersion,
+      message: null,
+      error: null,
+      data: {
+        <entity>: { id: entity.id }, // or kraftId, alias, etc.
+      },
+    };
+  } catch (error) {
+    if (error instanceof KraftError) throw error;
+    throw new KraftError(
+      CONST.MY_ERROR_CODE,
+      'Failed to delete <entity>',
+      error,
+    );
+  }
+}
+```
+
+**Why this matters:**
+- Clients get a consistent response shape across all endpoints (create, read, update, delete)
+- Returning `void` from a delete operation skips the response envelope — inconsistent with the rest of the API
+- The wrapper gives clients confirmation of what was deleted (e.g. the deleted `kraftId`)
+
+**Where to apply:**
+- `softDeleteGuide`, `hardDeleteGuide` (and any future delete/mutate methods) — see `src/guides/services/guides-db.service.ts:336-387`
+
+**Already applied in:**
+- `src/addresses/services/addresses.service.ts:156-165` — `deleteAddressByAliasAndEmail`
+- `src/guides/services/guides-db.service.ts` — `softDeleteGuide`, `hardDeleteGuide`
+
+---
+
 ## Next Steps
 
 As new patterns emerge or existing patterns evolve, update this document to reflect best practices.
