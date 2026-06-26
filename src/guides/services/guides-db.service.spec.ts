@@ -35,6 +35,7 @@ const mockCounterModel = {
 
 const mockGuiaEnviaService = {
   createGuideStandardized: jest.fn(),
+  getGuides: jest.fn(),
 };
 
 const mockT1Service = {
@@ -423,6 +424,119 @@ describe('GuidesDbService', () => {
       await expect(
         service.syncGuideWithProvider('KFT-202606-000001', { email: user.email }, false),
       ).rejects.toThrow('no external tracking ID');
+    });
+
+    it('should sync guide status from GE provider', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        externalId: 'EXT123',
+      });
+      mockGuiaEnviaService.getGuides.mockResolvedValue([
+        { trackingNumber: 'EXT123', status: 'in-transit' },
+      ]);
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        externalId: 'EXT123',
+        providerStatus: 'in-transit',
+      });
+
+      const result = await service.syncGuideWithProvider(
+        'KFT-202606-000001',
+        { email: user.email },
+        false,
+      );
+
+      expect(mockGuiaEnviaService.getGuides).toHaveBeenCalled();
+      expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          $set: expect.objectContaining({ providerStatus: 'in-transit' }),
+        }),
+      );
+    });
+  });
+
+  describe('retryFailedGuide success path', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should update guide on successful retry', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      const guideId = new Types.ObjectId();
+      mockGuideModel.findOne.mockResolvedValue({
+        _id: guideId,
+        kraftId: 'KFT-202606-000001',
+        status: 'failed',
+        provider: 'GE',
+        retries: { retryCount: 1, retryAttempts: [], lastRetryAt: null },
+        quoteData: { quoteId: 'q1' },
+        origin: { alias: 'o1' },
+        destination: { alias: 'd1' },
+        parcel: { length: '10' },
+      });
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
+        version: '1.0',
+        data: { guide: { trackingNumber: 'NEW123', labelUrl: 'http://label.com' } },
+        error: null,
+        message: null,
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: guideId,
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        externalId: 'NEW123',
+        labelUrl: 'http://label.com',
+        retries: { retryCount: 2 },
+      });
+
+      const result = await service.retryFailedGuide(
+        'KFT-202606-000001',
+        { email: user.email },
+      );
+
+      expect(result.data.status).toBe('created');
+      expect(result.data.externalId).toBe('NEW123');
+    });
+  });
+
+  describe('mapProviderErrorToKraftCode', () => {
+    it('should return GDE-NET-001 for ENOTFOUND', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({ code: 'ENOTFOUND' });
+      expect(result).toBe('GDE-NET-001');
+    });
+
+    it('should return GDE-TMOT-001 for ETIMEDOUT', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({ code: 'ETIMEDOUT' });
+      expect(result).toBe('GDE-TMOT-001');
+    });
+
+    it('should return GDE-PVR-003 for 401 status', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({ response: { status: 401 } });
+      expect(result).toBe('GDE-PVR-003');
+    });
+
+    it('should return GDE-PVR-004 for 500 status', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({ response: { status: 500 } });
+      expect(result).toBe('GDE-PVR-004');
+    });
+
+    it('should return GDE-RLIM-003 for rate limit message', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({ message: 'rate limit exceeded' });
+      expect(result).toBe('GDE-RLIM-003');
+    });
+
+    it('should return default GDE-PVR-001', () => {
+      const result = (service as any).mapProviderErrorToKraftCode({});
+      expect(result).toBe('GDE-PVR-001');
     });
   });
 

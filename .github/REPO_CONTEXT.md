@@ -1,6 +1,6 @@
 # Repository Context - be-paque-temix
 
-**Last Updated:** 2026-06-25
+**Last Updated:** 2026-06-26
 
 This document describes the architecture, modules, services, guards, and how they connect within the be-paque-temix NestJS backend application.
 
