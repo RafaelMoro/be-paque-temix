@@ -727,14 +727,14 @@ describe('GuidesDbService', () => {
       );
     });
 
-    it('should throw GDE-PVR-006 when provider returns quote expired error', async () => {
+    it('should throw GDE-PVR-006 when Mn returns "Rate request already has a label"', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
       mockGuideModel.findOne.mockReturnValue(
         createMockFindOneQuery({
           _id: new Types.ObjectId(),
           kraftId: 'KFT-202606-000001',
           status: 'created',
-          provider: 'GE',
+          provider: 'Mn',
           externalId: 'OLD-EXT-123',
           quoteData: { quoteId: 'expired-quote' },
           origin: { alias: 'o' },
@@ -742,9 +742,15 @@ describe('GuidesDbService', () => {
           parcel: { length: 10, weight: 1 },
         }),
       );
-      mockGuiaEnviaService.createGuideStandardized.mockRejectedValue({
-        message: 'Quote has expired',
-        response: { status: 400, data: { errors: { reason: 'quote expired' } } },
+      mockManuableService.createGuideStandardized.mockRejectedValue({
+        message: 'Bad Request Exception',
+        response: {
+          status: 400,
+          data: { errors: { reason: 'Rate request already has a label' } },
+        },
+        getResponse: () => ({
+          errors: { reason: 'Rate request already has a label' },
+        }),
       });
 
       await expect(
@@ -753,7 +759,7 @@ describe('GuidesDbService', () => {
           { email: user.email },
           { quoteId: 'expired-quote' },
         ),
-      ).rejects.toThrow('Quote has expired');
+      ).rejects.toThrow('Quote has expired, please create a new quote');
     });
 
     it('should mark guide as failed when provider returns other error', async () => {

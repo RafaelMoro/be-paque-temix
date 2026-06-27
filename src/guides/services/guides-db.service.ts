@@ -686,7 +686,7 @@ export class GuidesDbService {
       };
     } catch (error) {
       if (error instanceof KraftError) throw error;
-      return this.buildProviderErrorResult(error);
+      return this.buildProviderErrorResult(error, payload.provider);
     }
   }
 
@@ -695,14 +695,17 @@ export class GuidesDbService {
    * Extracts structured response data (axios or Nest HttpException) so the
    * client can see what went wrong (e.g. { errors: { reason: '...' } }).
    */
-  private buildProviderErrorResult(error: unknown): ProviderResult {
+  private buildProviderErrorResult(
+    error: unknown,
+    provider?: string,
+  ): ProviderResult {
     const responseData = this.extractProviderResponseData(error);
     const errorDetails = this.formatErrorDetails(error, responseData);
 
     return {
       success: false,
       error: errorDetails,
-      errorCode: this.mapProviderErrorToKraftCode(error),
+      errorCode: this.mapProviderErrorToKraftCode(error, provider),
       response: responseData ?? this.fallbackResponse(error),
     };
   }
@@ -795,7 +798,10 @@ export class GuidesDbService {
     }
   }
 
-  private mapProviderErrorToKraftCode(error: unknown): string {
+  private mapProviderErrorToKraftCode(
+    error: unknown,
+    provider?: string,
+  ): string {
     const err = error as {
       code?: string;
       message?: string;
@@ -807,7 +813,7 @@ export class GuidesDbService {
     if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
     if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
     if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
-    if (this.isQuoteExpiredError(err)) return CONST.GDE_PVR_006;
+    if (this.isQuoteExpiredError(err, provider)) return CONST.GDE_PVR_006;
     if (err.response?.status === 401) return CONST.GDE_PVR_003;
     if (err.response?.status === 400 && err.response?.data?.errors)
       return CONST.GDE_PVR_005;
@@ -817,38 +823,33 @@ export class GuidesDbService {
   }
 
   /**
-   * Detects quote-expired patterns in provider error responses.
-   * Providers may use different wording (English/Spanish) to indicate
-   * the quote/cotización has expired.
+   * Detects provider-specific quote-expired error messages.
+   * Currently known:
+   * - Mn: "Rate request already has a label" in errors.reason
+   * Add more provider-specific checks here as they are discovered.
    */
-  private isQuoteExpiredError(error: {
-    message?: string;
-    response?: {
-      status?: number;
-      data?: { errors?: Record<string, unknown>; message?: string };
-    };
-  }): boolean {
-    const patterns = [
-      'quote',
-      'expired',
-      'expir',
-      'cotizacion',
-      'cotización',
-      'no longer valid',
-      'invalid quote',
-    ];
-    const checkText = (text: string): boolean =>
-      patterns.some((p) => text.toLowerCase().includes(p));
+  private isQuoteExpiredError(
+    error: {
+      message?: string;
+      response?: {
+        status?: number;
+        data?: { errors?: Record<string, unknown>; message?: string };
+      };
+    },
+    provider?: string,
+  ): boolean {
+    if (provider !== 'Mn') return false;
 
-    if (error.message && checkText(error.message)) return true;
-    if (error.response?.data?.message && checkText(error.response.data.message))
-      return true;
-    if (error.response?.data?.errors) {
-      const errors = error.response.data.errors;
-      const reason = (errors as { reason?: string }).reason;
-      if (reason && checkText(reason)) return true;
-    }
-    return false;
+    const text = [
+      error.message,
+      error.response?.data?.message,
+      (error.response?.data?.errors as { reason?: string })?.reason,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return text.includes('rate request already has a label');
   }
 
   formatGuideResponse(
