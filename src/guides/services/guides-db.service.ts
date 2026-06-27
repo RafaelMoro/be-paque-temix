@@ -130,13 +130,6 @@ export class GuidesDbService {
       query.userId = new Types.ObjectId(filters.userId);
     }
 
-    const now = new Date();
-    const targetMonth = filters.month || now.getMonth() + 1;
-    const targetYear = filters.year || now.getFullYear();
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
-    query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
-
     return this.executePaginatedQuery(query, filters);
   }
 
@@ -555,12 +548,23 @@ export class GuidesDbService {
         { externalId: new RegExp(filters.trackingNumber, 'i') },
       ];
     }
+
+    // Default to current month/year when not provided, so results are scoped
+    // and don't return a large unbounded set.
+    // Month/year filter takes precedence over startDate/endDate.
+    const now = new Date();
+    const targetMonth = filters.month || now.getMonth() + 1;
+    const targetYear = filters.year || now.getFullYear();
+    const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
     if (filters.startDate || filters.endDate) {
       query.createdAt = {};
       if (filters.startDate)
         (query.createdAt as Record<string, Date>).$gte = filters.startDate;
       if (filters.endDate)
         (query.createdAt as Record<string, Date>).$lte = filters.endDate;
+    } else {
+      query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
     }
 
     return query;

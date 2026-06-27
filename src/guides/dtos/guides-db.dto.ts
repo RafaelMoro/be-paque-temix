@@ -50,12 +50,6 @@ export class GetGuidesQueryDto {
   @IsOptional()
   @Type(() => Date)
   endDate?: Date;
-}
-
-export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
-  @ApiProperty({ enum: ['all', 'own'], required: true })
-  @IsEnum(['all', 'own'])
-  scope: 'all' | 'own';
 
   @ApiProperty({ required: false, minimum: 1, maximum: 12 })
   @IsOptional()
@@ -68,6 +62,12 @@ export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
   @IsNumber()
   @Type(() => Number)
   year?: number;
+}
+
+export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
+  @ApiProperty({ enum: ['all', 'own'], required: true })
+  @IsEnum(['all', 'own'])
+  scope: 'all' | 'own';
 
   @ApiProperty({ required: false })
   @IsOptional()

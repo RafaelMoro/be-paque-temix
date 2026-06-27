@@ -295,6 +295,60 @@ describe('GuidesDbService', () => {
         expect.objectContaining({ userId: user._id, deletedAt: null }),
       );
     });
+
+    it('should apply month and year filter to limit results', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      await service.getGuidesByUser(
+        { email: user.email },
+        { page: 1, limit: 10, month: 6, year: 2026 },
+      );
+
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: user._id,
+          deletedAt: null,
+          createdAt: expect.objectContaining({
+            $gte: new Date(2026, 5, 1),
+            $lte: new Date(2026, 6, 0, 23, 59, 59, 999),
+          }),
+        }),
+      );
+    });
+
+    it('should default to current month when month/year not provided', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      await service.getGuidesByUser(
+        { email: user.email },
+        { page: 1, limit: 10 },
+      );
+
+      const now = new Date();
+      const expectedStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const expectedEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdAt: expect.objectContaining({
+            $gte: expectedStart,
+            $lte: expectedEnd,
+          }),
+        }),
+      );
+    });
   });
 
   describe('getAllGuides', () => {
