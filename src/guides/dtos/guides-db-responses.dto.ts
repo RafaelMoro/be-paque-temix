@@ -1,9 +1,43 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ProviderSource } from '@/global.interface';
 
+export class GuideAddressResponseDto {
+  @ApiProperty({ required: false }) alias?: string;
+  @ApiProperty({ required: false }) name?: string;
+  @ApiProperty({ required: false }) lastName?: string;
+  @ApiProperty({ required: false }) phone?: string;
+  @ApiProperty({ required: false }) email?: string;
+  @ApiProperty({ required: false }) company?: string;
+  @ApiProperty({ required: false }) street1?: string;
+  @ApiProperty({ required: false }) street2?: string;
+  @ApiProperty({ required: false }) isResidential?: boolean;
+  @ApiProperty({ required: false }) external_number?: string;
+  @ApiProperty({ required: false }) neighborhood?: string;
+  @ApiProperty({ required: false }) city?: string;
+  @ApiProperty({ required: false }) town?: string;
+  @ApiProperty({ required: false }) state?: string;
+  @ApiProperty({ required: false }) zipcode?: string;
+  @ApiProperty({ required: false }) country?: string;
+  @ApiProperty({ required: false }) reference?: string;
+}
+
+export class GuideParcelResponseDto {
+  @ApiProperty({ required: false }) length?: number;
+  @ApiProperty({ required: false }) width?: number;
+  @ApiProperty({ required: false }) height?: number;
+  @ApiProperty({ required: false }) weight?: number;
+  @ApiProperty({ required: false }) content?: string;
+  @ApiProperty({ required: false }) satProductId?: string;
+  @ApiProperty({ required: false }) value?: number;
+  @ApiProperty({ required: false }) quantity?: number;
+}
+
 export class GuideDataDto {
   @ApiProperty()
   kraftId: string;
+
+  @ApiProperty({ required: false })
+  quoteId?: string;
 
   @ApiProperty({ required: false })
   externalId?: string | null; // this is the tracking number that the provider returns
@@ -53,6 +87,15 @@ export class GuideDataDto {
     errorCode: string;
     timestamp: Date;
   } | null;
+
+  @ApiProperty({ required: false, type: GuideAddressResponseDto })
+  origin?: GuideAddressResponseDto;
+
+  @ApiProperty({ required: false, type: GuideAddressResponseDto })
+  destination?: GuideAddressResponseDto;
+
+  @ApiProperty({ required: false, type: GuideParcelResponseDto })
+  parcel?: GuideParcelResponseDto;
 }
 
 export class GuideResponseDto {

@@ -860,6 +860,7 @@ export class GuidesDbService {
 
     const data: FormattedGuideData = {
       kraftId: guide.kraftId,
+      quoteId: guide.quoteData?.quoteId,
       externalId: guide.externalId || null,
       shipmentNumber: providerGuide?.shipmentNumber ?? null,
       status: guide.status,
@@ -881,6 +882,60 @@ export class GuidesDbService {
             timestamp: guide.failureInfo.timestamp,
           }
         : null,
+      origin: guide.origin
+        ? {
+            alias: guide.origin.alias,
+            name: guide.origin.name,
+            lastName: guide.origin.lastName,
+            phone: guide.origin.phone,
+            email: guide.origin.email,
+            company: guide.origin.company,
+            street1: guide.origin.street1,
+            street2: guide.origin.street2,
+            isResidential: guide.origin.isResidential,
+            external_number: guide.origin.external_number,
+            neighborhood: guide.origin.neighborhood,
+            city: guide.origin.city,
+            town: guide.origin.town,
+            state: guide.origin.state,
+            zipcode: guide.origin.zipcode,
+            country: guide.origin.country,
+            reference: guide.origin.reference,
+          }
+        : undefined,
+      destination: guide.destination
+        ? {
+            alias: guide.destination.alias,
+            name: guide.destination.name,
+            lastName: guide.destination.lastName,
+            phone: guide.destination.phone,
+            email: guide.destination.email,
+            company: guide.destination.company,
+            street1: guide.destination.street1,
+            street2: guide.destination.street2,
+            isResidential: guide.destination.isResidential,
+            external_number: guide.destination.external_number,
+            neighborhood: guide.destination.neighborhood,
+            city: guide.destination.city,
+            town: guide.destination.town,
+            state: guide.destination.state,
+            zipcode: guide.destination.zipcode,
+            country: guide.destination.country,
+            reference: guide.destination.reference,
+          }
+        : undefined,
+      parcel: guide.parcel
+        ? {
+            length: guide.parcel.length,
+            width: guide.parcel.width,
+            height: guide.parcel.height,
+            weight: guide.parcel.weight,
+            content: guide.parcel.content,
+            satProductId: guide.parcel.satProductId,
+            value: guide.parcel.value,
+            quantity: guide.parcel.quantity,
+          }
+        : undefined,
     };
 
     return {
