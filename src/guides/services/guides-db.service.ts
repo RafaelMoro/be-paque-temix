@@ -17,6 +17,7 @@ import {
   GetGuidesQueryDto,
   AddCommentDto,
   UpdateGuideStatusDto,
+  UpdateGuideDto,
 } from '../dtos/guides-db.dto';
 import {
   FormattedGuideData,
@@ -333,6 +334,89 @@ export class GuidesDbService {
 
     const updated = await this.guideModel.findById(guide._id);
     return this.formatGuideResponse(updated!);
+  }
+
+  /**
+   * Updates guide data (origin, destination, parcel, quoteId, notifyMe).
+   * Re-calls the provider API to create a new guide with corrected data.
+   * Old externalId is pushed to oldExternalIds for cancellation reference.
+   * Throws GDE-PVR-006 if the provider indicates the quote has expired.
+   */
+  async updateGuideData(
+    guideId: string,
+    user: { email?: string } | undefined,
+    dto: UpdateGuideDto,
+  ): Promise<GuideResponseDto> {
+    try {
+      const userId = await this.getUserId(user);
+      const guide = await this.findAccessibleGuide({
+        guideId,
+        userId,
+        isAdmin: false,
+      });
+
+      // Build merged payload for the provider call
+      const mergedPayload = {
+        provider: guide.provider as ProviderSource,
+        quoteId: dto.quoteId ?? guide.quoteData.quoteId,
+        parcel: dto.parcel ?? guide.parcel,
+        origin: dto.origin ?? guide.origin,
+        destination: dto.destination ?? guide.destination,
+        notifyMe: dto.notifyMe ?? false,
+      };
+
+      const providerResult = await this.callProviderApi(
+        mergedPayload as unknown as CreateGuideDto,
+      );
+
+      // Quote expired — don't update anything, tell user to get a new quote
+      if (
+        !providerResult.success &&
+        providerResult.errorCode === CONST.GDE_PVR_006
+      ) {
+        throw new KraftError(CONST.GDE_PVR_006, CONST.MSG_QUOTE_EXPIRED);
+      }
+
+      // Build DB update — only fields that were provided
+      const setFields: Record<string, unknown> = {};
+      if (dto.quoteId) setFields['quoteData.quoteId'] = dto.quoteId;
+      if (dto.parcel) setFields.parcel = dto.parcel;
+      if (dto.origin) setFields.origin = dto.origin;
+      if (dto.destination) setFields.destination = dto.destination;
+
+      const updateQuery: Record<string, unknown> = { $set: setFields };
+
+      if (providerResult.success) {
+        // Push old externalId to oldExternalIds, set new one
+        if (guide.externalId) {
+          updateQuery.$push = { oldExternalIds: guide.externalId };
+        }
+        setFields.externalId = providerResult.externalId;
+        setFields.labelUrl = providerResult.labelUrl;
+        setFields.status = 'created';
+        setFields.isProviderTrackingSynced = !!providerResult.externalId;
+        setFields.failureInfo = null;
+      } else {
+        setFields.status = 'failed';
+        setFields.failureInfo = {
+          errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
+          errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
+          providerResponse: providerResult.response || {},
+          timestamp: new Date(),
+        };
+      }
+
+      await this.guideModel.findByIdAndUpdate(guide._id, updateQuery);
+      const updated = await this.guideModel.findById(guide._id);
+      return this.formatGuideResponse(updated!, providerResult);
+    } catch (error) {
+      if (error instanceof KraftError) throw error;
+      throw new KraftError(
+        CONST.GDE_BDN_012,
+        CONST.MSG_FAILED_UPDATE_GUIDE,
+        error,
+      );
+    }
   }
 
   /**
@@ -717,18 +801,54 @@ export class GuidesDbService {
       message?: string;
       response?: {
         status?: number;
-        data?: { errors?: Record<string, unknown> };
+        data?: { errors?: Record<string, unknown>; message?: string };
       };
     };
     if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
     if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
     if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
+    if (this.isQuoteExpiredError(err)) return CONST.GDE_PVR_006;
     if (err.response?.status === 401) return CONST.GDE_PVR_003;
     if (err.response?.status === 400 && err.response?.data?.errors)
       return CONST.GDE_PVR_005;
     if (err.response?.status && err.response.status >= 500)
       return CONST.GDE_PVR_004;
     return CONST.GDE_PVR_001;
+  }
+
+  /**
+   * Detects quote-expired patterns in provider error responses.
+   * Providers may use different wording (English/Spanish) to indicate
+   * the quote/cotización has expired.
+   */
+  private isQuoteExpiredError(error: {
+    message?: string;
+    response?: {
+      status?: number;
+      data?: { errors?: Record<string, unknown>; message?: string };
+    };
+  }): boolean {
+    const patterns = [
+      'quote',
+      'expired',
+      'expir',
+      'cotizacion',
+      'cotización',
+      'no longer valid',
+      'invalid quote',
+    ];
+    const checkText = (text: string): boolean =>
+      patterns.some((p) => text.toLowerCase().includes(p));
+
+    if (error.message && checkText(error.message)) return true;
+    if (error.response?.data?.message && checkText(error.response.data.message))
+      return true;
+    if (error.response?.data?.errors) {
+      const errors = error.response.data.errors;
+      const reason = (errors as { reason?: string }).reason;
+      if (reason && checkText(reason)) return true;
+    }
+    return false;
   }
 
   formatGuideResponse(

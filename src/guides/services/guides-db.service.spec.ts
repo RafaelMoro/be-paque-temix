@@ -665,4 +665,138 @@ describe('GuidesDbService', () => {
       expect(mockGuideModel.findByIdAndDelete).toHaveBeenCalled();
     });
   });
+
+  describe('updateGuideData', () => {
+    const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
+
+    it('should update guide data and re-call provider successfully', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      const guideId = new Types.ObjectId();
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: guideId,
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          externalId: 'OLD-EXT-123',
+          quoteData: { quoteId: 'old-quote' },
+          origin: { alias: 'old-origin' },
+          destination: { alias: 'old-dest' },
+          parcel: { length: 10, weight: 1 },
+        }),
+      );
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
+        version: '1.0',
+        data: { guide: { trackingNumber: 'NEW-EXT-456', labelUrl: 'http://new-label.com' } },
+        error: null,
+        message: null,
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: guideId,
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        externalId: 'NEW-EXT-456',
+        labelUrl: 'http://new-label.com',
+        quoteData: { quoteId: 'new-quote' },
+        origin: { alias: 'new-origin' },
+        destination: { alias: 'old-dest' },
+        parcel: { length: 10, weight: 1 },
+      });
+
+      const result = await service.updateGuideData(
+        'KFT-202606-000001',
+        { email: user.email },
+        { quoteId: 'new-quote', origin: { alias: 'new-origin' } as any },
+      );
+
+      expect(result.data.status).toBe('created');
+      expect(result.data.externalId).toBe('NEW-EXT-456');
+      expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        guideId,
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            'quoteData.quoteId': 'new-quote',
+            origin: { alias: 'new-origin' },
+            externalId: 'NEW-EXT-456',
+            status: 'created',
+          }),
+          $push: { oldExternalIds: 'OLD-EXT-123' },
+        }),
+      );
+    });
+
+    it('should throw GDE-PVR-006 when provider returns quote expired error', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          externalId: 'OLD-EXT-123',
+          quoteData: { quoteId: 'expired-quote' },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { length: 10, weight: 1 },
+        }),
+      );
+      mockGuiaEnviaService.createGuideStandardized.mockRejectedValue({
+        message: 'Quote has expired',
+        response: { status: 400, data: { errors: { reason: 'quote expired' } } },
+      });
+
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quoteId: 'expired-quote' },
+        ),
+      ).rejects.toThrow('Quote has expired');
+    });
+
+    it('should mark guide as failed when provider returns other error', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          externalId: 'OLD-EXT-123',
+          quoteData: { quoteId: 'q1' },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { length: 10, weight: 1 },
+        }),
+      );
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
+        version: '1.0',
+        data: { guide: null },
+        error: null,
+        message: null,
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: 'failed',
+        provider: 'GE',
+        externalId: 'OLD-EXT-123',
+        quoteData: { quoteId: 'q1' },
+        origin: { alias: 'o' },
+        destination: { alias: 'd' },
+        parcel: { length: 10, weight: 1 },
+      });
+
+      const result = await service.updateGuideData(
+        'KFT-202606-000001',
+        { email: user.email },
+        { quoteId: 'q1' },
+      );
+
+      expect(result.data.status).toBe('failed');
+    });
+  });
 });

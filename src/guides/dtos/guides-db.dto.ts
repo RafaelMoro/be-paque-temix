@@ -242,6 +242,37 @@ export class CreateGuideDto {
   notifyMe: boolean = false;
 }
 
+export class UpdateGuideDto {
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  quoteId?: string;
+
+  @ApiProperty({ required: false, type: ParcelDto })
+  @ValidateNested()
+  @Type(() => ParcelDto)
+  @IsOptional()
+  parcel?: ParcelDto;
+
+  @ApiProperty({ required: false, type: CreateGuideAddressDto })
+  @ValidateNested()
+  @Type(() => CreateGuideAddressDto)
+  @IsOptional()
+  origin?: CreateGuideAddressDto;
+
+  @ApiProperty({ required: false, type: CreateGuideAddressDto })
+  @ValidateNested()
+  @Type(() => CreateGuideAddressDto)
+  @IsOptional()
+  destination?: CreateGuideAddressDto;
+
+  @ApiProperty({ required: false, default: false })
+  @IsBoolean()
+  @IsOptional()
+  notifyMe?: boolean;
+}
+
 export class AddCommentDto {
   @ApiProperty()
   @IsString()

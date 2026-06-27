@@ -122,6 +122,9 @@ export class Guide extends Document {
   @Prop({ type: String }) providerStatus?: string | null;
   @Prop() labelUrl?: string;
 
+  @Prop({ type: [String], default: [] })
+  oldExternalIds: string[];
+
   @Prop({ type: Object })
   failureInfo?: {
     errorDetails: string;

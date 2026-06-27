@@ -19,6 +19,8 @@ export const GDE_BDN_009 = 'GDE-BDN-009';
 export const GDE_BDN_010 = 'GDE-BDN-010';
 /** Used when hard delete of a guide fails */
 export const GDE_BDN_011 = 'GDE-BDN-011';
+/** Used when updating guide data fails */
+export const GDE_BDN_012 = 'GDE-BDN-012';
 
 /** Default provider error when no specific mapping exists */
 export const GDE_PVR_001 = 'GDE-PVR-001';
@@ -30,6 +32,8 @@ export const GDE_PVR_003 = 'GDE-PVR-003';
 export const GDE_PVR_004 = 'GDE-PVR-004';
 /** Used when provider returns validation/fields error (400) */
 export const GDE_PVR_005 = 'GDE-PVR-005';
+/** Used when provider indicates the quote ID has expired */
+export const GDE_PVR_006 = 'GDE-PVR-006';
 
 /** Used for DNS/network errors (ENOTFOUND) */
 export const GDE_NET_001 = 'GDE-NET-001';
@@ -59,3 +63,6 @@ export const MSG_PROVIDER_RETURNED_EMPTY = 'Provider returned empty guide';
 export const MSG_INVALID_PROVIDER = 'Invalid provider specified';
 export const MSG_PROVIDER_VALIDATION_ERROR =
   'Provider validation error - check response for details';
+export const MSG_QUOTE_EXPIRED =
+  'Quote has expired, please create a new quote before updating the guide';
+export const MSG_FAILED_UPDATE_GUIDE = 'Failed to update guide data';

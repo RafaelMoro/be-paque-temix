@@ -27,6 +27,7 @@ import {
   GetGuidesQueryDto,
   AddCommentDto,
   UpdateGuideStatusDto,
+  UpdateGuideDto,
 } from '../dtos/guides-db.dto';
 import {
   GuideResponseDto,
@@ -140,6 +141,20 @@ export class GuidesDbController {
     @Request() req: ExpressRequest,
   ): Promise<GuideResponseDto> {
     return this.guidesDbService.updateGuideStatus(guideId, req.user, dto);
+  }
+
+  @Patch(':guideId')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update guide data (corrects address/parcel/quote)',
+  })
+  @ApiResponse({ status: 200, type: GuideResponseDto })
+  async updateGuideData(
+    @Param('guideId') guideId: string,
+    @Body() dto: UpdateGuideDto,
+    @Request() req: ExpressRequest,
+  ): Promise<GuideResponseDto> {
+    return this.guidesDbService.updateGuideData(guideId, req.user, dto);
   }
 
   @Delete(':guideId')
