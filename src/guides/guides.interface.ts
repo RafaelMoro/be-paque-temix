@@ -79,10 +79,10 @@ export interface RetryPayload {
     reference?: string;
   };
   parcel: {
-    length?: string;
-    width?: string;
-    height?: string;
-    weight?: string;
+    length?: number;
+    width?: number;
+    height?: number;
+    weight?: number;
     content?: string;
     satProductId?: string;
     value?: number;

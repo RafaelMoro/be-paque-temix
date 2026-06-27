@@ -2564,10 +2564,10 @@ describe('GuiaEnviaService', () => {
     const mockCreateGuidePayload: CreateGuideGeRequest = {
       quoteId: 'quote-123',
       parcel: {
-        length: '30',
-        width: '20',
-        height: '10',
-        weight: '5.0',
+        length: 30,
+        width: 20,
+        height: 10,
+        weight: 5.0,
         content: 'Electronics',
         satProductId: '43211508',
       },

@@ -430,10 +430,10 @@ describe('GuiaEnviaController', () => {
     const mockCreateGuidePayload: CreateGuideGeDto = {
       quoteId: 'quote-123',
       parcel: {
-        length: '30',
-        width: '20',
-        height: '10',
-        weight: '5.0',
+        length: 30,
+        width: 20,
+        height: 10,
+        weight: 5.0,
         content: 'Electronics',
         satProductId: '43211508',
       },
@@ -518,10 +518,10 @@ describe('GuiaEnviaController', () => {
       const alternativePayload: CreateGuideGeDto = {
         quoteId: 'different-quote-456',
         parcel: {
-          length: '40',
-          width: '30',
-          height: '15',
-          weight: '10.0',
+          length: 40,
+          width: 30,
+          height: 15,
+          weight: 10.0,
           content: 'Documents',
           satProductId: '43211509',
         },
@@ -603,10 +603,10 @@ describe('GuiaEnviaController', () => {
       const mockPayload: CreateGuideGeDto = {
         quoteId: 'invalid-quote',
         parcel: {
-          length: '30',
-          width: '20',
-          height: '10',
-          weight: '5.0',
+          length: 30,
+          width: 20,
+          height: 10,
+          weight: 5.0,
           content: 'Test',
           satProductId: '43211508',
         },

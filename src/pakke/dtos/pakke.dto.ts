@@ -4,9 +4,11 @@ import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -61,37 +63,41 @@ class PakkeParcelDto {
   @MaxLength(50)
   readonly content: string;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
   @ApiProperty({
-    example: '30',
+    example: 30,
     description: 'Package length in cm',
   })
-  readonly length: string;
+  readonly length: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
   @ApiProperty({
-    example: '20',
+    example: 20,
     description: 'Package width in cm',
   })
-  readonly width: string;
+  readonly width: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
   @ApiProperty({
-    example: '10',
+    example: 10,
     description: 'Package height in cm',
   })
-  readonly height: string;
+  readonly height: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
   @ApiProperty({
-    example: '5',
+    example: 5,
     description: 'Package weight in kg',
   })
-  readonly weight: string;
+  readonly weight: number;
 }
 
 class PakkeAddressDto {

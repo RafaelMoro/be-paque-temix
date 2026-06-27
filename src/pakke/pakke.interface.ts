@@ -66,10 +66,10 @@ export interface PakkeGetQuoteResponse {
 export interface PkkCreateGuideRequest {
   parcel: {
     content: string;
-    length: string;
-    width: string;
-    height: string;
-    weight: string;
+    length: number;
+    width: number;
+    height: number;
+    weight: number;
   };
   origin: {
     name: string;

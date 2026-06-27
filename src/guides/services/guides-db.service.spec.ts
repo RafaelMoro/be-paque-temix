@@ -147,10 +147,10 @@ describe('GuidesDbService', () => {
       provider: 'GE' as const,
       quoteId: 'quote-123',
       parcel: {
-        length: '10',
-        width: '10',
-        height: '10',
-        weight: '1',
+        length: 10,
+        width: 10,
+        height: 10,
+        weight: 1,
         content: 'Test',
         satProductId: '123',
         value: 100,
@@ -398,7 +398,7 @@ describe('GuidesDbService', () => {
           quoteData: { quoteId: 'q1' },
           origin: { alias: 'o1' },
           destination: { alias: 'd1' },
-          parcel: { length: '10' },
+          parcel: { length: 10 },
         }),
       );
 
@@ -484,7 +484,7 @@ describe('GuidesDbService', () => {
           quoteData: { quoteId: 'q1' },
           origin: { alias: 'o1' },
           destination: { alias: 'd1' },
-          parcel: { length: '10' },
+          parcel: { length: 10 },
         }),
       );
       mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({

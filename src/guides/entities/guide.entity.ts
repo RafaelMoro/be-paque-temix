@@ -24,10 +24,10 @@ class Address {
 
 @Schema({ _id: false })
 class Parcel {
-  @Prop() length?: string;
-  @Prop() width?: string;
-  @Prop() height?: string;
-  @Prop() weight?: string;
+  @Prop({ type: Number }) length?: number;
+  @Prop({ type: Number }) width?: number;
+  @Prop({ type: Number }) height?: number;
+  @Prop({ type: Number }) weight?: number;
   @Prop() content?: string;
   @Prop() satProductId?: string;
   @Prop() value?: number;

@@ -8,6 +8,7 @@ import {
   ValidateNested,
   Matches,
   IsEmail,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -170,25 +171,29 @@ export class CreateGuideAddressDto {
 }
 
 export class ParcelDto {
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ example: 10 })
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  length: string;
+  length: number;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ example: 10 })
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  width: string;
+  width: number;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ example: 10 })
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  height: string;
+  height: number;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  weight: string;
+  weight: number;
 
   @ApiProperty()
   @IsString()
