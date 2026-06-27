@@ -1,3 +1,9 @@
+## v1.1.1 (2026-06-27)
+
+### Pull Requests
+[#90](https://github.com/RafaelMoro/be-paque-temix/pull/90) | Fix lambda not finding .env
+
+
 ## v1.1.0 (2026-06-27)
 
 ### Pull Requests
