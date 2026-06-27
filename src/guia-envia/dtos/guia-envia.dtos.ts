@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GetQuoteGEDto {
@@ -38,25 +44,29 @@ export class GetQuoteGEDto {
 }
 
 export class CreateGuideParcelDto {
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '30', description: 'Length in centimeters' })
-  readonly length: string;
+  @ApiProperty({ example: 30, description: 'Length in centimeters' })
+  readonly length: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '20', description: 'Width in centimeters' })
-  readonly width: string;
+  @ApiProperty({ example: 20, description: 'Width in centimeters' })
+  readonly width: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '10', description: 'Height in centimeters' })
-  readonly height: string;
+  @ApiProperty({ example: 10, description: 'Height in centimeters' })
+  readonly height: number;
 
-  @IsString()
+  @IsNumber()
+  @Min(0)
   @IsNotEmpty()
-  @ApiProperty({ example: '5.0', description: 'Weight in kilograms' })
-  readonly weight: string;
+  @ApiProperty({ example: 5.0, description: 'Weight in kilograms' })
+  readonly weight: number;
 
   @IsString()
   @IsNotEmpty()

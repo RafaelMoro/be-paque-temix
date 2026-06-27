@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".github/REPO_CONTEXT.md",
+    ".github/IMPLEMENTATION_GUIDELINES.md",
+    ".github/copilot-instructions.md"
+  ],
+  "plugin": ["./.opencode/plugins/ponytail.mjs"]
+}

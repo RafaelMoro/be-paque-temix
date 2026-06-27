@@ -193,8 +193,10 @@ export interface T1ExternalCreateGuideResponse {
   };
 }
 
-export interface CreateGuideToneDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateGuideToneDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {

@@ -24,6 +24,10 @@ jest.mock('react', () => ({
   createElement: jest.fn(() => 'MockReactElement'),
 }));
 
+jest.mock('@react-email/render', () => ({
+  render: jest.fn(() => 'MockRenderedEmail'),
+}));
+
 describe('MailService', () => {
   let service: MailService;
 
@@ -76,7 +80,7 @@ describe('MailService', () => {
       from: 'noreply@example.com',
       to: 'test@example.com',
       subject: 'Recupera tu contraseña en Kraft Envios',
-      react: 'MockReactElement',
+      html: 'MockRenderedEmail',
     });
   });
 });

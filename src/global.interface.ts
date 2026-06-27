@@ -1,4 +1,8 @@
-import { ProviderSource, QuoteCourier } from './quotes/quotes.interface';
+import { QUOTE_SOURCE } from './quotes/quotes.constants';
+import { QuoteCourier } from './quotes/quotes.interface';
+
+export type ProviderSource = (typeof QUOTE_SOURCE)[number];
+export { QuoteCourier };
 
 export interface GeneralResponse {
   version: string;

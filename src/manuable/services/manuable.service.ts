@@ -38,6 +38,7 @@ import {
   formatGetGuidesResponseMn,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
+import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
@@ -170,12 +171,57 @@ export class ManuableService {
         },
       };
     } catch (error) {
-      console.log(error);
+      // Re-throw HttpException (e.g. BadRequestException with structured response) as-is
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('An unknown error occurred');
     }
+  }
+
+  async createGuideStandardized(
+    payload: CreateGuideDto,
+  ): Promise<CreateGuideMnDataResponse> {
+    const mnPayload: CreateGuideMnRequest = {
+      quoteId: payload.quoteId,
+      parcel: {
+        satProductId: payload.parcel.satProductId,
+        content: payload.parcel.content,
+        value: payload.parcel.value,
+        quantity: payload.parcel.quantity,
+      },
+      origin: {
+        name: payload.origin.name,
+        street1: payload.origin.street1,
+        neighborhood: payload.origin.neighborhood,
+        external_number: payload.origin.external_number,
+        city: payload.origin.city,
+        company: payload.origin.company,
+        state: payload.origin.state,
+        phone: payload.origin.phone,
+        email: payload.origin.email,
+        country: payload.origin.country,
+        reference: payload.origin.reference,
+      },
+      destination: {
+        name: payload.destination.name,
+        street1: payload.destination.street1,
+        neighborhood: payload.destination.neighborhood,
+        external_number: payload.destination.external_number,
+        city: payload.destination.city,
+        company: payload.destination.company,
+        state: payload.destination.state,
+        phone: payload.destination.phone,
+        email: payload.destination.email,
+        country: payload.destination.country,
+        reference: payload.destination.reference,
+      },
+    };
+
+    return this.createGuideWithAutoRetry(mnPayload);
   }
 
   /**
@@ -419,29 +465,18 @@ export class ManuableService {
         guide,
       };
     } catch (error) {
-      const messages: string[] = [];
+      // 401: signal retry by returning MANUABLE_ERROR_UNAUTHORIZED message
       if (error instanceof Error) {
-        // The service createGuide returned 401 Unauthorized
         if (error?.message === 'Request failed with status code 401') {
-          messages.push(MANUABLE_ERROR_UNAUTHORIZED);
           return {
-            messages,
+            messages: [MANUABLE_ERROR_UNAUTHORIZED],
             guide: null,
           };
         }
-
-        messages.push(`Mn: ${error.message}`);
-        return {
-          messages,
-          guide: null,
-        };
+        // Validation/other errors: bubble up with structured response preserved
+        throw error;
       }
-
-      messages.push('Mn: An unknown error occurred');
-      return {
-        messages,
-        guide: null,
-      };
+      throw new BadRequestException('Mn: An unknown error occurred');
     }
   }
 
@@ -580,8 +615,20 @@ export class ManuableService {
           },
         });
       const guide = response?.data?.data;
+      const mnResponseErrors = (response as any)?.data?.errors;
+      if (!guide && mnResponseErrors) {
+        throw new BadRequestException({ errors: mnResponseErrors });
+      }
       return guide;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log(
+          'Error in createGuide Mn:',
+          error?.response?.data || error.message,
+        );
+        throw new BadRequestException(error?.response?.data || error.message);
+      }
+      // console.log('createGuide error', error);
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }

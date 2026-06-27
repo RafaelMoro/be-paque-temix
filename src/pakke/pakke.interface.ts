@@ -66,10 +66,10 @@ export interface PakkeGetQuoteResponse {
 export interface PkkCreateGuideRequest {
   parcel: {
     content: string;
-    length: string;
-    width: string;
-    height: string;
-    weight: string;
+    length: number;
+    width: number;
+    height: number;
+    weight: number;
   };
   origin: {
     name: string;
@@ -354,8 +354,10 @@ export interface PakkeExternalGetGuide {
   DispatchIndications: string | null;
 }
 
-export interface CreateGuidePkkDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateGuidePkkDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {

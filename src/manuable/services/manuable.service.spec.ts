@@ -113,7 +113,7 @@ describe('ManuableService', () => {
     const token = 'mn-fake-token';
     const postSpy = jest
       .spyOn(axios, 'post')
-      .mockResolvedValueOnce({ data: { token } } as any);
+      .mockResolvedValueOnce({ data: { token } });
 
     const res = await service.getManuableSession();
 
@@ -227,7 +227,7 @@ describe('ManuableService', () => {
     ];
     const postSpy = jest
       .spyOn(axios, 'post')
-      .mockResolvedValueOnce({ data: { data: quotes } } as any);
+      .mockResolvedValueOnce({ data: { data: quotes } });
 
     const res = await service.fetchManuableQuotes(payload, token);
 
@@ -440,7 +440,7 @@ describe('ManuableService', () => {
 
       const getSpy = jest
         .spyOn(axios, 'get')
-        .mockResolvedValueOnce({ data: { data: rawGuides } } as any);
+        .mockResolvedValueOnce({ data: { data: rawGuides } });
 
       // Mock formatGetGuidesResponseMn to return formatted guides
       const formattedGuides = [
@@ -487,7 +487,7 @@ describe('ManuableService', () => {
 
       const getSpy = jest
         .spyOn(axios, 'get')
-        .mockResolvedValueOnce({ data: { data: rawGuides } } as any);
+        .mockResolvedValueOnce({ data: { data: rawGuides } });
 
       // Mock formatGetGuidesResponseMn to return formatted guides
       const formattedGuides: any[] = [];

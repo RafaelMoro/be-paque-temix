@@ -18,16 +18,20 @@ export interface ProviderGlobalConfig {
   couriers: CourierGlobalConfig[];
 }
 
-export interface ProfitMarginResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface ProfitMarginResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     providers: ProviderGlobalConfig[];
   };
 }
 
-export interface GlobalProfitMarginResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GlobalProfitMarginResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     globalMarginProfit: ProfitMargin;

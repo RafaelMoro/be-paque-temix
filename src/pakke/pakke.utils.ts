@@ -114,10 +114,10 @@ export const convertPkkCreateGuideToExternal = (
     },
     Content: payload.parcel.content,
     Parcel: {
-      Length: Number(payload.parcel.length),
-      Width: Number(payload.parcel.width),
-      Height: Number(payload.parcel.height),
-      Weight: Number(payload.parcel.weight),
+      Length: payload.parcel.length,
+      Width: payload.parcel.width,
+      Height: payload.parcel.height,
+      Weight: payload.parcel.weight,
     },
     Sender: {
       Name: payload.origin.name,
