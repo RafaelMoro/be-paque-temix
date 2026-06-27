@@ -29,18 +29,28 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GeneralAppExceptionFilter());
-  const port = process.env.PORT ?? 3000;
+  const preferredPorts = [
+    process.env.PORT ? Number(process.env.PORT) : 6006,
+    3000,
+    6007,
+    6008,
+    6009,
+    6010,
+  ];
   let server;
-  try {
-    server = await app.listen(port);
-  } catch (err) {
-    const e = err as NodeJS.ErrnoException;
-    if (e.code === 'EADDRINUSE') {
-      console.warn(`Port ${port} in use, retrying on dynamic port...`);
-      server = await app.listen(0);
-    } else {
-      throw e;
+  for (const p of preferredPorts) {
+    try {
+      server = await app.listen(p);
+      break;
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException;
+      if (e.code !== 'EADDRINUSE') throw e;
+      console.warn(`Port ${p} in use, trying next...`);
     }
+  }
+  if (!server) {
+    console.warn('All preferred ports in use, falling back to dynamic port...');
+    server = await app.listen(0);
   }
   console.log(`Application listening on port ${server.address().port}`);
 }
