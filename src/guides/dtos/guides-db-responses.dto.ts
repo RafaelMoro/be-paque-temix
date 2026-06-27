@@ -41,6 +41,12 @@ export class GuideDataDto {
   @ApiProperty()
   updatedAt: Date;
 
+  @ApiProperty({ required: false, nullable: true })
+  deletedAt?: Date | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  deletedBy?: string | null;
+
   @ApiProperty({ required: false })
   failureInfo?: {
     errorDetails: string;

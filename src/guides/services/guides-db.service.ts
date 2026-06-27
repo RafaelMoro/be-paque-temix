@@ -496,6 +496,7 @@ export class GuidesDbService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .populate('deletedBy', 'name lastName')
         .lean(),
       this.guideModel.countDocuments(query),
     ]);
@@ -543,7 +544,9 @@ export class GuidesDbService {
       query.userId = userId;
     }
 
-    const guide = await this.guideModel.findOne(query);
+    const guide = await this.guideModel
+      .findOne(query)
+      .populate('deletedBy', 'name lastName');
     if (!guide) {
       throw new KraftError(CONST.GDE_NF_001, CONST.MSG_GUIDE_NOT_FOUND);
     }
@@ -748,6 +751,8 @@ export class GuidesDbService {
       file: providerGuide?.file ?? null,
       createdAt: guide.createdAt,
       updatedAt: guide.updatedAt,
+      deletedAt: guide.deletedAt || null,
+      deletedBy: this.resolveDeletedByName(guide.deletedBy),
       failureInfo: guide.failureInfo
         ? {
             errorDetails: guide.failureInfo.errorDetails,
@@ -763,5 +768,21 @@ export class GuidesDbService {
       error: null,
       data,
     };
+  }
+
+  /**
+   * Resolves deletedBy to a human-readable full name when the field was
+   * populated via Mongoose; otherwise returns null.
+   */
+  private resolveDeletedByName(deletedBy: unknown): string | null {
+    const user = deletedBy as {
+      name?: string;
+      lastName?: string;
+    } | null;
+    if (!user || typeof user !== 'object') return null;
+    if (user.name || user.lastName) {
+      return `${user.name ?? ''} ${user.lastName ?? ''}`.trim();
+    }
+    return null;
   }
 }

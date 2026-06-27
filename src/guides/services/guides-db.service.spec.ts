@@ -33,6 +33,18 @@ const mockCounterModel = {
   findOneAndUpdate: jest.fn(),
 };
 
+const createMockFindQuery = (leanResult: unknown) => ({
+  sort: jest.fn().mockReturnThis(),
+  skip: jest.fn().mockReturnThis(),
+  limit: jest.fn().mockReturnThis(),
+  populate: jest.fn().mockReturnThis(),
+  lean: jest.fn().mockResolvedValue(leanResult),
+});
+
+const createMockFindOneQuery = (resolvedValue: unknown) => ({
+  populate: jest.fn().mockResolvedValue(resolvedValue),
+});
+
 const mockGuiaEnviaService = {
   createGuideStandardized: jest.fn(),
   getGuides: jest.fn(),
@@ -268,15 +280,7 @@ describe('GuidesDbService', () => {
 
     it('should return paginated guides for user', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      });
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
       mockGuideModel.countDocuments.mockResolvedValue(0);
 
       const result = await service.getGuidesByUser(
@@ -297,15 +301,7 @@ describe('GuidesDbService', () => {
     const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
 
     it('should apply scope=all and month filter', async () => {
-      mockGuideModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      });
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
       mockGuideModel.countDocuments.mockResolvedValue(0);
 
       const result = await service.getAllGuides(
@@ -325,13 +321,15 @@ describe('GuidesDbService', () => {
 
     it('should return guide by kraftId for owner', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.findOne.mockResolvedValue({
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
       const result = await service.getGuideById(
         'KFT-202606-000001',
@@ -390,17 +388,19 @@ describe('GuidesDbService', () => {
 
     it('should throw when not eligible for retry', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'failed',
-        provider: 'GE',
-        retries: { retryCount: 10, retryAttempts: [] },
-        quoteData: { quoteId: 'q1' },
-        origin: { alias: 'o1' },
-        destination: { alias: 'd1' },
-        parcel: { length: '10' },
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'failed',
+          provider: 'GE',
+          retries: { retryCount: 10, retryAttempts: [] },
+          quoteData: { quoteId: 'q1' },
+          origin: { alias: 'o1' },
+          destination: { alias: 'd1' },
+          parcel: { length: '10' },
+        }),
+      );
 
       await expect(
         service.retryFailedGuide('KFT-202606-000001', { email: user.email }),
@@ -413,13 +413,15 @@ describe('GuidesDbService', () => {
 
     it('should throw when guide has no externalId', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-        externalId: null,
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          externalId: null,
+        }),
+      );
 
       await expect(
         service.syncGuideWithProvider('KFT-202606-000001', { email: user.email }, false),
@@ -428,13 +430,15 @@ describe('GuidesDbService', () => {
 
     it('should sync guide status from GE provider', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-        externalId: 'EXT123',
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          externalId: 'EXT123',
+        }),
+      );
       mockGuiaEnviaService.getGuides.mockResolvedValue([
         { trackingNumber: 'EXT123', status: 'in-transit' },
       ]);
@@ -470,17 +474,19 @@ describe('GuidesDbService', () => {
     it('should update guide on successful retry', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
       const guideId = new Types.ObjectId();
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: guideId,
-        kraftId: 'KFT-202606-000001',
-        status: 'failed',
-        provider: 'GE',
-        retries: { retryCount: 1, retryAttempts: [], lastRetryAt: null },
-        quoteData: { quoteId: 'q1' },
-        origin: { alias: 'o1' },
-        destination: { alias: 'd1' },
-        parcel: { length: '10' },
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: guideId,
+          kraftId: 'KFT-202606-000001',
+          status: 'failed',
+          provider: 'GE',
+          retries: { retryCount: 1, retryAttempts: [], lastRetryAt: null },
+          quoteData: { quoteId: 'q1' },
+          origin: { alias: 'o1' },
+          destination: { alias: 'd1' },
+          parcel: { length: '10' },
+        }),
+      );
       mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
         version: '1.0',
         data: { guide: { trackingNumber: 'NEW123', labelUrl: 'http://label.com' } },
@@ -545,13 +551,15 @@ describe('GuidesDbService', () => {
 
     it('should add comment to guide', async () => {
       mockUsersService.findByEmail.mockResolvedValue(admin);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-        comments: [],
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          comments: [],
+        }),
+      );
       mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
       mockGuideModel.findById.mockResolvedValue({
         _id: new Types.ObjectId(),
@@ -580,12 +588,14 @@ describe('GuidesDbService', () => {
 
     it('should update guide status', async () => {
       mockUsersService.findByEmail.mockResolvedValue(admin);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'failed',
-        provider: 'GE',
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'failed',
+          provider: 'GE',
+        }),
+      );
       mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
       mockGuideModel.findById.mockResolvedValue({
         _id: new Types.ObjectId(),
@@ -613,20 +623,15 @@ describe('GuidesDbService', () => {
 
     it('should soft delete a guide', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+        }),
+      );
       mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
-      mockGuideModel.findById.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-        deletedAt: new Date(),
-      });
 
       const result = await service.softDeleteGuide('KFT-202606-000001', { email: user.email });
 
@@ -643,15 +648,19 @@ describe('GuidesDbService', () => {
 
     it('should permanently delete a guide', async () => {
       mockUsersService.findByEmail.mockResolvedValue(admin);
-      mockGuideModel.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        kraftId: 'KFT-202606-000001',
-        status: 'created',
-        provider: 'GE',
-      });
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+        }),
+      );
       mockGuideModel.findByIdAndDelete.mockResolvedValue({});
 
-      await service.hardDeleteGuide('KFT-202606-000001', { email: admin.email });
+      const result = await service.hardDeleteGuide('KFT-202606-000001', { email: admin.email });
+
+      expect(result.data.guide.kraftId).toBe('KFT-202606-000001');
 
       expect(mockGuideModel.findByIdAndDelete).toHaveBeenCalled();
     });
