@@ -1,3 +1,9 @@
+## v1.1.0 (2026-06-27)
+
+### Pull Requests
+[#89](https://github.com/RafaelMoro/be-paque-temix/pull/89) | Add save guide DB feature
+
+
 ## v1.0.1 (2026-05-31)
 
 ### Pull Requests
