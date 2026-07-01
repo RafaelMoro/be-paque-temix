@@ -893,7 +893,6 @@ export class GuidesDbService {
       shipmentNumber: providerGuide?.shipmentNumber ?? null,
       status: guide.status,
       provider: guide.provider as ProviderSource,
-      carrier: providerGuide?.carrier ?? null,
       price: providerGuide?.price ?? null,
       guideLink: providerGuide?.guideLink ?? guide.labelUrl ?? null,
       isProviderTrackingSynced: guide.isProviderTrackingSynced,

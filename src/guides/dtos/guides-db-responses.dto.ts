@@ -65,9 +65,6 @@ export class GuideDataDto {
   provider: ProviderSource;
 
   @ApiProperty({ required: false, nullable: true })
-  carrier: string | null = null;
-
-  @ApiProperty({ required: false, nullable: true })
   price: string | null = null;
 
   @ApiProperty({ required: false, nullable: true })
