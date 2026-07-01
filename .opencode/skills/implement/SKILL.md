@@ -30,7 +30,9 @@ You are running the **implementation phase** for a story or task. Input is an ap
    - Run the phase's automated success criteria
    - Fix failures before moving on
    - Update the implementation checklist in the planning doc
-   - Pause between phases unless the user said run-all
+   - Stop after each phase and present the phase result for user sign-off
+   - Do not start the next phase unless the user explicitly says to continue
+   - If the user explicitly said run-all or continue through all phases, continue without stopping between phases
 4. Apply repo conventions while implementing.
 5. Before declaring done:
    - Update `.github/REPO_CONTEXT.md` if code structure changed
@@ -43,6 +45,7 @@ You are running the **implementation phase** for a story or task. Input is an ap
 - Do not remove existing `console.log`, `console.warn`, or `console.error` statements unless the plan explicitly says so.
 - If the plan conflicts with repo conventions, stop and ask.
 - Silence console output in tests with spies when needed; do not remove source logging.
+- User sign-off is required between phases by default. Treat silence or ambiguity as "stop and wait".
 
 ## Optional Memory
 
