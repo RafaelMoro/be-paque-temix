@@ -21,10 +21,10 @@ Additionally, the `GET /guides/db/admin` endpoint accepts a query param to contr
 
 ### Acceptance Criteria
 
-1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData.quote`.
-2. **`GET /guides/db/:guideId`** returns the stored quote snapshot **without** `qAdj*` fields (non-admin; `qAdj*` never exposed to non-admins).
+1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData.quote`. No separate `quoteId` field on the entity — `id` from `GetQuoteData` is the quote identifier stored in the snapshot.
+2. **`GET /guides/db/:guideId`** returns the stored quote snapshot **without** `qAdj*` fields (non-admin; `qAdj*` never exposed to non-admins). No admin opt-in for this endpoint.
 3. **`GET /guides/db`** (non-admin paginated listing) returns the stored quote snapshot **without** `qAdj*` fields — `qAdj*` are never included regardless of any query param.
-4. **`GET /guides/db/admin`** accepts a boolean query param (e.g., `includeMarginDetails`) that, when `true`, includes the `qAdj*` fields (`qAdjMode`, `qAdjBasis`, `qAdjFactor`, `qAdjSrcRef`, `qBaseRef`) in the response. Default: `false` (backward-compatible — margin fields omitted even to admins by default).
+4. **`GET /guides/db/admin`** accepts `includeInternalPricing?: boolean` (default `false`). When `true`, includes `qAdjMode`, `qAdjBasis`, `qAdjFactor`, `qAdjSrcRef`, `qBaseRef` in the response. When `false` (default), margin fields are omitted even to admins.
 5. **Retry** (`POST /guides/db/:guideId/retry`) preserves the stored quote snapshot; it must not wipe `quoteData.quote` when re-calling the provider.
 6. **`PATCH /guides/db/:guideId`** (update guide) accepts and updates the stored quote snapshot when the client sends it.
 
@@ -88,16 +88,16 @@ class QuoteData {
 
 ## High-Level Actions
 
-### 1. Entity — replace dead QuoteData with full quote snapshot
+### 1. Entity — QuoteData becomes QuoteSnapshot (source, quoteId removed)
 
 **File:** `src/guides/entities/guide.entity.ts`
 
-Add a new `QuoteSnapshot` `@Schema({ _id: false })` class capturing all `GetQuoteData` fields. Replace the existing dead `QuoteData` class's fields with a single `quote` prop of type `QuoteSnapshot`. Keep only `quoteId` as a top-level required field on `QuoteData` alongside the new `quote` prop.
+Remove the existing dead `QuoteData` class fields (`quoteId`, `qAdjMode`, `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`, `total`, `service`, `courier`). Replace with a single `QuoteSnapshot` nested schema containing the full `GetQuoteData` minus `source` (which lives on `Guide.provider`).
 
 ```typescript
 @Schema({ _id: false })
 class QuoteSnapshot {
-  @Prop() id?: string | number;
+  @Prop() id?: string | number;           // the quote identifier; used by provider API
   @Prop() service?: string;
   @Prop() total?: number;
   @Prop() qBaseRef?: number;
@@ -107,28 +107,30 @@ class QuoteSnapshot {
   @Prop() qAdjSrcRef?: 'default' | 'custom';
   @Prop() typeService?: 'standard' | 'nextDay' | null;
   @Prop() courier?: string | null;
-  @Prop() source?: string;
+  // source intentionally omitted — Guide.provider is the authoritative source
 }
 
+// QuoteData becomes just the wrapper
 @Schema({ _id: false })
 class QuoteData {
-  @Prop({ required: true }) quoteId: string;
   @Prop({ type: QuoteSnapshot }) quote?: QuoteSnapshot;
 }
 ```
 
-> **Note on migration:** The existing `QuoteData` fields (`qAdjMode`, `qBaseRef`, etc.) are dead — no code populates them. This change replaces their use. No data migration needed since nothing writes to them. Old documents will have `quoteData.quote` as `undefined`.
+> **Note:** The dead fields (including `quoteId`) are removed. The `id` in `QuoteSnapshot` is the quote identifier. No migration needed since nothing writes to the old fields and the old `quoteId` prop is removed entirely.
 
 ### 2. Request DTO — QuoteSnapshotDto
 
 **File:** `src/guides/dtos/guides-db.dto.ts`
 
-Add `QuoteSnapshotDto` mirroring `GetQuoteData` (all fields optional). Nest it on `CreateGuideDto` as `quote: QuoteSnapshotDto` (required on create). On `UpdateGuideDto` it should be optional.
+Add `QuoteSnapshotDto` mirroring `GetQuoteData` minus `source` (all fields optional except `id` which should be required for create). Nest it on `CreateGuideDto` as `quote: QuoteSnapshotDto` (required on create). On `UpdateGuideDto` it should be optional.
+
+Also add `includeInternalPricing?: boolean` to `GetAdminGuidesQueryDto` (default `false`).
 
 ```typescript
 export class QuoteSnapshotDto {
-  @IsString()
-  @IsOptional()
+  @ApiProperty({ description: 'Quote identifier used by the provider API' })
+  @IsNotEmpty()
   id?: string | number;
 
   @IsString()
@@ -139,11 +141,12 @@ export class QuoteSnapshotDto {
   @IsOptional()
   total?: number;
 
-  // ... all GetQuoteData fields, all @IsOptional()
+  // ... remaining GetQuoteData fields, all @IsOptional()
 }
 
 export class CreateGuideDto {
-  // ... existing fields ...
+  // ... provider, parcel, origin, destination, notifyMe remain ...
+  // Remove quoteId — it is now inside the quote snapshot
   @ApiProperty({ type: QuoteSnapshotDto, required: true })
   @ValidateNested()
   @Type(() => QuoteSnapshotDto)
@@ -158,71 +161,98 @@ export class UpdateGuideDto {
   @IsOptional()
   quote?: QuoteSnapshotDto;
 }
+
+// On GetAdminGuidesQueryDto, add:
+@ApiProperty({ required: false, default: false })
+@IsBoolean()
+@IsOptional()
+includeInternalPricing?: boolean = false;
 ```
 
-### 3. Response DTO — qAdj* never on non-admin, opt-in on admin
+> **Breaking change:** `CreateGuideDto` currently has `quoteId: string` as a required field (`guides-db.dto.ts:227`). This is removed and replaced by the nested `quote` object. The provider API call (`callProviderApi`) uses `payload.quote.id` instead of `payload.quoteId`. This is a breaking API change for the client — `quoteId` is no longer a top-level string but `quote.id` inside the object.
+
+### 3. Response DTO — single QuoteSnapshotResponseDto, qAdj* stripped at service layer
 
 **File:** `src/guides/dtos/guides-db-responses.dto.ts`
 
-Use a single `QuoteSnapshotResponseDto` that includes all `GetQuoteData` fields. Strip `qAdj*` at the service layer:
+Add `QuoteSnapshotResponseDto` to `GuideDataDto`. All quote fields included in the type (including `qAdj*`). Stripping happens in the service layer, not at the DTO level — single response shape, variable content.
 
-- **`formatGuideResponse` for non-admin calls** (`getGuideById`, `getGuidesByUser`): always strip `qAdj*` fields, return only `id`, `service`, `total`, `typeService`, `courier`, `source`.
-- **`formatGuideResponse` for admin calls** (`getAllGuides`): strip `qAdj*` unless `includeMarginDetails === true`.
+```typescript
+export class QuoteSnapshotResponseDto {
+  @ApiProperty() id?: string | number;
+  @ApiProperty() service?: string;
+  @ApiProperty() total?: number;
+  @ApiProperty() qBaseRef?: number;
+  @ApiProperty() qAdjFactor?: number;
+  @ApiProperty() qAdjBasis?: number;
+  @ApiProperty() qAdjMode?: string;
+  @ApiProperty() qAdjSrcRef?: string;
+  @ApiProperty() typeService?: string | null;
+  @ApiProperty() courier?: string | null;
+}
 
-This avoids two response DTOs — the wire format is the same, the service layer controls the content.
+// GuideDataDto gets:
+@ApiProperty({ type: QuoteSnapshotResponseDto, required: false })
+quote?: QuoteSnapshotResponseDto;
+```
 
 ### 4. Admin listing query param
 
 **File:** `src/guides/dtos/guides-db.dto.ts`
 
-Add `includeMarginDetails?: boolean` to `GetAdminGuidesQueryDto` (default `false`).
+Add `includeInternalPricing?: boolean` to `GetAdminGuidesQueryDto` (default `false`).
 
 **File:** `src/guides/services/guides-db.service.ts`
 
-Pass `includeMarginDetails` to `formatGuideResponse` (or a variant). When `false`, strip `qAdj*` fields from the `quote` in the response. When `true`, return all fields. Non-admin `getGuidesByUser` always strips `qAdj*`.
+Pass `includeInternalPricing` to `formatGuideResponse`. When `false`, strip `qAdj*` fields. When `true`, return all fields. Non-admin `getGuidesByUser` always strips `qAdj*`.
 
-### 5. createGuide — persist full quote
+### 5. createGuide — persist full quote; callProviderApi uses quote.id
 
 **File:** `src/guides/services/guides-db.service.ts`
 
 ```typescript
 // createGuide, line ~81
 quoteData: {
-  quoteId: payload.quoteId,
   quote: payload.quote,  // full QuoteSnapshotDto
 },
 ```
 
+`callProviderApi` accesses `payload.quoteId` — change this to `payload.quote?.id` (breaking: `CreateGuideDto` no longer has top-level `quoteId`).
+
 ### 6. updateGuideData — update quote snapshot
 
-When `dto.quote` is present, update `quoteData.quote.*` via dot notation alongside `quoteData.quoteId`.
+When `dto.quote` is present, update `quoteData.quote.*` via dot notation.
 
-### 7. formatGuideResponse — qAdj* stripped unless admin + includeMarginDetails
+### 7. formatGuideResponse — qAdj* stripped at service layer, not DTO level
+
+**File:** `src/guides/services/guides-db.service.ts`
 
 ```typescript
-// New private method on the service
+// Private helper — strips margin fields
 private stripQAdjFields(quote: QuoteSnapshot | undefined): Partial<QuoteSnapshot> | undefined {
   if (!quote) return undefined;
   const { qAdjMode, qAdjBasis, qAdjFactor, qAdjSrcRef, qBaseRef, ...publicQuote } = quote;
   return publicQuote;
 }
 
-// formatGuideResponse takes an optional includeMarginDetails param
-formatGuideResponse(guide: GuideDoc, includeMarginDetails = false): GuideResponseDto {
+// formatGuideResponse signature unchanged — always receives the full guide doc
+// Internally decides what to return based on context:
+formatGuideResponse(guide: GuideDoc, includeInternalPricing = false): GuideResponseDto {
   const rawQuote = guide.quoteData?.quote;
-  // Non-admin or includeMarginDetails=false → strip qAdj*; admin + includeMarginDetails=true → return all
-  const quote = (includeMarginDetails && req.user?.role?.includes('admin')) ? rawQuote : this.stripQAdjFields(rawQuote);
-  // ...
+  // Strip unless includeInternalPricing=true (admin listing with opt-in)
+  const quote = includeInternalPricing ? rawQuote : this.stripQAdjFields(rawQuote);
+  // ... build data object with quote ...
 }
 ```
 
-`getGuidesByUser` and `getGuideById` call `formatGuideResponse(guide, false)` (admin check implicit — they never have admin access).
-`getAllGuides` calls `formatGuideResponse(guide, includeMarginDetails)` — the boolean comes from the query param.
+- `getGuidesByUser`: calls `formatGuideResponse(guide, false)` — always strips qAdj*.
+- `getGuideById`: calls `formatGuideResponse(guide, false)` — always strips qAdj*.
+- `getAllGuides`: calls `formatGuideResponse(guide, includeInternalPricing)` — strips unless opt-in.
 
 ### 8. Update tests
 
-- `guides-db.service.spec.ts` — update `createGuide` mock to include `quote` field; update assertions for `formatGuideResponse` with/without `includeMarginDetails`.
-- `guides-db.controller.spec.ts` (if present) — add `includeMarginDetails` param to admin listing tests.
+- `guides-db.service.spec.ts` — update `createGuide` mock to use `quote: { id, service, ... }` instead of `quoteId`; update `formatGuideResponse` assertions with/without `includeInternalPricing`.
+- `guides-db.controller.spec.ts` (if present) — add `includeInternalPricing` param to admin listing tests.
 
 ---
 
@@ -230,39 +260,43 @@ formatGuideResponse(guide: GuideDoc, includeMarginDetails = false): GuideRespons
 
 | File | Change |
 | --- | --- |
-| `src/guides/entities/guide.entity.ts` | Replace dead `QuoteData` fields with `QuoteSnapshot` nested schema + `quote` prop |
-| `src/guides/dtos/guides-db.dto.ts` | Add `QuoteSnapshotDto`, nest on `CreateGuideDto` (required) and `UpdateGuideDto` (optional); add `includeMarginDetails` to `GetAdminGuidesQueryDto` |
-| `src/guides/dtos/guides-db-responses.dto.ts` | Update `GuideDataDto` with `quote` field; optionally create a public-only sub-DTO |
-| `src/guides/services/guides-db.service.ts` | Persist `payload.quote` in `createGuide`; strip `qAdj*` in `formatGuideResponse` unless `includeMarginDetails`; update `updateGuideData` for quote field |
+| `src/guides/entities/guide.entity.ts` | Replace dead `QuoteData` fields with `QuoteSnapshot` nested schema; `QuoteData` becomes `{ quote?: QuoteSnapshot }` |
+| `src/guides/dtos/guides-db.dto.ts` | Add `QuoteSnapshotDto`; replace `quoteId` on `CreateGuideDto` with nested `quote: QuoteSnapshotDto`; add `includeInternalPricing` to `GetAdminGuidesQueryDto` |
+| `src/guides/dtos/guides-db-responses.dto.ts` | Add `QuoteSnapshotResponseDto` to `GuideDataDto` |
+| `src/guides/services/guides-db.service.ts` | Persist `payload.quote` in `createGuide`; `callProviderApi` uses `payload.quote?.id` instead of `payload.quoteId`; strip `qAdj*` in `formatGuideResponse` unless `includeInternalPricing`; update `updateGuideData` for quote field |
 | `src/guides/guides.interface.ts` | `RetryPayload` does not need changes; `FormattedGuideData` auto-derives from DTO |
-| Tests: `src/guides/services/guides-db.service.spec.ts` | Update mocks and assertions |
+| Tests: `src/guides/services/guides-db.service.spec.ts` | Update mocks to use `quote.id`; update `formatGuideResponse` assertions |
 
 ---
 
 ## Open Questions
 
-1. **Query param name:** `includeMarginDetails` vs `showQAdj` vs `exposeInternalPricing`? The param controls whether `qAdj*` fields are returned. `includeMarginDetails` is descriptive but verbose — `showQAdj` is shorter. Choose one.
-2. **Backward compatibility on admin listing:** Default `includeMarginDetails = false` means margin data is hidden by default even from admins. Confirm this is acceptable — it means an existing admin client won't see margin data unless it explicitly sends `?includeMarginDetails=true`. Alternative: default `= true` immediately exposes margin data to all admins.
-3. **`id` field naming:** `GetQuoteData.id` maps to `QuoteData.quoteId`. The FE also sends `quoteId` as a separate field on `CreateGuideDto`. Should `QuoteSnapshot.id` be stored at all (it duplicates `quoteId`), or should we suppress it? **Recommendation: store `id` in the snapshot for completeness; it records the original quote identifier even if `quoteId` gets updated later.**
-4. **`source` field:** `GetQuoteData.source` duplicates `Guide.provider`. Store both? **Recommendation: yes, store `source` in snapshot for audit trail — records what the quote source said at creation time.**
-5. **`GET /guides/db/:guideId` — does it need an admin mode too?** Currently there's no `?includeMarginDetails` on the single-guide endpoint. Should admins be able to get `qAdj*` on a specific guide via this endpoint? Or is the admin margin data only accessible via the paginated admin listing?
+All 5 questions resolved:
+1. **Query param name:** `includeInternalPricing` ✓
+2. **Backward compat on admin listing:** default `false` — hide margin data by default even for admins ✓
+3. **`quoteId` removal:** `QuoteData` becomes `{ quote?: QuoteSnapshot }` — no separate `quoteId` field; `QuoteSnapshot.id` is the quote identifier used by the provider API ✓
+4. **`source` removal:** not stored in snapshot; `Guide.provider` is authoritative ✓
+5. **Single-guide admin mode:** not needed ✓
 
 ---
 
 ## Assumptions
 
-- FE sends the complete `GetQuoteData` object. The BE validates the shape but trusts the FE values (no re-fetch or cross-check against provider).
-- The `qAdj*` margin fields are sensitive internal configuration. Exposing them only to admins via an explicit query param is acceptable.
-- Default `includeMarginDetails = false` is backward-compatible and safe by default.
-- `quoteId` (entity) and `id` (snapshot) refer to the same underlying value; both are stored without deduping.
-- No DB migration needed — old guide documents have `quoteData.quote = undefined`, which is handled gracefully in `formatGuideResponse`.
+- FE sends the complete `GetQuoteData` object minus `source`. The BE validates the shape but trusts the FE values (no re-fetch or cross-check against provider).
+- The `qAdj*` margin fields are sensitive internal configuration. Exposing them only to admins via `includeInternalPricing=true` is acceptable.
+- Default `includeInternalPricing = false` is backward-compatible and safe by default.
+- No DB migration needed — old guide documents have `quoteData.quote = undefined`, handled gracefully in `formatGuideResponse`.
 - Retry does not overwrite `quoteData` — existing `$set` operations only touch specific fields, not the whole `quoteData` object.
+- `Guide.provider` is authoritative for the provider name; `source` from `GetQuoteData` is not stored in the snapshot.
+- `QuoteSnapshot.id` is the quote identifier used by the provider API. No separate `quoteId` field on the entity.
+- **Breaking API change:** `CreateGuideDto` no longer has `quoteId: string` as a top-level field; `quote.id` is used instead. Client must be updated.
 
 ---
 
 ## Non-Obvious Constraints Found
 
-- The existing `QuoteData` entity fields (`qAdjMode`, `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`, `service`, `courier`, `total`) are **dead** — `createGuide` never populates them. The new `QuoteSnapshot` schema replaces their logical slot. This is a schema replacement with zero migration risk.
-- `typeService` is the only `GetQuoteData` field **missing entirely** from the existing entity — all others existed (unused). Must be added.
-- `RetryPayload` (`guides.interface.ts:40-92`) does not carry quote fields; retry reads from stored doc. `quoteData.quote` survives retry as long as no future refactor does a wholesale `quoteData` replacement.
-- `source` in `GetQuoteData` matches `Guide.provider` — storing both is intentional (audit trail of what the quote said at creation vs what provider was used).
+- The existing `QuoteData` entity fields (`qAdjMode`, `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`, `service`, `courier`, `total`, `quoteId`) are **dead** — `createGuide` only ever writes `{ quoteId: payload.quoteId }`. The new `QuoteSnapshot` schema replaces their slot. Zero migration risk since nothing writes to them.
+- `typeService` is the only `GetQuoteData` field **missing entirely** from the existing entity. Must be added to `QuoteSnapshot`.
+- `RetryPayload` (`guides.interface.ts:40-92`) does not carry quote fields; retry reads from stored doc. `quoteData.quote` survives retry **only if** future refactors avoid wholesale `quoteData` replacement — guard against `$set: { quoteData: {...} }`.
+- **Breaking API change:** `CreateGuideDto` drops `quoteId: string` (top-level). Client must send `quote.id` instead. `callProviderApi` already accesses `payload.quoteId` — this reference must change to `payload.quote?.id`.
+- `source` intentionally not stored — `Guide.provider` is the authoritative provider identifier.
