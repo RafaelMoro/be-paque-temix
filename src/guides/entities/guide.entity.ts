@@ -36,7 +36,7 @@ class Parcel {
 
 @Schema({ _id: false })
 class QuoteSnapshot {
-  @Prop({ required: true }) id: string | number;
+  @Prop({ type: [String, Number], required: true }) id: string | number;
   @Prop() service?: string;
   @Prop() total?: number;
   @Prop() qBaseRef?: number;
@@ -44,8 +44,11 @@ class QuoteSnapshot {
   @Prop() qAdjBasis?: number;
   @Prop() qAdjMode?: 'P' | 'A';
   @Prop() qAdjSrcRef?: 'default' | 'custom';
-  @Prop() typeService?: 'standard' | 'nextDay' | null;
-  @Prop() courier?: string | null;
+  @Prop({ type: [String, null], required: false }) typeService?:
+    | 'standard'
+    | 'nextDay'
+    | null;
+  @Prop({ type: [String, null], required: false }) courier?: string | null;
 }
 
 @Schema({ _id: false })
@@ -57,7 +60,8 @@ class QuoteData {
 class RetryAttempt {
   @Prop({ required: true }) attemptNumber: number;
   @Prop({ required: true }) timestamp: Date;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' }) userId: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  userId: Types.ObjectId;
   @Prop({ required: true }) error: string;
   @Prop({ required: true }) errorCode: string;
 }
@@ -72,7 +76,8 @@ class Retries {
 @Schema({ _id: false })
 class Comment {
   @Prop({ required: true }) text: string;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' }) adminId: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  adminId: Types.ObjectId;
   @Prop({ required: true, default: () => new Date() }) timestamp: Date;
 }
 
