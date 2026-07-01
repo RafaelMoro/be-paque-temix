@@ -1,3 +1,9 @@
+## v1.1.2 (2026-07-01)
+
+### Pull Requests
+[#91](https://github.com/RafaelMoro/be-paque-temix/pull/91) | Docs: Add QA file
+
+
 ## v1.1.1 (2026-06-27)
 
 ### Pull Requests
