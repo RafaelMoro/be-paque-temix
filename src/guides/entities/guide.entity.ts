@@ -36,7 +36,7 @@ class Parcel {
 
 @Schema({ _id: false })
 class QuoteSnapshot {
-  @Prop({ type: [String, Number], required: true }) id: string | number;
+  @Prop({ type: String, required: true }) id: string | number;
   @Prop() service?: string;
   @Prop() total?: number;
   @Prop() qBaseRef?: number;
@@ -44,11 +44,8 @@ class QuoteSnapshot {
   @Prop() qAdjBasis?: number;
   @Prop() qAdjMode?: 'P' | 'A';
   @Prop() qAdjSrcRef?: 'default' | 'custom';
-  @Prop({ type: [String, null], required: false }) typeService?:
-    | 'standard'
-    | 'nextDay'
-    | null;
-  @Prop({ type: [String, null], required: false }) courier?: string | null;
+  @Prop({ type: String }) typeService?: 'standard' | 'nextDay' | null;
+  @Prop({ type: String }) courier?: string | null;
 }
 
 @Schema({ _id: false })

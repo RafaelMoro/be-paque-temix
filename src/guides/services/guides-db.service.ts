@@ -979,8 +979,12 @@ export class GuidesDbService {
     includeInternalPricing: boolean,
   ): QuoteSnapshotResponseDto | undefined {
     if (!quote) return undefined;
-    if (includeInternalPricing) return { ...quote };
-    return this.stripQAdjFields(quote);
+    const plainQuote =
+      typeof (quote as any).toObject === 'function'
+        ? (quote as any).toObject()
+        : { ...quote };
+    if (includeInternalPricing) return { ...plainQuote };
+    return this.stripQAdjFields(plainQuote);
   }
 
   private stripQAdjFields(quote: NonNullable<GuideDoc['quoteData']['quote']>) {
