@@ -1,126 +1,97 @@
-# /research - Research Workflow
+---
+description: 'Use when the user starts a research, investigation, exploration, or discovery phase for a story or task. Triggers on research, investigate, explore, discover, feasibility.'
+---
 
-You are running the **research phase** of a project. Your goal is to gather information, ask clarifying questions, and write a research document that will be stored in the `ai-research` directory.
+# Research workflow
 
-## Inputs the user may provide
+You are running the **research phase** of a project. Gather information, ask clarifying questions, and write a research document in `ai-research/`.
+
+## Inputs
 
 - A free-form description of the work
-- Neither (ask for at least one before proceeding)
+- If no input is provided, ask for at least one before proceeding
 
-Parse whatever the user supplied
+## Steps
 
-## Step 1 - Load shared context first
+1. Load shared context first:
+   - `.github/copilot-instructions.md`
+   - `.github/REPO_CONTEXT.md`
+2. Check story quality before exploration:
+   - Missing or vague requirements
+   - Unclear success criteria or acceptance criteria
+   - Ambiguous user needs
+   - Missing constraints or assumptions
+   - Undefined terms
+3. If anything is unclear, ask the user before continuing. Do not invent answers.
+4. Assess scope:
+   - **Single story**: 1-3 phases with clear ACs
+   - **Multiple stories**: separate deliverables
+   - **Epic**: multiple stories with dependencies
+5. If too broad, break it into an epic, give each story 2-5 acceptance criteria, and ask which story to research first.
+6. Explore only what the story explicitly requests. Do not chase tangential refactors or feature ideas.
+7. Ask only necessary scope questions in one batch:
+   - Quick or full research?
+   - Single feature or cross-feature?
+   - Any specific areas to focus on?
+   - Any task-specific ambiguity?
+8. Write `ai-research/{story-name}.md`.
 
-Before any codebase exploration, read these files (do not re-discover what's already documented)
+## Research Doc Contents
 
-1. [.github/copilot-instructions.md](../copilot-instructions.md) - Review rubric and coding standards
-2. [.github/REPO_CONTEXT.md](../REPO_CONTEXT.md) - Current codebase structure (modules, services, guards, controllers)
-
-## Step 2 - Story quality check
-
-Skim the task or problem to solve and flag any of these **before** spending tool calls on exploration:
-
-- Missing or vague requirements
-- Unclear success criteria or acceptance criteria
-- Ambiguous user needs
-- Lack of constraints or assumptions
-- Undefined terms not in the glossary
-
-If any flag fires, ask the user before continuing. Do not invent answers.
-
-## Step 3 - Assess scope and formalize story
-
-Before deep exploration, assess whether this is:
-
-- **Single story**: Can be completed in 1-3 phases with clear ACs
-- **Multiple stories**: Needs to be broken down into separate deliverables
-- **Epic**: Complex initiative requiring multiple stories with dependencies
-
-If the requirement is too broad or complex:
-
-1. Break it into an **epic** with multiple stories
-2. Each story should have 2-5 acceptance criteria
-3. Each story should be independently deliverable
-4. Ask the user which story to research first
-
-## Step 4 - Scope discipline
-
-Apply these constraints **before** exploration:
-
-- Only research what the story explicitly requests
-- Don't explore tangential improvements or refactors
-- Don't invent features the story doesn't mention
-- If scope seems unclear, ask before exploring
-
-## Step 5 - Ask about scope and complexity
-
-Use `vscode_askQuestions` to resolve at minimum:
-
-1. Quick or full research? Estimate complexity based on the requirements of the story. If it looks like a small bug fix or one-line behavioral change, ask:
-   > "This looks small. Want a quick research note (~200 lines, lightweight template) or the full template (300-1000 lines)?"
-
-Default to full template if unclear
-
-2. Cross feature edition? If the story seems to touch multiple features or areas of the codebase, ask:
-   > "This looks like it might touch multiple features or areas of the codebase. Is that right? If so, I can do a more comprehensive research note that covers all relevant areas."
-
-Default to single feature if unclear
-
-3. Any specific areas to focus on? If the story is complex, ask:
-
-   > "Are there any specific areas of the codebase or specific questions you want me to focus on during the research? This can help me prioritize and tailor the research note to your needs."
-
-4. Any other clarifying questions specific to the story (component choice, design references, edge cases)
-
-Batch these into one `vscode_askQuestions` call to minimize back-and-forth. Do not invent answers if the user doesn't provide them. Default to the most comprehensive research if unclear.
-
-## Step 6 - Write the research doc
-
-File path: `ai-research/{story-name}.md`
-Length target: 300 - 1000 lines for full mode, ~200 lines for quick mode
-
-The research doc must include:
-
-### Story Definition
+Include:
 
 - Story title and description
-- Acceptance Criteria (ACs) - 2-5 clear, testable criteria
-- Task breakdown - if complex, break into subtasks
-- Epic structure - if scope is too large, define constituent stories
-
-### Technical Research
-
-- Affected files and modules (reference REPO_CONTEXT.md)
+- Acceptance criteria: 2-5 clear, testable criteria
+- Task breakdown only when needed to describe scope
+- Epic structure only when the request is too large for one story
+- Affected files and modules
 - Existing patterns to follow
 - Dependencies and integration points
 - Edge cases and constraints
+- Open questions
+- Assumptions
 
-### Open Questions
+## Implementation Detail Boundary
 
-- List any unresolved decisions
-- Flag ambiguous requirements
-- Note missing information
+Research should include implementation-relevant facts, not implementation instructions.
 
-Focus on high-level actions needed to accomplish the task, no implementation details.
+Allowed because planning needs them:
 
-## Step 7 - Capture non-obvious findings to memory
+- Affected files, modules, APIs, DTOs, services, guards, commands, and config
+- Existing code patterns that constrain the solution
+- Data shapes, contracts, side effects, external integrations, and failure modes
+- Risks that would change the plan if ignored
+- Small code references or signatures only when needed to identify the existing pattern
 
-If research surfaces a non-obvious constraint, conflict or domain fact that future work would benefit from, write a short note to `/memories/repo/{story-name}-research.md` so it can be recalled in future research or implementation phases. Do not add obvious facts or information that is already well-documented in the codebase or research notes. Focus on insights that would not be easily discovered through code exploration alone.
+Not allowed because these belong in planning or implementation:
 
-## Step 8 - Present for review
+- Exact file edits to make
+- Full code snippets for the future solution
+- Phase-by-phase build steps
+- Test code
+- Refactors not required by the story
+- Tool runs for tests, builds, package installs, or formatting
 
-End the turn with:
+Recommendation: keep these technical findings in research so planning is grounded in reality, but stop before prescribing the patch. Research answers “what exists and what matters”; planning answers “what to change”; implementation changes it.
 
-1. The path to the research doc
-2. Story/Epic structure (if broken down)
-3. A bullet list of unresolved open questions
-4. A bullet list of assumptions made
+## Optional Memory
 
-Do **not** start planning or writing code. Wait for the human sign-off.
+If research surfaces a non-obvious constraint, conflict, or domain fact useful later, write a short note to `memories/repo/{story-name}-research.md`. Skip obvious facts or anything already documented.
+
+## Final Response
+
+End with:
+
+1. Path to the research doc
+2. Story or epic structure if split
+3. Unresolved open questions
+4. Assumptions made
+
+Do **not** start planning or writing code. Wait for human sign-off.
 
 ## Don'ts
 
 - Don't propose implementation. That's the planning phase.
-- Don't write or modify source files (other than the research doc and optional context/memory updates)
-- Don't run tests, builds, or any package install
-- Don't write 1,000 line research doc. Cut sections aggresively.
+- Don't write or modify source files except the research doc and optional memory/context notes.
+- Don't run tests, builds, package installs, or formatting.
+- Don't write a huge research doc. Cut aggressively.
