@@ -1,132 +1,261 @@
-# Save Selected Quote Data on Guide Creation — Research
+# Save Full Quote Data on Guide Creation — Research
+
+## Overview
+
+This document outlines the high-level actions needed to persist the complete quote snapshot used to generate a guide, and to expose profit-margin fields (`qAdj*`) on the admin guide listing endpoint based on a query parameter.
+
+**Last updated:** 2026-06-30
+**Status:** Awaiting sign-off
+
+---
 
 ## Story Definition
 
 ### Title
-Persist the selected quote snapshot (service, courier, total, typeService) on the guide created by `POST /guides/db/create`.
+Persist full quote snapshot on guide creation and expose `qAdj*` margin fields on admin listing.
 
 ### Description
-Today `POST /guides/db/create` (`src/guides/controllers/guides-db.controller.ts:44-53`) only persists `quoteId` on the `Guide.quoteData` subdocument (`src/guides/services/guides-db.service.ts:81`). The other `QuoteData` fields declared on the entity (`service`, `courier`, `total`, and the `qAdj*` margin fields — `src/guides/entities/guide.entity.ts:37-48`) are never populated, and `typeService` is missing entirely.
+Today `POST /guides/db/create` only persists `quoteId` on the guide document (`guides-db.service.ts:81`). The client receives a full quote object from `POST /quotes` (`GetQuoteData` — 11 fields, `quotes.interface.ts:16-33`) and selects one. After this change, the client sends the complete selected quote object to `POST /guides/db/create`, and the server persists all quote fields on the guide document.
 
-The client already receives the full quote list from `POST /quotes` (`src/quotes/controllers/quotes.controller.ts:14-26`), where each `GetQuoteData` item carries `id`, `service`, `total`, `courier`, `typeService`, `source` and the `qAdj*` margin breakdown (`src/quotes/quotes.interface.ts:16-33`). The user picks one quote and — after this change — will send the picked quote's data along with `quoteId` to `POST /guides/db/create`. The server must save a snapshot of those fields inside the guide document so the quote used at creation time can be audited later without re-calling the provider.
-
-Quotes are **not** persisted in the BE; the FE is the source of the selected quote data for guide creation. No new quotes collection or provider re-fetch is in scope.
+Additionally, the `GET /guides/db/admin` endpoint accepts a query param to control whether the `qAdj*` profit-margin fields (`qAdjMode`, `qAdjBasis`, `qAdjFactor`, `qAdjSrcRef`, `qAdjBaseRef`) are included in the response. These fields are sensitive (they expose internal margin configuration) and should only be shown to admins on demand.
 
 ### Acceptance Criteria
-1. `POST /guides/db/create` accepts the selected quote's `service`, `courier`, `total`, and `typeService` alongside the existing `quoteId`.
-2. The `Guide` entity stores a `quote` subdocument (under `quoteData`) containing `service`, `total`, `typeService`, and `courier`, persisted on guide creation.
-3. The persisted values are returned in the `GuideResponseDto` (so `GET /guides/db/:guideId` and the create/retry/update responses expose the saved quote snapshot).
-4. `UpdateGuideDto` (used by `PATCH /guides/db/:guideId`) accepts the same quote fields and updates the stored `quote` subdocument when a new `quoteId` is provided.
-5. Retry (`POST /guides/db/:guideId/retry`) preserves the existing stored quote snapshot; it must not wipe `quoteData.quote` when re-calling the provider.
+
+1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData`.
+2. **`GET /guides/db/:guideId`** returns the full stored quote snapshot (all `GetQuoteData` fields).
+3. **`GET /guides/db/admin`** accepts a boolean query param (e.g., `includeMarginDetails` or `showQAdj`) that, when `true`, includes the `qAdj*` fields in the response. Default: `false` (backward-compatible — margin fields omitted).
+4. **Retry** (`POST /guides/db/:guideId/retry`) preserves the stored quote snapshot; it must not wipe `quoteData` when re-calling the provider.
+5. **`PATCH /guides/db/:guideId`** (update guide) accepts and updates the stored quote snapshot when the client sends it.
+6. **Non-admin guide listing** (`GET /guides/db`) never exposes `qAdj*` fields regardless of the query param.
 
 ### Out of scope
-- Persisting quotes in MongoDB.
+- Persisting quotes in MongoDB or any new collection.
 - Re-fetching the quote from the provider by `quoteId`.
-- Backfilling `qAdj*` margin fields (`qAdjMode`, `qAdjBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`) — they remain on the schema but are not populated by this story.
 - Changing the `POST /quotes` response shape.
+- Frontend implementation.
 
 ---
 
-## Technical Research
+## Current State
 
-### Affected files and modules
-
-| File | Change |
-| --- | --- |
-| `src/guides/entities/guide.entity.ts` | Add `typeService` + a nested `quote` subdoc on `QuoteData` (or a new `QuoteSnapshot` class). Lines 37-48. |
-| `src/guides/dtos/guides-db.dto.ts` | Extend `CreateGuideDto` (lines 219-248) and `UpdateGuideDto` (lines 250-279) with the four quote fields (or a nested `QuoteSnapshotDto`). |
-| `src/guides/dtos/guides-db-responses.dto.ts` | Add the saved quote snapshot to `GuideDataDto` (lines 35-99) so it surfaces in `GuideResponseDto`. |
-| `src/guides/services/guides-db.service.ts` | `createGuide` (lines 51-104): write the FE-supplied quote fields into `quoteData.quote` instead of `{ quoteId: payload.quoteId }`. `updateGuideData` (lines 338-413): write merged quote fields on `quoteId` change. `formatGuideResponse` (lines 859-951): expose the stored snapshot. |
-| `src/guides/guides.interface.ts` | If `RetryPayload` needs the quote fields, add them; otherwise leave. |
-| `src/quotes/quotes.interface.ts` | Reference only — `GetQuoteData` is the shape the FE mirrors back. |
-| Tests: `src/guides/**/*.spec.ts`, `src/guides/controllers/guides-db.controller.spec.ts` (if present) | Update mocks to include the new fields. |
-
-### Existing patterns to follow
-
-- **Nested DTOs with `@ValidateNested()` + `@Type()`** — `CreateGuideDto` already nests `ParcelDto` and `CreateGuideAddressDto` (`src/guides/dtos/guides-db.dto.ts:229-242`). The quote snapshot should follow the same `@ApiProperty({ type: QuoteSnapshotDto })` + `@ValidateNested()` + `@Type(() => QuoteSnapshotDto)` pattern.
-- **Nested `@Schema({ _id: false })` subdocuments on the entity** — `Address`, `Parcel`, `QuoteData`, `RetryAttempt`, `Comment` all use this (`src/guides/entities/guide.entity.ts:4-71`). A `QuoteSnapshot` class should match.
-- **DTOs are the source of truth** — per AGENTS.md / IMPLEMENTATION_GUIDELINES, response types should be derived from the DTO, not duplicated. `FormattedGuideData = GuideDataDto` already exists (`src/guides/guides.interface.ts:99`); adding fields to `GuideDataDto` automatically flows into `FormattedGuideData`.
-- **Service return envelope** — `formatGuideResponse` already returns the `GeneralResponse` shape; only its `data` construction needs the new fields.
-- **Error handling** — `createGuide` and `updateGuideData` already wrap in try/catch and convert to `KraftError`. New field reads are not async, so no new error codes are needed; reuse existing `CONST.GDE_BDN_001` / `CONST.GDE_BDN_012`.
-- **Param destructuring for >3 params** — per copilot-instructions.md, use object destructuring when adding methods that exceed 3 params. Existing `createGuide(user, payload)` stays at 2 params; no change needed there.
-
-### Dependencies and integration points
-
-- **FE ↔ BE contract**: FE must send the four quote fields. The `POST /quotes` response (`GetQuoteData`) is the shape FE will mirror; `id` becomes `quoteId`, and `service`/`courier`/`total`/`typeService` are forwarded as-is. `source` is already captured separately as `Guide.provider` and is **not** part of the quote snapshot to avoid duplication.
-- **Provider calls are unaffected**: `callProviderApi` (`guides-db.service.ts:670-695`) only uses `payload.quoteId` and address/parcel data. The provider does not receive the quote snapshot — it stays internal to the DB record.
-- **Retry flow**: `retryFailedGuide` (lines 152-216) builds a `RetryPayload` from the stored guide and re-calls the provider. It does not currently touch `quoteData` beyond `quoteId`; the new `quote` subdoc must survive the `$set` writes in retry (only `status`, `externalId`, `labelUrl`, `retries.*` are set, so `quoteData.quote` is untouched by existing retry logic — verify the `$set` does not overwrite the whole `quoteData` object).
-- **Update flow**: `updateGuideData` (lines 338-413) already writes `quoteData.quoteId` via dot-notation (`setFields['quoteData.quoteId'] = dto.quoteId`). The quote snapshot fields should use the same dot-notation (`quoteData.quote.service`, etc.) so partial updates don't clobber the rest of `quoteData`.
-
-### Proposed data shape
-
-Entity (`guide.entity.ts`), new nested class — additive, mirrors `GetQuoteData` subset:
-
-```typescript
-@Schema({ _id: false })
-class QuoteSnapshot {
-  @Prop() service?: string;
-  @Prop() total?: number;
-  @Prop() typeService?: 'standard' | 'nextDay' | null;
-  @Prop() courier?: string | null;
-}
-
-// Inside QuoteData, add:
-@Prop({ type: QuoteSnapshot }) quote?: QuoteSnapshot;
+### Quote data flow
+```
+POST /quotes → returns GetQuoteData[] (11 fields, quotes.interface.ts:16-33)
+     ↓
+FE selects one quote, sends to POST /guides/db/create
+     ↓
+createGuide: quoteData = { quoteId: payload.quoteId }  ← ONLY quoteId saved today
 ```
 
-DTO (`guides-db.dto.ts`), new `QuoteSnapshotDto` with `@IsString()` + `@IsNumber()` + `@IsEnum(['standard','nextDay'])` + `@IsOptional()` validators, nested on `CreateGuideDto` and `UpdateGuideDto` (optional on update).
+### GetQuoteData shape (what FE sends)
+```typescript
+// quotes.interface.ts:16-33
+interface GetQuoteData {
+  id: string | number;           // becomes quoteId on the guide
+  service: string;
+  total: number;
+  qBaseRef?: number;             // qAdj* margin breakdown
+  qAdjFactor?: number;
+  qAdjBasis?: number;
+  qAdjMode?: 'P' | 'A';         // percentage or absolute
+  qAdjSrcRef?: 'default' | 'custom';
+  typeService: 'standard' | 'nextDay' | null;
+  courier: QuoteCourier | null;
+  source: ProviderSource;         // 'GE' | 'TONE' | 'Pkk' | 'Mn'
+}
+```
 
-Response (`guides-db-responses.dto.ts`): add `quote?: QuoteSnapshotResponseDto` to `GuideDataDto`.
+### Existing QuoteData on Guide entity (dead — never populated)
+```typescript
+// guide.entity.ts:37-48
+class QuoteData {
+  @Prop({ required: true }) quoteId: string;
+  @Prop() qAdjMode?: string;
+  @Prop() qBaseRef?: number;
+  @Prop() qAdjFactor?: number;
+  @Prop() qAdjBasis?: number;
+  @Prop() qAdjSrcRef?: string;
+  @Prop() total?: number;        // ← duplicate of GetQuoteData.total
+  @Prop() service?: string;      // ← duplicate of GetQuoteData.service
+  @Prop() courier?: string;      // ← duplicate of GetQuoteData.courier
+  // NOTE: typeService is MISSING from entity entirely
+}
+```
 
-> **Decision needed** (open question Q1): the four fields already exist *loose* on `QuoteData` (`service`, `courier`, `total`) — the user explicitly asked to nest them under a new `quote` prop. That leaves the old `service`/`courier`/`total` props on `QuoteData` unused and duplicative. Options: (a) keep both for backward compat (additive only), (b) remove the old loose props and migrate. Recommend (a) for this story to avoid a migration; flag for sign-off.
-
-### Edge cases and constraints
-
-- **FE sends no quote fields** (legacy client): the snapshot is `undefined`/missing on the doc. `formatGuideResponse` must handle missing `quoteData.quote` gracefully (return `null` or omit the prop), matching how `origin`/`destination` already use conditional spreads.
-- **`typeService` is nullable**: `GetQuoteData.typeService` is `QuoteTypeSevice | null` (`quotes.interface.ts:30`). The DTO/entity must allow `null`, not just `undefined`.
-- **`courier` is nullable**: same — `QuoteCourier | null` (`quotes.interface.ts:31`).
-- **`total` precision**: `GetQuoteData.total` is `number` and margin math rounds to 2 decimals (`quotes.utils.ts:33-34`). Stored as-is; no re-computation server-side (FE is source).
-- **Validation trust boundary**: per ponytail/maintenance rules, input validation at the trust boundary stays. The `QuoteSnapshotDto` must validate types so a malformed FE payload does not corrupt the doc. Do **not** trust the FE beyond shape validation — but do not re-fetch the quote either (user decision).
-- **`UpdateGuideDto` partial updates**: when only `quoteId` changes, the FE may or may not resend the snapshot. Decide whether quote fields are required when `quoteId` changes (open question Q2) or always optional (simplest).
-- **Retry does not pass quote fields**: `RetryPayload` (`guides.interface.ts:40-92`) lacks them. Retry reads from the stored guide and never overwrites `quoteData.quote` — confirm no `$set: { quoteData: {...} }` wholesale-replace sneaks in.
-
----
-
-## Open Questions
-
-1. **Duplicate fields on `QuoteData`**: the entity already has loose `service`, `courier`, `total` props (unused). Keep both (additive, no migration) or remove the loose ones and migrate existing docs? **Recommend: keep both; removal is a separate cleanup story.**
-2. **`UpdateGuideDto` quote-field requirements**: when `quoteId` changes on `PATCH /guides/db/:guideId`, are the quote snapshot fields required (since they describe the new quote) or always optional? **Recommend: optional — if absent, keep existing snapshot; FE is trusted to send them when the quote changes.**
-3. **`typeService` enum values**: `QuoteTypeSevice = 'standard' | 'nextDay'` (`quotes.interface.ts:6`). Confirm the FE only ever sends these two values; if providers can emit others, the entity/DTO should stay permissive (`@IsString()` + `@IsOptional()`) rather than `@IsEnum`.
-4. **Backward-compat for existing `GuideResponseDto` consumers**: adding a `quote` field to `GuideDataDto` is additive; confirm no FE consumer breaks on the new prop.
-
----
-
-## Assumptions
-
-- The FE is the sole source of the selected quote's `service`/`courier`/`total`/`typeService`; no BE re-fetch or persistence of quotes.
-- `quoteId` remains the opaque identifier the provider expects; the new snapshot fields are DB-only and never sent to the provider API.
-- No migration script is needed for existing guide docs — `quoteData.quote` will simply be absent on old docs and surfaced as `null`/omitted in responses.
-- The change is single-feature (guides module only); it does not touch quotes, providers, or global-configs modules.
-- `source` from `GetQuoteData` is intentionally excluded from the snapshot because it duplicates `Guide.provider`.
+`createGuide` only writes `{ quoteId: payload.quoteId }` — none of the above are populated.
 
 ---
 
 ## High-Level Actions
 
-1. Add a `QuoteSnapshot` nested `@Schema({ _id: false })` class on `guide.entity.ts` and a `quote` prop on `QuoteData` (additive; do not remove existing loose `service`/`courier`/`total`).
-2. Add `QuoteSnapshotDto` (request) and `QuoteSnapshotResponseDto` (response) classes; nest on `CreateGuideDto`, `UpdateGuideDto`, and `GuideDataDto`.
-3. In `createGuide`, write `quoteData: { quoteId: payload.quoteId, quote: payload.quote }` instead of the current `{ quoteId: payload.quoteId }`.
-4. In `updateGuideData`, extend the `setFields` dot-notation block to write `quoteData.quote.*` when the snapshot fields are present.
-5. In `formatGuideResponse`, surface `guide.quoteData?.quote` (nullable) in the `FormattedGuideData` payload.
-6. Update `RetryPayload` and `retryFailedGuide` so the retry `$set` never wholesale-replaces `quoteData`; confirm the snapshot survives.
-7. Update unit tests for `createGuide`, `updateGuideData`, `formatGuideResponse`, and controller DTO validation.
-8. No new `KraftError` codes, no new module imports, no env vars, no DB migration.
+### 1. Entity — replace dead QuoteData with full quote snapshot
+
+**File:** `src/guides/entities/guide.entity.ts`
+
+Add a new `QuoteSnapshot` `@Schema({ _id: false })` class capturing all `GetQuoteData` fields. Replace the existing dead `QuoteData` class's fields with a single `quote` prop of type `QuoteSnapshot`. Keep only `quoteId` as a top-level required field on `QuoteData` alongside the new `quote` prop.
+
+```typescript
+@Schema({ _id: false })
+class QuoteSnapshot {
+  @Prop() id?: string | number;
+  @Prop() service?: string;
+  @Prop() total?: number;
+  @Prop() qBaseRef?: number;
+  @Prop() qAdjFactor?: number;
+  @Prop() qAdjBasis?: number;
+  @Prop() qAdjMode?: 'P' | 'A';
+  @Prop() qAdjSrcRef?: 'default' | 'custom';
+  @Prop() typeService?: 'standard' | 'nextDay' | null;
+  @Prop() courier?: string | null;
+  @Prop() source?: string;
+}
+
+@Schema({ _id: false })
+class QuoteData {
+  @Prop({ required: true }) quoteId: string;
+  @Prop({ type: QuoteSnapshot }) quote?: QuoteSnapshot;
+}
+```
+
+> **Note on migration:** The existing `QuoteData` fields (`qAdjMode`, `qBaseRef`, etc.) are dead — no code populates them. This change replaces their use. No data migration needed since nothing writes to them. Old documents will have `quoteData.quote` as `undefined`.
+
+### 2. Request DTO — QuoteSnapshotDto
+
+**File:** `src/guides/dtos/guides-db.dto.ts`
+
+Add `QuoteSnapshotDto` mirroring `GetQuoteData` (all fields optional). Nest it on `CreateGuideDto` as `quote: QuoteSnapshotDto` (required on create). On `UpdateGuideDto` it should be optional.
+
+```typescript
+export class QuoteSnapshotDto {
+  @IsString()
+  @IsOptional()
+  id?: string | number;
+
+  @IsString()
+  @IsOptional()
+  service?: string;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
+
+  // ... all GetQuoteData fields, all @IsOptional()
+}
+
+export class CreateGuideDto {
+  // ... existing fields ...
+  @ApiProperty({ type: QuoteSnapshotDto, required: true })
+  @ValidateNested()
+  @Type(() => QuoteSnapshotDto)
+  quote: QuoteSnapshotDto;
+}
+
+export class UpdateGuideDto {
+  // ... existing fields ...
+  @ApiProperty({ type: QuoteSnapshotDto, required: false })
+  @ValidateNested()
+  @Type(() => QuoteSnapshotDto)
+  @IsOptional()
+  quote?: QuoteSnapshotDto;
+}
+```
+
+### 3. Response DTO — conditional qAdj* exposure on admin listing
+
+**File:** `src/guides/dtos/guides-db-responses.dto.ts`
+
+Create two response sub-DTOs:
+- `QuoteSnapshotResponseDto` — all quote fields INCLUDING `qAdj*`
+- `QuoteSnapshotPublicResponseDto` — only `id`, `service`, `total`, `typeService`, `courier`, `source` (NO `qAdj*`)
+
+`GuideDataDto` uses `QuoteSnapshotPublicResponseDto` by default (for non-admin listings and single-guide GET). Admin listing (via `PaginatedGuidesResponseDto`) decides at runtime which sub-DTO to use based on the query param.
+
+Alternatively (simpler): always include all fields in the DTO but strip `qAdj*` in `formatGuideResponse` when `includeMarginDetails !== true`. This avoids a second DTO class and keeps the response type consistent.
+
+### 4. Admin listing query param
+
+**File:** `src/guides/dtos/guides-db.dto.ts`
+
+Add `includeMarginDetails?: boolean` to `GetAdminGuidesQueryDto` (default `false`).
+
+**File:** `src/guides/services/guides-db.service.ts`
+
+Pass `includeMarginDetails` to `formatGuideResponse` (or a variant). When `false`, strip `qAdj*` fields from the `quote` in the response. When `true`, return all fields. Non-admin `getGuidesByUser` always strips `qAdj*`.
+
+### 5. createGuide — persist full quote
+
+**File:** `src/guides/services/guides-db.service.ts`
+
+```typescript
+// createGuide, line ~81
+quoteData: {
+  quoteId: payload.quoteId,
+  quote: payload.quote,  // full QuoteSnapshotDto
+},
+```
+
+### 6. updateGuideData — update quote snapshot
+
+When `dto.quote` is present, update `quoteData.quote.*` via dot notation alongside `quoteData.quoteId`.
+
+### 7. formatGuideResponse — conditional qAdj* stripping
+
+```typescript
+formatGuideResponse(guide: GuideDoc, includeMarginDetails = false): GuideResponseDto {
+  const quote = guide.quoteData?.quote;
+  const quoteData = includeMarginDetails ? quote : this.stripQAdjFields(quote);
+  // ...
+}
+
+private stripQAdjFields(quote: QuoteSnapshot): QuoteSnapshotPublic {
+  // return copy without qAdjMode, qBaseRef, qAdjFactor, qAdjBasis, qAdjSrcRef
+}
+```
+
+### 8. Update tests
+
+- `guides-db.service.spec.ts` — update `createGuide` mock to include `quote` field; update assertions for `formatGuideResponse` with/without `includeMarginDetails`.
+- `guides-db.controller.spec.ts` (if present) — add `includeMarginDetails` param to admin listing tests.
 
 ---
 
-## Verification
+## Affected Files
 
-- `pnpm build` must pass before bundling.
-- `pnpm test` — expected: 2 known-failing suites unchanged (`mail.service.spec.ts`, `jwt-guard.guard.spec.ts` per AGENTS.md); new/modified guide tests must pass.
-- `pnpm lint` — not a green gate (~117 errors pre-existing); only fix new type-safety issues introduced by this change.
-- Manual: `POST /guides/db/create` with `quote: { service, courier, total, typeService }` → `GET /guides/db/:id` returns the saved snapshot.
+| File | Change |
+| --- | --- |
+| `src/guides/entities/guide.entity.ts` | Replace dead `QuoteData` fields with `QuoteSnapshot` nested schema + `quote` prop |
+| `src/guides/dtos/guides-db.dto.ts` | Add `QuoteSnapshotDto`, nest on `CreateGuideDto` (required) and `UpdateGuideDto` (optional); add `includeMarginDetails` to `GetAdminGuidesQueryDto` |
+| `src/guides/dtos/guides-db-responses.dto.ts` | Update `GuideDataDto` with `quote` field; optionally create a public-only sub-DTO |
+| `src/guides/services/guides-db.service.ts` | Persist `payload.quote` in `createGuide`; strip `qAdj*` in `formatGuideResponse` unless `includeMarginDetails`; update `updateGuideData` for quote field |
+| `src/guides/guides.interface.ts` | `RetryPayload` does not need changes; `FormattedGuideData` auto-derives from DTO |
+| Tests: `src/guides/services/guides-db.service.spec.ts` | Update mocks and assertions |
+
+---
+
+## Open Questions
+
+1. **Query param name:** `includeMarginDetails` vs `showQAdj` vs `exposeInternalPricing`? The param controls whether `qAdj*` fields are returned. `includeMarginDetails` is descriptive but verbose — `showQAdj` is shorter. Choose one.
+2. **Response shape consistency:** Always return `quote` in `GuideDataDto` (with `qAdj*` null/omitted when not admin), vs having two separate response DTOs. Recommendation: always return `quote` with all fields; `qAdj*` are `null` when not admin — avoids type bifurcation.
+3. **Backward compatibility on admin listing:** Default `includeMarginDetails = false` means existing admin clients see no change. Confirm this is acceptable vs default `= true` which would expose margin data immediately.
+4. **`id` field naming:** `GetQuoteData.id` is what the FE sends, but the entity already stores it as `quoteId` (`QuoteData.quoteId`). The `QuoteSnapshot.id` maps to the same `quoteId` but the FE also sends `quoteId` separately. Should `id` in the snapshot be stored separately from `quoteId` (two copies of the same value), or should we suppress `id` in the snapshot since `quoteId` is already stored? **Recommendation: store `id` in the snapshot as-is; `quoteId` is the canonical identifier used by the provider API.**
+5. **`source` field:** `GetQuoteData.source` duplicates `Guide.provider`. Should the snapshot store `source` or just rely on `Guide.provider`? **Recommendation: store `source` in snapshot for completeness; it records what the quote said at creation time even if provider changes later.**
+
+---
+
+## Assumptions
+
+- FE sends the complete `GetQuoteData` object. The BE validates the shape but trusts the FE values (no re-fetch or cross-check against provider).
+- The `qAdj*` margin fields are sensitive internal configuration. Exposing them only to admins via an explicit query param is acceptable.
+- Default `includeMarginDetails = false` is backward-compatible and safe by default.
+- `quoteId` (entity) and `id` (snapshot) refer to the same underlying value; both are stored without deduping.
+- No DB migration needed — old guide documents have `quoteData.quote = undefined`, which is handled gracefully in `formatGuideResponse`.
+- Retry does not overwrite `quoteData` — existing `$set` operations only touch specific fields, not the whole `quoteData` object.
+
+---
+
+## Non-Obvious Constraints Found
+
+- The existing `QuoteData` entity fields (`qAdjMode`, `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`, `service`, `courier`, `total`) are **dead** — `createGuide` never populates them. The new `QuoteSnapshot` schema replaces their logical slot. This is a schema replacement with zero migration risk.
+- `typeService` is the only `GetQuoteData` field **missing entirely** from the existing entity — all others existed (unused). Must be added.
+- `RetryPayload` (`guides.interface.ts:40-92`) does not carry quote fields; retry reads from stored doc. `quoteData.quote` survives retry as long as no future refactor does a wholesale `quoteData` replacement.
+- `source` in `GetQuoteData` matches `Guide.provider` — storing both is intentional (audit trail of what the quote said at creation vs what provider was used).
