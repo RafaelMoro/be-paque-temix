@@ -36,6 +36,85 @@ Additionally, the `GET /guides/db/admin` endpoint accepts a query param to contr
 
 ---
 
+## Breaking Changes (notify FE team)
+
+These changes alter the existing API contract and require coordinated frontend updates.
+
+### 1. `POST /guides/db/create` — `quoteId` replaced by nested `quote` object
+
+**Before:**
+```json
+{
+  "provider": "GE",
+  "quoteId": "12345",
+  "parcel": { ... },
+  "origin": { ... },
+  "destination": { ... }
+}
+```
+
+**After:**
+```json
+{
+  "provider": "GE",
+  "quote": {
+    "id": "12345",
+    "service": "Estafeta Terrestre",
+    "total": 178.56,
+    "typeService": "standard",
+    "courier": "Estafeta",
+    "qBaseRef": 150.00,
+    "qAdjFactor": 28.56,
+    "qAdjBasis": 10,
+    "qAdjMode": "P",
+    "qAdjSrcRef": "default"
+  },
+  "parcel": { ... },
+  "origin": { ... },
+  "destination": { ... }
+}
+```
+
+- `quoteId` (top-level string) is **removed**.
+- `quote` (nested object, required) is **added** — `id` inside it is required and maps to the same quote identifier.
+- `quote.service`, `quote.total`, `quote.typeService`, `quote.courier` are **required** in the request body (all other `quote` fields are optional).
+- `quote.source` is **not sent** — `Guide.provider` on the entity is authoritative.
+
+### 2. `GET /guides/db/admin` — new query param `includeInternalPricing`
+
+- New optional boolean query param: `?includeInternalPricing=true`
+- Default is `false` (margin fields hidden even from admins)
+- When `true`, response includes `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjMode`, `qAdjSrcRef`
+- Existing admin clients continue to work but see no margin data unless they opt in
+
+### 3. `PATCH /guides/db/:guideId` — `quoteId` replaced by nested `quote` object
+
+Same pattern as create — `quoteId` removed, `quote` object added (optional on update).
+
+### 4. `GET /guides/db/:guideId` and `GET /guides/db` responses — new `quote` field
+
+Response now includes a `quote` object:
+```json
+{
+  "data": {
+    "guide": {
+      "kraftId": "KFT-202606-000001",
+      "quote": {
+        "id": "12345",
+        "service": "Estafeta Terrestre",
+        "total": 178.56,
+        "typeService": "standard",
+        "courier": "Estafeta"
+      },
+      ...
+    }
+  }
+}
+```
+`qAdj*` fields are **never** included in non-admin responses.
+
+---
+
 ## Current State
 
 ### Quote data flow
