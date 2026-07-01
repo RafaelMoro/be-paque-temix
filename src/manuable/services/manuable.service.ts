@@ -38,7 +38,7 @@ import {
   formatGetGuidesResponseMn,
 } from '../manuable.utils';
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
-import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderGuidePayload } from '@/guides/guides.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
@@ -183,10 +183,10 @@ export class ManuableService {
   }
 
   async createGuideStandardized(
-    payload: CreateGuideDto,
+    payload: ProviderGuidePayload,
   ): Promise<CreateGuideMnDataResponse> {
     const mnPayload: CreateGuideMnRequest = {
-      quoteId: payload.quoteId,
+      quoteId: payload.quoteId as string,
       parcel: {
         satProductId: payload.parcel.satProductId,
         content: payload.parcel.content,

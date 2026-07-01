@@ -33,7 +33,7 @@ import {
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
-import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderGuidePayload } from '@/guides/guides.interface';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { DEV_ENV, PROD_ENV } from '@/app.constant';
@@ -303,7 +303,7 @@ export class T1Service {
   }
 
   async createGuideStandardized(
-    payload: CreateGuideDto,
+    payload: ProviderGuidePayload,
   ): Promise<CreateGuideToneDataResponse> {
     const t1Payload: T1CreateGuideRequest = {
       parcel: { content: payload.parcel.content },
@@ -332,7 +332,7 @@ export class T1Service {
         reference: payload.destination.reference,
       },
       notifyMe: payload.notifyMe,
-      quoteToken: payload.quoteId,
+      quoteToken: payload.quoteId as string,
     };
 
     return this.createGuide(t1Payload);

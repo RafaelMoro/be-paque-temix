@@ -34,7 +34,7 @@ import {
   ExtGetGuidesGEResponse,
 } from '../guia-envia.interface';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
-import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
+import { ProviderGuidePayload } from '@/guides/guides.interface';
 import {
   formatAddressesGE,
   formatCreateAddressPayloadGE,
@@ -426,10 +426,10 @@ export class GuiaEnviaService {
   }
 
   async createGuideStandardized(
-    payload: CreateGuideDto,
+    payload: ProviderGuidePayload,
   ): Promise<CreateGuideGEDataResponse> {
     const gePayload: CreateGuideGeRequest = {
-      quoteId: payload.quoteId,
+      quoteId: payload.quoteId as string,
       parcel: {
         length: payload.parcel.length,
         width: payload.parcel.width,

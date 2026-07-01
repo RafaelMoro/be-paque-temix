@@ -12,6 +12,12 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  QuoteAdjustmentMode,
+  QuoteAdjustmentSourceReference,
+  QuoteTypeSevice,
+  QuoteCourier,
+} from '@/quotes/quotes.interface';
 
 export class GetGuidesQueryDto {
   @ApiProperty({ required: false })
@@ -79,6 +85,12 @@ export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
   @IsBoolean()
   @Type(() => Boolean)
   includeDeleted?: boolean = false;
+
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeInternalPricing?: boolean = false;
 }
 
 export class CreateGuideAddressDto {
@@ -216,15 +228,70 @@ export class ParcelDto {
   quantity: number = 1;
 }
 
+export class QuoteSnapshotDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  id: string | number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  service?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  total?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  qBaseRef?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  qAdjFactor?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  qAdjBasis?: number;
+
+  @ApiProperty({ required: false, enum: ['P', 'A'] })
+  @IsOptional()
+  @IsEnum(['P', 'A'])
+  qAdjMode?: QuoteAdjustmentMode;
+
+  @ApiProperty({ required: false, enum: ['default', 'custom'] })
+  @IsOptional()
+  @IsEnum(['default', 'custom'])
+  qAdjSrcRef?: QuoteAdjustmentSourceReference;
+
+  @ApiProperty({
+    required: false,
+    enum: ['standard', 'nextDay'],
+    nullable: true,
+  })
+  @IsOptional()
+  @IsEnum(['standard', 'nextDay'])
+  typeService?: QuoteTypeSevice | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  courier?: QuoteCourier | null;
+}
+
 export class CreateGuideDto {
   @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
   @IsEnum(['GE', 'TONE', 'Pkk', 'Mn'])
   provider: 'GE' | 'TONE' | 'Pkk' | 'Mn';
 
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  quoteId: string;
+  @ApiProperty({ type: QuoteSnapshotDto, required: true })
+  @ValidateNested()
+  @Type(() => QuoteSnapshotDto)
+  quote: QuoteSnapshotDto;
 
   @ApiProperty({ type: ParcelDto })
   @ValidateNested()
@@ -248,11 +315,11 @@ export class CreateGuideDto {
 }
 
 export class UpdateGuideDto {
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsNotEmpty()
+  @ApiProperty({ required: false, type: QuoteSnapshotDto })
+  @ValidateNested()
+  @Type(() => QuoteSnapshotDto)
   @IsOptional()
-  quoteId?: string;
+  quote?: QuoteSnapshotDto;
 
   @ApiProperty({ required: false, type: ParcelDto })
   @ValidateNested()

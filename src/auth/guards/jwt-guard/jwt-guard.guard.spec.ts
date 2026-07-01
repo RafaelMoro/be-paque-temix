@@ -3,11 +3,19 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 jest.mock('passport', () => ({
   _strategies: {},
-  authenticate: jest.fn(() => (_req: unknown, _res: unknown, next: (err: null, user: unknown) => void) => next(null, {})),
-  use: function(name: string) {
+  authenticate: jest.fn(
+    () =>
+      (
+        _req: unknown,
+        _res: unknown,
+        next: (err: null, user: unknown) => void,
+      ) =>
+        next(null, {}),
+  ),
+  use: function (name: string) {
     (this._strategies as Record<string, unknown>)[name] = {};
   },
-  get: function(name: string) {
+  get: function (name: string) {
     return (this._strategies as Record<string, unknown>)[name];
   },
 }));
@@ -145,13 +153,10 @@ describe('JwtGuard', () => {
 
       guard.canActivate(mockExecutionContext);
 
-      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-        IS_PUBLIC_KEY,
-        [
-          mockExecutionContext.getHandler(),
-          mockExecutionContext.getClass(),
-        ],
-      );
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
+        mockExecutionContext.getHandler(),
+        mockExecutionContext.getClass(),
+      ]);
       expect(parentCanActivate).toHaveBeenCalledWith(mockExecutionContext);
 
       parentCanActivate.mockRestore();

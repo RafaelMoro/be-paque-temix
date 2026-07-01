@@ -4,6 +4,7 @@ import {
   GlobalCreateGuideResponse,
 } from '@/global.interface';
 import { GuideDataDto } from './dtos/guides-db-responses.dto';
+import { CreateGuideDto } from './dtos/guides-db.dto';
 
 export interface GetGuidesDataResponse extends Omit<
   GeneralResponse,
@@ -39,7 +40,7 @@ export interface ProviderResult {
 
 export interface RetryPayload {
   provider: 'GE' | 'TONE' | 'Pkk' | 'Mn';
-  quoteId: string;
+  quote: { id: string | number };
   origin: {
     alias?: string;
     name?: string;
@@ -97,3 +98,7 @@ export interface RetryPayload {
 // fields in the DTO doesn't require keeping a parallel interface in sync.
 // Same pattern as `export type GuideDoc = Guide;` in guide.entity.ts.
 export type FormattedGuideData = GuideDataDto;
+
+export type ProviderGuidePayload = Omit<CreateGuideDto, 'quote'> & {
+  quoteId: string | number;
+};

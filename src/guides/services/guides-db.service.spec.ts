@@ -10,13 +10,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { GuidesDbService } from './guides-db.service';
-import { Guide } from '../entities/guide.entity';
+import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
 import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
+import { QuoteCourier } from '@/quotes/quotes.interface';
 import config from '@/config';
 
 const mockGuideModel = {
@@ -145,7 +146,13 @@ describe('GuidesDbService', () => {
     const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
     const payload = {
       provider: 'GE' as const,
-      quoteId: 'quote-123',
+      quote: {
+        id: 'quote-123',
+        service: 'standard',
+        total: 100,
+        typeService: 'standard' as const,
+        courier: 'Estafeta' as QuoteCourier,
+      },
       parcel: {
         length: 10,
         width: 10,
@@ -449,7 +456,7 @@ describe('GuidesDbService', () => {
           status: 'failed',
           provider: 'GE',
           retries: { retryCount: 10, retryAttempts: [] },
-          quoteData: { quoteId: 'q1' },
+          quoteData: { quote: { id: 'q1' } },
           origin: { alias: 'o1' },
           destination: { alias: 'd1' },
           parcel: { length: 10 },
@@ -478,7 +485,11 @@ describe('GuidesDbService', () => {
       );
 
       await expect(
-        service.syncGuideWithProvider('KFT-202606-000001', { email: user.email }, false),
+        service.syncGuideWithProvider(
+          'KFT-202606-000001',
+          { email: user.email },
+          false,
+        ),
       ).rejects.toThrow('no external tracking ID');
     });
 
@@ -535,7 +546,7 @@ describe('GuidesDbService', () => {
           status: 'failed',
           provider: 'GE',
           retries: { retryCount: 1, retryAttempts: [], lastRetryAt: null },
-          quoteData: { quoteId: 'q1' },
+          quoteData: { quote: { id: 'q1' } },
           origin: { alias: 'o1' },
           destination: { alias: 'd1' },
           parcel: { length: 10 },
@@ -543,7 +554,9 @@ describe('GuidesDbService', () => {
       );
       mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
         version: '1.0',
-        data: { guide: { trackingNumber: 'NEW123', labelUrl: 'http://label.com' } },
+        data: {
+          guide: { trackingNumber: 'NEW123', labelUrl: 'http://label.com' },
+        },
         error: null,
         message: null,
       });
@@ -558,10 +571,9 @@ describe('GuidesDbService', () => {
         retries: { retryCount: 2 },
       });
 
-      const result = await service.retryFailedGuide(
-        'KFT-202606-000001',
-        { email: user.email },
-      );
+      const result = await service.retryFailedGuide('KFT-202606-000001', {
+        email: user.email,
+      });
 
       expect(result.data.status).toBe('created');
       expect(result.data.externalId).toBe('NEW123');
@@ -570,27 +582,37 @@ describe('GuidesDbService', () => {
 
   describe('mapProviderErrorToKraftCode', () => {
     it('should return GDE-NET-001 for ENOTFOUND', () => {
-      const result = (service as any).mapProviderErrorToKraftCode({ code: 'ENOTFOUND' });
+      const result = (service as any).mapProviderErrorToKraftCode({
+        code: 'ENOTFOUND',
+      });
       expect(result).toBe('GDE-NET-001');
     });
 
     it('should return GDE-TMOT-001 for ETIMEDOUT', () => {
-      const result = (service as any).mapProviderErrorToKraftCode({ code: 'ETIMEDOUT' });
+      const result = (service as any).mapProviderErrorToKraftCode({
+        code: 'ETIMEDOUT',
+      });
       expect(result).toBe('GDE-TMOT-001');
     });
 
     it('should return GDE-PVR-003 for 401 status', () => {
-      const result = (service as any).mapProviderErrorToKraftCode({ response: { status: 401 } });
+      const result = (service as any).mapProviderErrorToKraftCode({
+        response: { status: 401 },
+      });
       expect(result).toBe('GDE-PVR-003');
     });
 
     it('should return GDE-PVR-004 for 500 status', () => {
-      const result = (service as any).mapProviderErrorToKraftCode({ response: { status: 500 } });
+      const result = (service as any).mapProviderErrorToKraftCode({
+        response: { status: 500 },
+      });
       expect(result).toBe('GDE-PVR-004');
     });
 
     it('should return GDE-RLIM-003 for rate limit message', () => {
-      const result = (service as any).mapProviderErrorToKraftCode({ message: 'rate limit exceeded' });
+      const result = (service as any).mapProviderErrorToKraftCode({
+        message: 'rate limit exceeded',
+      });
       expect(result).toBe('GDE-RLIM-003');
     });
 
@@ -620,7 +642,9 @@ describe('GuidesDbService', () => {
         kraftId: 'KFT-202606-000001',
         status: 'created',
         provider: 'GE',
-        comments: [{ text: 'Test comment', adminId: admin._id, timestamp: new Date() }],
+        comments: [
+          { text: 'Test comment', adminId: admin._id, timestamp: new Date() },
+        ],
       });
 
       const result = await service.addComment(
@@ -631,7 +655,11 @@ describe('GuidesDbService', () => {
 
       expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
         expect.anything(),
-        { $push: { comments: expect.objectContaining({ text: 'Test comment' }) } },
+        {
+          $push: {
+            comments: expect.objectContaining({ text: 'Test comment' }),
+          },
+        },
       );
       expect(result.data.kraftId).toBe('KFT-202606-000001');
     });
@@ -687,7 +715,9 @@ describe('GuidesDbService', () => {
       );
       mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
 
-      const result = await service.softDeleteGuide('KFT-202606-000001', { email: user.email });
+      const result = await service.softDeleteGuide('KFT-202606-000001', {
+        email: user.email,
+      });
 
       expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
         expect.anything(),
@@ -712,7 +742,9 @@ describe('GuidesDbService', () => {
       );
       mockGuideModel.findByIdAndDelete.mockResolvedValue({});
 
-      const result = await service.hardDeleteGuide('KFT-202606-000001', { email: admin.email });
+      const result = await service.hardDeleteGuide('KFT-202606-000001', {
+        email: admin.email,
+      });
 
       expect(result.data.guide.kraftId).toBe('KFT-202606-000001');
 
@@ -733,7 +765,7 @@ describe('GuidesDbService', () => {
           status: 'created',
           provider: 'GE',
           externalId: 'OLD-EXT-123',
-          quoteData: { quoteId: 'old-quote' },
+          quoteData: { quote: { id: 'old-quote' } },
           origin: { alias: 'old-origin' },
           destination: { alias: 'old-dest' },
           parcel: { length: 10, weight: 1 },
@@ -741,7 +773,12 @@ describe('GuidesDbService', () => {
       );
       mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
         version: '1.0',
-        data: { guide: { trackingNumber: 'NEW-EXT-456', labelUrl: 'http://new-label.com' } },
+        data: {
+          guide: {
+            trackingNumber: 'NEW-EXT-456',
+            labelUrl: 'http://new-label.com',
+          },
+        },
         error: null,
         message: null,
       });
@@ -753,7 +790,7 @@ describe('GuidesDbService', () => {
         provider: 'GE',
         externalId: 'NEW-EXT-456',
         labelUrl: 'http://new-label.com',
-        quoteData: { quoteId: 'new-quote' },
+        quoteData: { quote: { id: 'new-quote' } },
         origin: { alias: 'new-origin' },
         destination: { alias: 'old-dest' },
         parcel: { length: 10, weight: 1 },
@@ -762,7 +799,7 @@ describe('GuidesDbService', () => {
       const result = await service.updateGuideData(
         'KFT-202606-000001',
         { email: user.email },
-        { quoteId: 'new-quote', origin: { alias: 'new-origin' } as any },
+        { quote: { id: 'new-quote' }, origin: { alias: 'new-origin' } as any },
       );
 
       expect(result.data.status).toBe('created');
@@ -771,7 +808,7 @@ describe('GuidesDbService', () => {
         guideId,
         expect.objectContaining({
           $set: expect.objectContaining({
-            'quoteData.quoteId': 'new-quote',
+            'quoteData.quote': { id: 'new-quote' },
             origin: { alias: 'new-origin' },
             externalId: 'NEW-EXT-456',
             status: 'created',
@@ -790,7 +827,7 @@ describe('GuidesDbService', () => {
           status: 'created',
           provider: 'Mn',
           externalId: 'OLD-EXT-123',
-          quoteData: { quoteId: 'expired-quote' },
+          quoteData: { quote: { id: 'expired-quote' } },
           origin: { alias: 'o' },
           destination: { alias: 'd' },
           parcel: { length: 10, weight: 1 },
@@ -811,7 +848,7 @@ describe('GuidesDbService', () => {
         service.updateGuideData(
           'KFT-202606-000001',
           { email: user.email },
-          { quoteId: 'expired-quote' },
+          { quote: { id: 'expired-quote' } },
         ),
       ).rejects.toThrow('Quote has expired, please create a new quote');
     });
@@ -825,7 +862,7 @@ describe('GuidesDbService', () => {
           status: 'created',
           provider: 'GE',
           externalId: 'OLD-EXT-123',
-          quoteData: { quoteId: 'q1' },
+          quoteData: { quote: { id: 'q1' } },
           origin: { alias: 'o' },
           destination: { alias: 'd' },
           parcel: { length: 10, weight: 1 },
@@ -844,7 +881,7 @@ describe('GuidesDbService', () => {
         status: 'failed',
         provider: 'GE',
         externalId: 'OLD-EXT-123',
-        quoteData: { quoteId: 'q1' },
+        quoteData: { quote: { id: 'q1' } },
         origin: { alias: 'o' },
         destination: { alias: 'd' },
         parcel: { length: 10, weight: 1 },
@@ -853,10 +890,154 @@ describe('GuidesDbService', () => {
       const result = await service.updateGuideData(
         'KFT-202606-000001',
         { email: user.email },
-        { quoteId: 'q1' },
+        { quote: { id: 'q1' } },
       );
 
       expect(result.data.status).toBe('failed');
+    });
+  });
+
+  describe('formatGuideResponse', () => {
+    const mockGuide = {
+      kraftId: 'KFT-202606-000001',
+      quoteData: {
+        quote: {
+          id: 'q1',
+          service: 'standard',
+          total: 150,
+          qBaseRef: 100,
+          qAdjFactor: 150,
+          qAdjBasis: 50,
+          qAdjMode: 'P' as const,
+          qAdjSrcRef: 'custom' as const,
+          typeService: 'standard' as const,
+          courier: 'Estafeta' as QuoteCourier,
+        },
+      },
+      externalId: 'EXT-123',
+      status: 'created',
+      provider: 'GE',
+      origin: { alias: 'o1', name: 'John' },
+      destination: { alias: 'd1', name: 'Jane' },
+      parcel: { length: 10, width: 10, height: 10, weight: 1 },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+      deletedBy: null,
+      failureInfo: null,
+      isProviderTrackingSynced: true,
+      labelUrl: null,
+    } as unknown as GuideDoc;
+
+    it('should strip qAdj* fields when includeInternalPricing=false', () => {
+      const result = (service as any).formatGuideResponse(mockGuide, false);
+
+      expect(result.data.quote).toBeDefined();
+      expect(result.data.quote.id).toBe('q1');
+      expect(result.data.quote.service).toBe('standard');
+      expect(result.data.quote.total).toBe(150);
+      expect(result.data.quote.qAdjMode).toBeUndefined();
+      expect(result.data.quote.qAdjBasis).toBeUndefined();
+      expect(result.data.quote.qAdjFactor).toBeUndefined();
+      expect(result.data.quote.qAdjSrcRef).toBeUndefined();
+      expect(result.data.quote.qBaseRef).toBeUndefined();
+    });
+
+    it('should include qAdj* fields when includeInternalPricing=true', () => {
+      const result = (service as any).formatGuideResponse(mockGuide, true);
+
+      expect(result.data.quote).toBeDefined();
+      expect(result.data.quote.id).toBe('q1');
+      expect(result.data.quote.qAdjMode).toBe('P');
+      expect(result.data.quote.qAdjBasis).toBe(50);
+      expect(result.data.quote.qAdjFactor).toBe(150);
+      expect(result.data.quote.qAdjSrcRef).toBe('custom');
+      expect(result.data.quote.qBaseRef).toBe(100);
+    });
+
+    it('should return undefined quote when quoteData.quote is undefined', () => {
+      const guideNoQuote = {
+        ...mockGuide,
+        quoteData: {},
+      } as unknown as GuideDoc;
+      const result = (service as any).formatGuideResponse(guideNoQuote, false);
+
+      expect(result.data.quote).toBeUndefined();
+    });
+  });
+
+  describe('getAllGuides with includeInternalPricing', () => {
+    it('should pass includeInternalPricing=true to formatGuideResponse', async () => {
+      const mockGuides = [
+        {
+          kraftId: 'KFT-202606-000001',
+          quoteData: { quote: { id: 'q1', service: 'standard', total: 100 } },
+          externalId: 'EXT-123',
+          status: 'created',
+          provider: 'GE',
+          origin: {},
+          destination: {},
+          parcel: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+          deletedBy: null,
+          failureInfo: null,
+          isProviderTrackingSynced: false,
+          labelUrl: null,
+        },
+      ];
+
+      mockGuideModel.find.mockReturnValue(createMockFindQuery(mockGuides));
+      mockGuideModel.countDocuments.mockResolvedValue(1);
+
+      const result = await service.getAllGuides(
+        { scope: 'all', includeInternalPricing: true },
+        { email: 'admin@example.com' },
+      );
+
+      expect(result.data.guides[0].quote).toBeDefined();
+      expect((result.data.guides[0].quote as any).qAdjMode).toBeUndefined();
+    });
+
+    it('should strip qAdj* when includeInternalPricing=false (default)', async () => {
+      const mockGuides = [
+        {
+          kraftId: 'KFT-202606-000001',
+          quoteData: {
+            quote: {
+              id: 'q1',
+              service: 'standard',
+              total: 100,
+              qAdjMode: 'P' as const,
+            },
+          },
+          externalId: 'EXT-123',
+          status: 'created',
+          provider: 'GE',
+          origin: {},
+          destination: {},
+          parcel: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+          deletedBy: null,
+          failureInfo: null,
+          isProviderTrackingSynced: false,
+          labelUrl: null,
+        },
+      ];
+
+      mockGuideModel.find.mockReturnValue(createMockFindQuery(mockGuides));
+      mockGuideModel.countDocuments.mockResolvedValue(1);
+
+      const result = await service.getAllGuides(
+        { scope: 'all' },
+        { email: 'admin@example.com' },
+      );
+
+      expect(result.data.guides[0].quote).toBeDefined();
+      expect((result.data.guides[0].quote as any).qAdjMode).toBeUndefined();
     });
   });
 });

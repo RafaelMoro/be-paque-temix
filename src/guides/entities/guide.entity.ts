@@ -35,23 +35,30 @@ class Parcel {
 }
 
 @Schema({ _id: false })
-class QuoteData {
-  @Prop({ required: true }) quoteId: string;
-  @Prop() qAdjMode?: string;
+class QuoteSnapshot {
+  @Prop({ type: String, required: true }) id: string | number;
+  @Prop() service?: string;
+  @Prop() total?: number;
   @Prop() qBaseRef?: number;
   @Prop() qAdjFactor?: number;
   @Prop() qAdjBasis?: number;
-  @Prop() qAdjSrcRef?: string;
-  @Prop() total?: number;
-  @Prop() service?: string;
-  @Prop() courier?: string;
+  @Prop() qAdjMode?: 'P' | 'A';
+  @Prop() qAdjSrcRef?: 'default' | 'custom';
+  @Prop({ type: String }) typeService?: 'standard' | 'nextDay' | null;
+  @Prop({ type: String }) courier?: string | null;
+}
+
+@Schema({ _id: false })
+class QuoteData {
+  @Prop({ type: QuoteSnapshot }) quote?: QuoteSnapshot;
 }
 
 @Schema({ _id: false })
 class RetryAttempt {
   @Prop({ required: true }) attemptNumber: number;
   @Prop({ required: true }) timestamp: Date;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' }) userId: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  userId: Types.ObjectId;
   @Prop({ required: true }) error: string;
   @Prop({ required: true }) errorCode: string;
 }
@@ -66,7 +73,8 @@ class Retries {
 @Schema({ _id: false })
 class Comment {
   @Prop({ required: true }) text: string;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' }) adminId: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  adminId: Types.ObjectId;
   @Prop({ required: true, default: () => new Date() }) timestamp: Date;
 }
 
