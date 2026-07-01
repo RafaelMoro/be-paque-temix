@@ -21,12 +21,12 @@ Additionally, the `GET /guides/db/admin` endpoint accepts a query param to contr
 
 ### Acceptance Criteria
 
-1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData`.
-2. **`GET /guides/db/:guideId`** returns the full stored quote snapshot (all `GetQuoteData` fields).
-3. **`GET /guides/db/admin`** accepts a boolean query param (e.g., `includeMarginDetails` or `showQAdj`) that, when `true`, includes the `qAdj*` fields in the response. Default: `false` (backward-compatible — margin fields omitted).
-4. **Retry** (`POST /guides/db/:guideId/retry`) preserves the stored quote snapshot; it must not wipe `quoteData` when re-calling the provider.
-5. **`PATCH /guides/db/:guideId`** (update guide) accepts and updates the stored quote snapshot when the client sends it.
-6. **Non-admin guide listing** (`GET /guides/db`) never exposes `qAdj*` fields regardless of the query param.
+1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData.quote`.
+2. **`GET /guides/db/:guideId`** returns the stored quote snapshot **without** `qAdj*` fields (non-admin; `qAdj*` never exposed to non-admins).
+3. **`GET /guides/db`** (non-admin paginated listing) returns the stored quote snapshot **without** `qAdj*` fields — `qAdj*` are never included regardless of any query param.
+4. **`GET /guides/db/admin`** accepts a boolean query param (e.g., `includeMarginDetails`) that, when `true`, includes the `qAdj*` fields (`qAdjMode`, `qAdjBasis`, `qAdjFactor`, `qAdjSrcRef`, `qBaseRef`) in the response. Default: `false` (backward-compatible — margin fields omitted even to admins by default).
+5. **Retry** (`POST /guides/db/:guideId/retry`) preserves the stored quote snapshot; it must not wipe `quoteData.quote` when re-calling the provider.
+6. **`PATCH /guides/db/:guideId`** (update guide) accepts and updates the stored quote snapshot when the client sends it.
 
 ### Out of scope
 - Persisting quotes in MongoDB or any new collection.
@@ -160,17 +160,16 @@ export class UpdateGuideDto {
 }
 ```
 
-### 3. Response DTO — conditional qAdj* exposure on admin listing
+### 3. Response DTO — qAdj* never on non-admin, opt-in on admin
 
 **File:** `src/guides/dtos/guides-db-responses.dto.ts`
 
-Create two response sub-DTOs:
-- `QuoteSnapshotResponseDto` — all quote fields INCLUDING `qAdj*`
-- `QuoteSnapshotPublicResponseDto` — only `id`, `service`, `total`, `typeService`, `courier`, `source` (NO `qAdj*`)
+Use a single `QuoteSnapshotResponseDto` that includes all `GetQuoteData` fields. Strip `qAdj*` at the service layer:
 
-`GuideDataDto` uses `QuoteSnapshotPublicResponseDto` by default (for non-admin listings and single-guide GET). Admin listing (via `PaginatedGuidesResponseDto`) decides at runtime which sub-DTO to use based on the query param.
+- **`formatGuideResponse` for non-admin calls** (`getGuideById`, `getGuidesByUser`): always strip `qAdj*` fields, return only `id`, `service`, `total`, `typeService`, `courier`, `source`.
+- **`formatGuideResponse` for admin calls** (`getAllGuides`): strip `qAdj*` unless `includeMarginDetails === true`.
 
-Alternatively (simpler): always include all fields in the DTO but strip `qAdj*` in `formatGuideResponse` when `includeMarginDetails !== true`. This avoids a second DTO class and keeps the response type consistent.
+This avoids two response DTOs — the wire format is the same, the service layer controls the content.
 
 ### 4. Admin listing query param
 
@@ -198,19 +197,27 @@ quoteData: {
 
 When `dto.quote` is present, update `quoteData.quote.*` via dot notation alongside `quoteData.quoteId`.
 
-### 7. formatGuideResponse — conditional qAdj* stripping
+### 7. formatGuideResponse — qAdj* stripped unless admin + includeMarginDetails
 
 ```typescript
-formatGuideResponse(guide: GuideDoc, includeMarginDetails = false): GuideResponseDto {
-  const quote = guide.quoteData?.quote;
-  const quoteData = includeMarginDetails ? quote : this.stripQAdjFields(quote);
-  // ...
+// New private method on the service
+private stripQAdjFields(quote: QuoteSnapshot | undefined): Partial<QuoteSnapshot> | undefined {
+  if (!quote) return undefined;
+  const { qAdjMode, qAdjBasis, qAdjFactor, qAdjSrcRef, qBaseRef, ...publicQuote } = quote;
+  return publicQuote;
 }
 
-private stripQAdjFields(quote: QuoteSnapshot): QuoteSnapshotPublic {
-  // return copy without qAdjMode, qBaseRef, qAdjFactor, qAdjBasis, qAdjSrcRef
+// formatGuideResponse takes an optional includeMarginDetails param
+formatGuideResponse(guide: GuideDoc, includeMarginDetails = false): GuideResponseDto {
+  const rawQuote = guide.quoteData?.quote;
+  // Non-admin or includeMarginDetails=false → strip qAdj*; admin + includeMarginDetails=true → return all
+  const quote = (includeMarginDetails && req.user?.role?.includes('admin')) ? rawQuote : this.stripQAdjFields(rawQuote);
+  // ...
 }
 ```
+
+`getGuidesByUser` and `getGuideById` call `formatGuideResponse(guide, false)` (admin check implicit — they never have admin access).
+`getAllGuides` calls `formatGuideResponse(guide, includeMarginDetails)` — the boolean comes from the query param.
 
 ### 8. Update tests
 
@@ -235,10 +242,10 @@ private stripQAdjFields(quote: QuoteSnapshot): QuoteSnapshotPublic {
 ## Open Questions
 
 1. **Query param name:** `includeMarginDetails` vs `showQAdj` vs `exposeInternalPricing`? The param controls whether `qAdj*` fields are returned. `includeMarginDetails` is descriptive but verbose — `showQAdj` is shorter. Choose one.
-2. **Response shape consistency:** Always return `quote` in `GuideDataDto` (with `qAdj*` null/omitted when not admin), vs having two separate response DTOs. Recommendation: always return `quote` with all fields; `qAdj*` are `null` when not admin — avoids type bifurcation.
-3. **Backward compatibility on admin listing:** Default `includeMarginDetails = false` means existing admin clients see no change. Confirm this is acceptable vs default `= true` which would expose margin data immediately.
-4. **`id` field naming:** `GetQuoteData.id` is what the FE sends, but the entity already stores it as `quoteId` (`QuoteData.quoteId`). The `QuoteSnapshot.id` maps to the same `quoteId` but the FE also sends `quoteId` separately. Should `id` in the snapshot be stored separately from `quoteId` (two copies of the same value), or should we suppress `id` in the snapshot since `quoteId` is already stored? **Recommendation: store `id` in the snapshot as-is; `quoteId` is the canonical identifier used by the provider API.**
-5. **`source` field:** `GetQuoteData.source` duplicates `Guide.provider`. Should the snapshot store `source` or just rely on `Guide.provider`? **Recommendation: store `source` in snapshot for completeness; it records what the quote said at creation time even if provider changes later.**
+2. **Backward compatibility on admin listing:** Default `includeMarginDetails = false` means margin data is hidden by default even from admins. Confirm this is acceptable — it means an existing admin client won't see margin data unless it explicitly sends `?includeMarginDetails=true`. Alternative: default `= true` immediately exposes margin data to all admins.
+3. **`id` field naming:** `GetQuoteData.id` maps to `QuoteData.quoteId`. The FE also sends `quoteId` as a separate field on `CreateGuideDto`. Should `QuoteSnapshot.id` be stored at all (it duplicates `quoteId`), or should we suppress it? **Recommendation: store `id` in the snapshot for completeness; it records the original quote identifier even if `quoteId` gets updated later.**
+4. **`source` field:** `GetQuoteData.source` duplicates `Guide.provider`. Store both? **Recommendation: yes, store `source` in snapshot for audit trail — records what the quote source said at creation time.**
+5. **`GET /guides/db/:guideId` — does it need an admin mode too?** Currently there's no `?includeMarginDetails` on the single-guide endpoint. Should admins be able to get `qAdj*` on a specific guide via this endpoint? Or is the admin margin data only accessible via the paginated admin listing?
 
 ---
 
