@@ -21,7 +21,7 @@ Additionally, the `GET /guides/db/admin` endpoint accepts a query param to contr
 
 ### Acceptance Criteria
 
-1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData.quote`. No separate `quoteId` field on the entity — `id` from `GetQuoteData` is the quote identifier stored in the snapshot.
+1. **`POST /guides/db/create`** accepts the complete selected quote object (`GetQuoteData` shape) and persists it on the `Guide` document under `quoteData.quote`. The `id` field is **required** — it is the quote identifier needed by the provider API. No separate `quoteId` field on the entity.
 2. **`GET /guides/db/:guideId`** returns the stored quote snapshot **without** `qAdj*` fields (non-admin; `qAdj*` never exposed to non-admins). No admin opt-in for this endpoint.
 3. **`GET /guides/db`** (non-admin paginated listing) returns the stored quote snapshot **without** `qAdj*` fields — `qAdj*` are never included regardless of any query param.
 4. **`GET /guides/db/admin`** accepts `includeInternalPricing?: boolean` (default `false`). When `true`, includes `qAdjMode`, `qAdjBasis`, `qAdjFactor`, `qAdjSrcRef`, `qBaseRef` in the response. When `false` (default), margin fields are omitted even to admins.
@@ -97,7 +97,7 @@ Remove the existing dead `QuoteData` class fields (`quoteId`, `qAdjMode`, `qBase
 ```typescript
 @Schema({ _id: false })
 class QuoteSnapshot {
-  @Prop() id?: string | number;           // the quote identifier; used by provider API
+  @Prop({ required: true }) id: string | number;  // required — needed by provider API
   @Prop() service?: string;
   @Prop() total?: number;
   @Prop() qBaseRef?: number;
@@ -129,9 +129,9 @@ Also add `includeInternalPricing?: boolean` to `GetAdminGuidesQueryDto` (default
 
 ```typescript
 export class QuoteSnapshotDto {
-  @ApiProperty({ description: 'Quote identifier used by the provider API' })
+  @ApiProperty({ description: 'Quote identifier used by the provider API — required' })
   @IsNotEmpty()
-  id?: string | number;
+  id: string | number;  // required — client must send this
 
   @IsString()
   @IsOptional()
@@ -288,7 +288,7 @@ All 5 questions resolved:
 - No DB migration needed — old guide documents have `quoteData.quote = undefined`, handled gracefully in `formatGuideResponse`.
 - Retry does not overwrite `quoteData` — existing `$set` operations only touch specific fields, not the whole `quoteData` object.
 - `Guide.provider` is authoritative for the provider name; `source` from `GetQuoteData` is not stored in the snapshot.
-- `QuoteSnapshot.id` is the quote identifier used by the provider API. No separate `quoteId` field on the entity.
+- `QuoteSnapshot.id` is required and is the quote identifier used by the provider API. No separate `quoteId` field on the entity.
 - **Breaking API change:** `CreateGuideDto` no longer has `quoteId: string` as a top-level field; `quote.id` is used instead. Client must be updated.
 
 ---
@@ -298,5 +298,5 @@ All 5 questions resolved:
 - The existing `QuoteData` entity fields (`qAdjMode`, `qBaseRef`, `qAdjFactor`, `qAdjBasis`, `qAdjSrcRef`, `service`, `courier`, `total`, `quoteId`) are **dead** — `createGuide` only ever writes `{ quoteId: payload.quoteId }`. The new `QuoteSnapshot` schema replaces their slot. Zero migration risk since nothing writes to them.
 - `typeService` is the only `GetQuoteData` field **missing entirely** from the existing entity. Must be added to `QuoteSnapshot`.
 - `RetryPayload` (`guides.interface.ts:40-92`) does not carry quote fields; retry reads from stored doc. `quoteData.quote` survives retry **only if** future refactors avoid wholesale `quoteData` replacement — guard against `$set: { quoteData: {...} }`.
-- **Breaking API change:** `CreateGuideDto` drops `quoteId: string` (top-level). Client must send `quote.id` instead. `callProviderApi` already accesses `payload.quoteId` — this reference must change to `payload.quote?.id`.
+- **Breaking API change:** `CreateGuideDto` drops `quoteId: string` (top-level). Client must send `quote.id` instead — and `id` is **required**, not optional. `callProviderApi` already accesses `payload.quoteId` — this reference must change to `payload.quote?.id`.
 - `source` intentionally not stored — `Guide.provider` is the authoritative provider identifier.
