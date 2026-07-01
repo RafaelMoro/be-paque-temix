@@ -33,8 +33,10 @@ import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
-import { CreateGuideDto } from '@/guides/dtos/guides-db.dto';
-import { GetGuideDataResponse } from '@/guides/guides.interface';
+import {
+  GetGuideDataResponse,
+  ProviderGuidePayload,
+} from '@/guides/guides.interface';
 
 @Injectable()
 export class PakkeService {
@@ -219,7 +221,7 @@ export class PakkeService {
   }
 
   async createGuideStandardized(
-    payload: CreateGuideDto,
+    payload: ProviderGuidePayload,
   ): Promise<CreateGuidePkkDataResponse> {
     const pkkPayload: PkkCreateGuideRequest = {
       parcel: {

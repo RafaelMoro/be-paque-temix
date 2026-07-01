@@ -11,6 +11,7 @@ import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
   DeleteGuideResponseDto,
+  QuoteSnapshotResponseDto,
 } from '../dtos/guides-db-responses.dto';
 import {
   GetAdminGuidesQueryDto,
@@ -21,6 +22,7 @@ import {
 } from '../dtos/guides-db.dto';
 import {
   FormattedGuideData,
+  ProviderGuidePayload,
   ProviderResult,
   RetryPayload,
 } from '../guides.interface';
@@ -78,7 +80,7 @@ export class GuidesDbService {
         origin: payload.origin,
         destination: payload.destination,
         parcel: payload.parcel,
-        quoteData: { quoteId: payload.quoteId },
+        quoteData: { quote: payload.quote },
         labelUrl: providerResult.labelUrl,
         failureInfo: providerResult.success
           ? undefined
@@ -92,7 +94,7 @@ export class GuidesDbService {
         comments: [],
       });
 
-      return this.formatGuideResponse(guide, providerResult);
+      return this.formatGuideResponse(guide, false, providerResult);
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -130,7 +132,11 @@ export class GuidesDbService {
       query.userId = new Types.ObjectId(filters.userId);
     }
 
-    return this.executePaginatedQuery(query, filters);
+    return this.executePaginatedQuery(
+      query,
+      filters,
+      filters.includeInternalPricing,
+    );
   }
 
   async getGuideById(
@@ -141,7 +147,7 @@ export class GuidesDbService {
     const userId = await this.getUserId(user);
     const guide = await this.findAccessibleGuide({ guideId, userId, isAdmin });
 
-    return this.formatGuideResponse(guide);
+    return this.formatGuideResponse(guide, false);
   }
 
   /**
@@ -170,7 +176,7 @@ export class GuidesDbService {
 
     const retryPayload: RetryPayload = {
       provider: guide.provider as 'GE' | 'TONE' | 'Pkk' | 'Mn',
-      quoteId: guide.quoteData.quoteId,
+      quote: { id: guide.quoteData.quote?.id ?? '' },
       origin: guide.origin,
       destination: guide.destination,
       parcel: guide.parcel,
@@ -190,6 +196,7 @@ export class GuidesDbService {
     };
 
     if (providerResult.success) {
+      // ponytail: retry $set touches only specific fields — never wholesale quoteData replacement, preserves quoteData.quote across retries
       await this.guideModel.findByIdAndUpdate(guide._id, {
         $set: {
           status: 'created',
@@ -212,7 +219,7 @@ export class GuidesDbService {
     }
 
     const updated = await this.guideModel.findById(guide._id);
-    return this.formatGuideResponse(updated!);
+    return this.formatGuideResponse(updated!, false);
   }
 
   /**
@@ -276,7 +283,7 @@ export class GuidesDbService {
     });
 
     const updated = await this.guideModel.findById(guide._id);
-    return this.formatGuideResponse(updated!);
+    return this.formatGuideResponse(updated!, false);
   }
 
   /**
@@ -306,7 +313,7 @@ export class GuidesDbService {
     });
 
     const updated = await this.guideModel.findById(guide._id);
-    return this.formatGuideResponse(updated!);
+    return this.formatGuideResponse(updated!, false);
   }
 
   /**
@@ -326,7 +333,7 @@ export class GuidesDbService {
     });
 
     const updated = await this.guideModel.findById(guide._id);
-    return this.formatGuideResponse(updated!);
+    return this.formatGuideResponse(updated!, false);
   }
 
   /**
@@ -351,7 +358,7 @@ export class GuidesDbService {
       // Build merged payload for the provider call
       const mergedPayload = {
         provider: guide.provider as ProviderSource,
-        quoteId: dto.quoteId ?? guide.quoteData.quoteId,
+        quote: dto.quote ?? guide.quoteData.quote,
         parcel: dto.parcel ?? guide.parcel,
         origin: dto.origin ?? guide.origin,
         destination: dto.destination ?? guide.destination,
@@ -372,7 +379,7 @@ export class GuidesDbService {
 
       // Build DB update — only fields that were provided
       const setFields: Record<string, unknown> = {};
-      if (dto.quoteId) setFields['quoteData.quoteId'] = dto.quoteId;
+      if (dto.quote) setFields['quoteData.quote'] = dto.quote;
       if (dto.parcel) setFields.parcel = dto.parcel;
       if (dto.origin) setFields.origin = dto.origin;
       if (dto.destination) setFields.destination = dto.destination;
@@ -401,7 +408,7 @@ export class GuidesDbService {
 
       await this.guideModel.findByIdAndUpdate(guide._id, updateQuery);
       const updated = await this.guideModel.findById(guide._id);
-      return this.formatGuideResponse(updated!, providerResult);
+      return this.formatGuideResponse(updated!, false, providerResult);
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -573,6 +580,7 @@ export class GuidesDbService {
   private async executePaginatedQuery(
     query: FilterQuery<GuideDoc>,
     filters: GetGuidesQueryDto,
+    includeInternalPricing: boolean = false,
   ): Promise<PaginatedGuidesResponseDto> {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
@@ -595,7 +603,11 @@ export class GuidesDbService {
       error: null,
       data: {
         guides: guides.map(
-          (g) => this.formatGuideResponse(g as unknown as GuideDoc).data,
+          (g) =>
+            this.formatGuideResponse(
+              g as unknown as GuideDoc,
+              includeInternalPricing,
+            ).data,
         ),
         total,
         page,
@@ -671,7 +683,15 @@ export class GuidesDbService {
     payload: CreateGuideDto,
   ): Promise<ProviderResult> {
     try {
-      const response = await this.routeToProvider(payload);
+      const providerPayload: ProviderGuidePayload = {
+        provider: payload.provider,
+        quoteId: payload.quote?.id,
+        parcel: payload.parcel,
+        origin: payload.origin,
+        destination: payload.destination,
+        notifyMe: payload.notifyMe,
+      };
+      const response = await this.routeToProvider(providerPayload);
       const guide = response.data.guide;
 
       if (!guide?.trackingNumber) {
@@ -787,7 +807,7 @@ export class GuidesDbService {
       : null;
   }
 
-  private async routeToProvider(payload: CreateGuideDto) {
+  private async routeToProvider(payload: ProviderGuidePayload) {
     switch (payload.provider) {
       case 'GE':
         return this.guiaEnviaService.createGuideStandardized(payload);
@@ -858,13 +878,17 @@ export class GuidesDbService {
 
   formatGuideResponse(
     guide: GuideDoc,
+    includeInternalPricing: boolean = false,
     providerResult?: ProviderResult,
   ): GuideResponseDto {
     const providerGuide = providerResult?.guide;
 
     const data: FormattedGuideData = {
       kraftId: guide.kraftId,
-      quoteId: guide.quoteData?.quoteId,
+      quote: this.buildQuoteResponse(
+        guide.quoteData?.quote,
+        includeInternalPricing,
+      ),
       externalId: guide.externalId || null,
       shipmentNumber: providerGuide?.shipmentNumber ?? null,
       status: guide.status,
@@ -948,6 +972,22 @@ export class GuidesDbService {
       error: null,
       data,
     };
+  }
+
+  private buildQuoteResponse(
+    quote: GuideDoc['quoteData']['quote'] | undefined,
+    includeInternalPricing: boolean,
+  ): QuoteSnapshotResponseDto | undefined {
+    if (!quote) return undefined;
+    if (includeInternalPricing) return { ...quote };
+    return this.stripQAdjFields(quote);
+  }
+
+  private stripQAdjFields(quote: NonNullable<GuideDoc['quoteData']['quote']>) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { qAdjMode, qAdjBasis, qAdjFactor, qAdjSrcRef, qBaseRef, ...rest } =
+      quote;
+    return rest;
   }
 
   /**
