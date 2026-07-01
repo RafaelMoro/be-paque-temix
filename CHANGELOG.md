@@ -1,3 +1,9 @@
+## v1.2.0 (2026-07-01)
+
+### Pull Requests
+[#92](https://github.com/RafaelMoro/be-paque-temix/pull/92) | Feat/enhance guides db save quote info
+
+
 ## v1.1.2 (2026-07-01)
 
 ### Pull Requests
