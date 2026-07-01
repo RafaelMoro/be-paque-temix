@@ -32,12 +32,25 @@ export class GuideParcelResponseDto {
   @ApiProperty({ required: false }) quantity?: number;
 }
 
+export class QuoteSnapshotResponseDto {
+  @ApiProperty() id?: string | number;
+  @ApiProperty() service?: string;
+  @ApiProperty() total?: number;
+  @ApiProperty() qBaseRef?: number;
+  @ApiProperty() qAdjFactor?: number;
+  @ApiProperty() qAdjBasis?: number;
+  @ApiProperty() qAdjMode?: string;
+  @ApiProperty() qAdjSrcRef?: string;
+  @ApiProperty() typeService?: string | null;
+  @ApiProperty() courier?: string | null;
+}
+
 export class GuideDataDto {
   @ApiProperty()
   kraftId: string;
 
-  @ApiProperty({ required: false })
-  quoteId?: string;
+  @ApiProperty({ required: false, type: QuoteSnapshotResponseDto })
+  quote?: QuoteSnapshotResponseDto;
 
   @ApiProperty({ required: false })
   externalId?: string | null; // this is the tracking number that the provider returns

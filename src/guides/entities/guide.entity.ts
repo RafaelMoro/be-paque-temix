@@ -35,16 +35,22 @@ class Parcel {
 }
 
 @Schema({ _id: false })
-class QuoteData {
-  @Prop({ required: true }) quoteId: string;
-  @Prop() qAdjMode?: string;
+class QuoteSnapshot {
+  @Prop({ required: true }) id: string | number;
+  @Prop() service?: string;
+  @Prop() total?: number;
   @Prop() qBaseRef?: number;
   @Prop() qAdjFactor?: number;
   @Prop() qAdjBasis?: number;
-  @Prop() qAdjSrcRef?: string;
-  @Prop() total?: number;
-  @Prop() service?: string;
-  @Prop() courier?: string;
+  @Prop() qAdjMode?: 'P' | 'A';
+  @Prop() qAdjSrcRef?: 'default' | 'custom';
+  @Prop() typeService?: 'standard' | 'nextDay' | null;
+  @Prop() courier?: string | null;
+}
+
+@Schema({ _id: false })
+class QuoteData {
+  @Prop({ type: QuoteSnapshot }) quote?: QuoteSnapshot;
 }
 
 @Schema({ _id: false })
