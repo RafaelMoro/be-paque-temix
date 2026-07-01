@@ -979,15 +979,16 @@ export class GuidesDbService {
     includeInternalPricing: boolean,
   ): QuoteSnapshotResponseDto | undefined {
     if (!quote) return undefined;
+
     const plainQuote =
-      typeof (quote as any).toObject === 'function'
+      'toObject' in quote && typeof quote.toObject === 'function'
         ? (quote as any).toObject()
         : { ...quote };
     if (includeInternalPricing) return { ...plainQuote };
     return this.stripQAdjFields(plainQuote);
   }
 
-  private stripQAdjFields(quote: NonNullable<GuideDoc['quoteData']['quote']>) {
+  private stripQAdjFields(quote: QuoteSnapshotResponseDto) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { qAdjMode, qAdjBasis, qAdjFactor, qAdjSrcRef, qBaseRef, ...rest } =
       quote;

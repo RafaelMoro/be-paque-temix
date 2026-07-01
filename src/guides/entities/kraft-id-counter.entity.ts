@@ -16,6 +16,7 @@ export class KraftIdCounter extends Document {
   updatedAt: Date;
 }
 
-export const KraftIdCounterSchema = SchemaFactory.createForClass(KraftIdCounter);
+export const KraftIdCounterSchema =
+  SchemaFactory.createForClass(KraftIdCounter);
 
 // ponytail: @Prop unique on yearMonth already creates the index
