@@ -1,4 +1,4 @@
-process.loadEnvFile();
+process.loadEnvFile('.env.local');
 
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
