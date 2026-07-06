@@ -23,7 +23,7 @@ import {
   ProfitMarginResponse,
   TypeProfitMargin,
 } from '../global-configs.interface';
-import { QuoteCourier, ProviderSource } from '@/quotes/quotes.interface';
+import { QuoteCourier, ProviderSource } from '@/global.interface';
 import { QUOTE_COURIER, QUOTE_SOURCE } from '@/quotes/quotes.constants';
 import { PROFIT_MARGIN_TYPE } from '../global-configs.constants';
 

@@ -1,3 +1,39 @@
+## v1.3.0 (2026-07-06)
+
+### Pull Requests
+[#93](https://github.com/RafaelMoro/be-paque-temix/pull/93) | Add stage and prod environment
+
+
+## v1.2.0 (2026-07-01)
+
+### Pull Requests
+[#92](https://github.com/RafaelMoro/be-paque-temix/pull/92) | Feat/enhance guides db save quote info
+
+
+## v1.1.2 (2026-07-01)
+
+### Pull Requests
+[#91](https://github.com/RafaelMoro/be-paque-temix/pull/91) | Docs: Add QA file
+
+
+## v1.1.1 (2026-06-27)
+
+### Pull Requests
+[#90](https://github.com/RafaelMoro/be-paque-temix/pull/90) | Fix lambda not finding .env
+
+
+## v1.1.0 (2026-06-27)
+
+### Pull Requests
+[#89](https://github.com/RafaelMoro/be-paque-temix/pull/89) | Add save guide DB feature
+
+
+## v1.0.1 (2026-05-31)
+
+### Pull Requests
+[#88](https://github.com/RafaelMoro/be-paque-temix/pull/88) | Add license
+
+
 ## v1.0.0 (2026-05-31)
 
 ### Pull Requests

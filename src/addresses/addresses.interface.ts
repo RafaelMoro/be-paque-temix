@@ -20,24 +20,30 @@ export interface AddressData {
   isGEAddress?: boolean;
 }
 
-export interface CreateAddressResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateAddressResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     address: AddressData;
   };
 }
 
-export interface GetAddressesResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetAddressesResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     addresses: AddressData[];
   };
 }
 
-export interface AddressesByAliasResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface AddressesByAliasResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   data: {
     address: {

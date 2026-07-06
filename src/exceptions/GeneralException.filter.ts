@@ -7,21 +7,36 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { KraftError } from '@/guides/kraft-error';
 
 @Catch(HttpException)
 export class GeneralAppExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
-    const error = exception.getResponse();
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
 
-    const responseFormatted: GeneralResponse = {
+    if (exception instanceof KraftError) {
+      const errorResponse: GeneralResponse = {
+        version: VERSION_RESPONSE ?? 'v1.0.0',
+        data: null,
+        message: null,
+        error: {
+          code: exception.code,
+          message: exception.userMessage,
+          technicalDetails: exception.technicalDetails,
+        },
+      };
+      response.status(exception.getStatus()).send(errorResponse);
+      return;
+    }
+
+    const errorResponse: GeneralResponse = {
       version: VERSION_RESPONSE ?? 'v1.0.0',
       data: null,
       message: null,
-      error,
+      error: exception.getResponse(),
     };
 
-    response.status(exception.getStatus()).send(responseFormatted);
+    response.status(exception.getStatus()).send(errorResponse);
   }
 }

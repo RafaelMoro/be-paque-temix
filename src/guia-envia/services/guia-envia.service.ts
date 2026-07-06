@@ -34,6 +34,7 @@ import {
   ExtGetGuidesGEResponse,
 } from '../guia-envia.interface';
 import { CreateGEAddressDto } from '@/quotes/dtos/quotes.dto';
+import { ProviderGuidePayload } from '@/guides/guides.interface';
 import {
   formatAddressesGE,
   formatCreateAddressPayloadGE,
@@ -168,9 +169,7 @@ export class GuiaEnviaService {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
 
-      const transformedPayload = formatCreateAddressPayloadGE(
-        payload as CreateAddressPayload,
-      );
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
       const url = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.post(url, transformedPayload, {
@@ -210,9 +209,7 @@ export class GuiaEnviaService {
       if (!uri) {
         throw new BadRequestException(GE_MISSING_URI_ERROR);
       }
-      const transformedPayload = formatCreateAddressPayloadGE(
-        payload as CreateAddressPayload,
-      );
+      const transformedPayload = formatCreateAddressPayloadGE(payload);
       const editUri = `${uri}${CREATE_ADDRESS_ENDPOINT_GE}/${id}`;
       const response: AxiosResponse<ExtAddressGEResponse, unknown> =
         await axios.put(editUri, transformedPayload, {
@@ -426,6 +423,26 @@ export class GuiaEnviaService {
       }
       throw new BadRequestException('An unknown error occurred');
     }
+  }
+
+  async createGuideStandardized(
+    payload: ProviderGuidePayload,
+  ): Promise<CreateGuideGEDataResponse> {
+    const gePayload: CreateGuideGeRequest = {
+      quoteId: payload.quoteId as string,
+      parcel: {
+        length: payload.parcel.length,
+        width: payload.parcel.width,
+        height: payload.parcel.height,
+        weight: payload.parcel.weight,
+        content: payload.parcel.content,
+        satProductId: payload.parcel.satProductId,
+      },
+      origin: { alias: payload.origin.alias },
+      destination: { alias: payload.destination.alias },
+    };
+
+    return this.createGuideGe(gePayload);
   }
 
   async getGuides() {

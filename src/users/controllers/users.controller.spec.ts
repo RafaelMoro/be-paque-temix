@@ -250,7 +250,7 @@ describe('UsersController', () => {
 
       mockUsersService.forgotPassword.mockResolvedValue(mockResponse as any);
 
-      const result = await controller.forgotPassword(forgotPasswordDto as any);
+      const result = await controller.forgotPassword(forgotPasswordDto);
 
       expect(mockUsersService.forgotPassword).toHaveBeenCalledWith(
         forgotPasswordDto,
@@ -293,7 +293,7 @@ describe('UsersController', () => {
 
       const result = await controller.resetPassword(
         oneTimeToken,
-        resetPasswordDto as any,
+        resetPasswordDto,
       );
 
       expect(mockUsersService.resetPassword).toHaveBeenCalledWith(

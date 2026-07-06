@@ -33,6 +33,7 @@ import {
 import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
+import { ProviderGuidePayload } from '@/guides/guides.interface';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
 import { DEV_ENV, PROD_ENV } from '@/app.constant';
@@ -299,6 +300,42 @@ export class T1Service {
         guide: standardGuide,
       },
     };
+  }
+
+  async createGuideStandardized(
+    payload: ProviderGuidePayload,
+  ): Promise<CreateGuideToneDataResponse> {
+    const t1Payload: T1CreateGuideRequest = {
+      parcel: { content: payload.parcel.content },
+      origin: {
+        name: payload.origin.name,
+        lastName: payload.origin.lastName,
+        street1: payload.origin.street1,
+        neighborhood: payload.origin.neighborhood,
+        external_number: payload.origin.external_number,
+        town: payload.origin.town,
+        state: payload.origin.state,
+        phone: payload.origin.phone,
+        email: payload.origin.email,
+        reference: payload.origin.reference,
+      },
+      destination: {
+        name: payload.destination.name,
+        lastName: payload.destination.lastName,
+        street1: payload.destination.street1,
+        neighborhood: payload.destination.neighborhood,
+        external_number: payload.destination.external_number,
+        town: payload.destination.town,
+        state: payload.destination.state,
+        phone: payload.destination.phone,
+        email: payload.destination.email,
+        reference: payload.destination.reference,
+      },
+      notifyMe: payload.notifyMe,
+      quoteToken: payload.quoteId as string,
+    };
+
+    return this.createGuide(t1Payload);
   }
 
   async retrieveT1Guides() {

@@ -24,7 +24,7 @@ import { GuidesModule } from './guides/guides.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env',
+      envFilePath: '.env.local',
       load: [config],
       isGlobal: true,
       validationSchema: Joi.object({

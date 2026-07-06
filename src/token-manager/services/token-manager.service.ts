@@ -158,6 +158,17 @@ export class TokenManagerService {
         messages,
       };
     } catch (error) {
+      // Preserve HttpException (and subclasses) so structured responses reach the client
+      if (
+        error instanceof BadRequestException ||
+        (typeof error === 'object' &&
+          error !== null &&
+          'getResponse' in error &&
+          typeof (error as { getResponse?: unknown }).getResponse ===
+            'function')
+      ) {
+        throw error;
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }

@@ -182,8 +182,10 @@ export interface FetchGuidesManuableResponse {
   guides: ManuableGuide[];
 }
 
-export interface CreateGuideMnDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface CreateGuideMnDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {
@@ -191,8 +193,10 @@ export interface CreateGuideMnDataResponse
   };
 }
 
-export interface GetGuidesMnDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetGuidesMnDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {

@@ -1,7 +1,7 @@
-import { GeneralResponse } from '@/global.interface';
-import { QUOTE_COURIER, QUOTE_SOURCE } from './quotes.constants';
+import { GeneralResponse, ProviderSource } from '@/global.interface';
+import { QUOTE_COURIER } from './quotes.constants';
 
-export type ProviderSource = (typeof QUOTE_SOURCE)[number];
+export { ProviderSource };
 
 export type QuoteTypeSevice = 'standard' | 'nextDay';
 
@@ -32,8 +32,10 @@ export interface GetQuoteData {
   source: ProviderSource;
 }
 
-export interface GetQuoteDataResponse
-  extends Omit<GeneralResponse, 'data' | 'error'> {
+export interface GetQuoteDataResponse extends Omit<
+  GeneralResponse,
+  'data' | 'error'
+> {
   error: null;
   messages: string[];
   data: {

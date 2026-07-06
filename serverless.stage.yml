@@ -1,0 +1,74 @@
+service: kraft-envios-api-pnpm
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  stage: stage
+  region: us-east-1
+  logRetentionInDays: 1
+  timeout: 45
+  stackName: kraft-envios-api-pnpm
+  apiName: kraft-envios-api-pnpm
+  environment:
+    NODE_ENV: ${env:NODE_ENV}
+    PORT: ${env:PORT}
+    CLUSTER: ${env:CLUSTER}
+    MONGO_USER: ${env:MONGO_USER}
+    MONGO_CLUSTER_SUFFIX: ${env:MONGO_CLUSTER_SUFFIX}
+    MONGO_PWD: ${env:MONGO_PWD}
+    MONGO_DB_NAME: ${env:MONGO_DB_NAME}
+    MONGO_CONNECTION: ${env:MONGO_CONNECTION}
+    JWT_KEY: ${env:JWT_KEY}
+    ONE_TIME_JWT_KEY: ${env:ONE_TIME_JWT_KEY}
+    PUBLIC_KEY: ${env:PUBLIC_KEY}
+    ROLE_KEY: ${env:ROLE_KEY}
+    FRONTEND_PORT: ${env:FRONTEND_PORT}
+    FRONTEND_URI: ${env:FRONTEND_URI}
+    RESEND_API_KEY: ${env:RESEND_API_KEY}
+    MAILER_MAIL: ${env:MAILER_MAIL}
+    GUIA_ENVIA_KEY: ${env:GUIA_ENVIA_KEY}
+    GUIA_ENVIA_URI: ${env:GUIA_ENVIA_URI}
+    T1_URI: ${env:T1_URI}
+    T1_GUIDES_URI: ${env:T1_GUIDES_URI}
+    T1_TK_URI: ${env:T1_TK_URI}
+    T1_GUIDES_STORE_ID: ${env:T1_GUIDES_STORE_ID}
+    T1_STORE_ID: ${env:T1_STORE_ID}
+    T1_CLIENT_ID: ${env:T1_CLIENT_ID}
+    T1_CLIENT_SECRET: ${env:T1_CLIENT_SECRET}
+    T1_USERNAME: ${env:T1_USERNAME}
+    T1_PASSWORD: ${env:T1_PASSWORD}
+    PAKKE_KEY: ${env:PAKKE_KEY}
+    PAKKE_URI: ${env:PAKKE_URI}
+    MANUABLE_EM: ${env:MANUABLE_EM}
+    MANUABLE_PSS: ${env:MANUABLE_PSS}
+    MANUABLE_URI: ${env:MANUABLE_URI}
+
+package:
+  patterns:
+    - '.bundle/**'
+    - '!src/**'
+    - '!test/**'
+    - '!emails/**'
+    - '!dist/**'
+    - '!node_modules/**'
+    - '!coverage/**'
+    - '!docs/**'
+    - '!.env'
+    - '!.env.local'
+    - '!.env.prod'
+    - '!.env.stage'
+    - '!serverless.yml'
+
+functions:
+  api:
+    handler: .bundle/index.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
+
+plugins:
+  - serverless-offline

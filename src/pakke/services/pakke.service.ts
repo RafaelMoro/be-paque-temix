@@ -33,7 +33,10 @@ import { GetQuoteDto } from '@/quotes/dtos/quotes.dto';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { GlobalConfigsDoc } from '@/global-configs/entities/global-configs.entity';
-import { GetGuideDataResponse } from '@/guides/guides.interface';
+import {
+  GetGuideDataResponse,
+  ProviderGuidePayload,
+} from '@/guides/guides.interface';
 
 @Injectable()
 export class PakkeService {
@@ -215,5 +218,47 @@ export class PakkeService {
       console.log('error unknown pkk', error);
       throw new BadRequestException('An unknown error occurred');
     }
+  }
+
+  async createGuideStandardized(
+    payload: ProviderGuidePayload,
+  ): Promise<CreateGuidePkkDataResponse> {
+    const pkkPayload: PkkCreateGuideRequest = {
+      parcel: {
+        content: payload.parcel.content,
+        length: payload.parcel.length,
+        width: payload.parcel.width,
+        height: payload.parcel.height,
+        weight: payload.parcel.weight,
+      },
+      origin: {
+        name: payload.origin.name,
+        email: payload.origin.email,
+        phone: payload.origin.phone,
+        company: payload.origin.company,
+        street1: payload.origin.street1,
+        isResidential: payload.origin.isResidential ?? false,
+        street2: payload.origin.street2,
+        neighborhood: payload.origin.neighborhood,
+        city: payload.origin.city,
+        state: payload.origin.state,
+        zipcode: payload.origin.zipcode,
+      },
+      destination: {
+        name: payload.destination.name,
+        email: payload.destination.email,
+        phone: payload.destination.phone,
+        company: payload.destination.company,
+        street1: payload.destination.street1,
+        isResidential: payload.destination.isResidential ?? false,
+        street2: payload.destination.street2,
+        neighborhood: payload.destination.neighborhood,
+        city: payload.destination.city,
+        state: payload.destination.state,
+        zipcode: payload.destination.zipcode,
+      },
+    };
+
+    return this.createGuidePakke(pkkPayload);
   }
 }

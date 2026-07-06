@@ -1,4 +1,4 @@
-service: kraft-envios-api-pnpm
+service: kraft-envios-api
 
 provider:
   name: aws
@@ -7,8 +7,8 @@ provider:
   region: us-east-1
   logRetentionInDays: 1
   timeout: 45
-  stackName: kraft-envios-api-pnpm
-  apiName: kraft-envios-api-pnpm
+  stackName: kraft-envios-api
+  apiName: kraft-envios-api
   environment:
     NODE_ENV: ${env:NODE_ENV}
     PORT: ${env:PORT}
@@ -54,6 +54,10 @@ package:
     - '!coverage/**'
     - '!docs/**'
     - '!.env'
+    - '!.env.local'
+    - '!.env.prod'
+    - '!.env.stage'
+    - '!serverless.stage.yml'
 
 functions:
   api:

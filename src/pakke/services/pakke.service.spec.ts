@@ -164,10 +164,10 @@ describe('PakkeService', () => {
   const mockCreateGuidePayload: PkkCreateGuideRequest = {
     parcel: {
       content: 'Electronics',
-      length: '25',
-      width: '20',
-      height: '15',
-      weight: '3',
+      length: 25,
+      width: 20,
+      height: 15,
+      weight: 3,
     },
     origin: {
       name: 'John Doe',

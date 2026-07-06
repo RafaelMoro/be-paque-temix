@@ -1447,7 +1447,7 @@ describe('GuiaEnviaService', () => {
 
       const result = await serviceWithVersion.editGEAddress({
         id: mockAddressId,
-        payload: mockEditAddressPayload as any,
+        payload: mockEditAddressPayload,
       });
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1673,7 +1673,7 @@ describe('GuiaEnviaService', () => {
 
       await serviceWithVersion.editGEAddress({
         id: 'specific-address-id-789',
-        payload: mockEditAddressPayload as any,
+        payload: mockEditAddressPayload,
       });
 
       const [url] = mockedAxios.put.mock.calls[0];
@@ -1713,7 +1713,7 @@ describe('GuiaEnviaService', () => {
 
       const result = await serviceWithVersion.editGEAddress({
         id: mockAddressId,
-        payload: mockEditAddressPayload as any,
+        payload: mockEditAddressPayload,
       });
 
       expect(result.version).toBe('1.0.0');
@@ -2564,10 +2564,10 @@ describe('GuiaEnviaService', () => {
     const mockCreateGuidePayload: CreateGuideGeRequest = {
       quoteId: 'quote-123',
       parcel: {
-        length: '30',
-        width: '20',
-        height: '10',
-        weight: '5.0',
+        length: 30,
+        width: 20,
+        height: 10,
+        weight: 5.0,
         content: 'Electronics',
         satProductId: '43211508',
       },
