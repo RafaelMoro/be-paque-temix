@@ -1,3 +1,9 @@
+## v1.3.0 (2026-07-06)
+
+### Pull Requests
+[#93](https://github.com/RafaelMoro/be-paque-temix/pull/93) | Add stage and prod environment
+
+
 ## v1.2.0 (2026-07-01)
 
 ### Pull Requests
