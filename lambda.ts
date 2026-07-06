@@ -1,11 +1,3 @@
-try {
-  process.loadEnvFile();
-} catch (error) {
-  if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-    throw error;
-  }
-}
-
 import 'reflect-metadata';
 import { configure as serverlessExpress } from '@codegenie/serverless-express';
 import { ValidationPipe } from '@nestjs/common';
