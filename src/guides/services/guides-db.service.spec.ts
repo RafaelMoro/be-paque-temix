@@ -755,6 +755,13 @@ describe('GuidesDbService', () => {
   describe('updateGuideData', () => {
     const user = { _id: new Types.ObjectId(), email: 'user@example.com' };
 
+    it('should throw when payload is empty', async () => {
+      await expect(
+        service.updateGuideData('KFT-202606-000001', { email: user.email }, {}),
+      ).rejects.toThrow('Update payload cannot be empty');
+      expect(mockUsersService.findByEmail).not.toHaveBeenCalled();
+    });
+
     it('should update guide data and re-call provider successfully', async () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
       const guideId = new Types.ObjectId();
