@@ -1,3 +1,9 @@
+## v1.3.1 (2026-07-14)
+
+### Pull Requests
+[#95](https://github.com/RafaelMoro/be-paque-temix/pull/95) | Fix patch guide db on empty DTO
+
+
 ## v1.3.0 (2026-07-06)
 
 ### Pull Requests
