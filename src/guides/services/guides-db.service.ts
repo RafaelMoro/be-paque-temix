@@ -348,6 +348,10 @@ export class GuidesDbService {
     dto: UpdateGuideDto,
   ): Promise<GuideResponseDto> {
     try {
+      if (Object.keys(dto).length === 0) {
+        throw new KraftError(CONST.GDE_BDN_013, CONST.MSG_EMPTY_UPDATE_PAYLOAD);
+      }
+
       const userId = await this.getUserId(user);
       const guide = await this.findAccessibleGuide({
         guideId,

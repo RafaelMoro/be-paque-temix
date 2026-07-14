@@ -21,6 +21,8 @@ export const GDE_BDN_010 = 'GDE-BDN-010';
 export const GDE_BDN_011 = 'GDE-BDN-011';
 /** Used when updating guide data fails */
 export const GDE_BDN_012 = 'GDE-BDN-012';
+/** Used when the PATCH guide payload is empty */
+export const GDE_BDN_013 = 'GDE-BDN-013';
 
 /** Default provider error when no specific mapping exists */
 export const GDE_PVR_001 = 'GDE-PVR-001';
@@ -66,3 +68,4 @@ export const MSG_PROVIDER_VALIDATION_ERROR =
 export const MSG_QUOTE_EXPIRED =
   'Quote has expired, please create a new quote before updating the guide';
 export const MSG_FAILED_UPDATE_GUIDE = 'Failed to update guide data';
+export const MSG_EMPTY_UPDATE_PAYLOAD = 'Update payload cannot be empty';
