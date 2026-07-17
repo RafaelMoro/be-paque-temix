@@ -70,6 +70,13 @@ export class GetGuidesQueryDto {
   year?: number;
 }
 
+export class CreateGuideQueryDto {
+  @ApiProperty({ required: false, enum: ['success', 'failed'] })
+  @IsOptional()
+  @IsEnum(['success', 'failed'])
+  mock?: 'success' | 'failed';
+}
+
 export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
   @ApiProperty({ enum: ['all', 'own'], required: true })
   @IsEnum(['all', 'own'])
