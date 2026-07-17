@@ -7,6 +7,7 @@ jest.mock('@/users/services/users.service', () => {
 });
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { GuidesDbService } from './guides-db.service';
@@ -654,6 +655,30 @@ describe('GuidesDbService', () => {
       const result = (service as any).mapProviderErrorToKraftCode({});
       expect(result).toBe('GDE-PVR-001');
     });
+
+    it('should map Manuable Axios expiration responses to GDE-PVR-006', () => {
+      const error = {
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: { errors: { reason: 'Rate request already has a label' } },
+        },
+      };
+
+      const result = (service as any).buildProviderErrorResult(error, 'Mn');
+
+      expect(result.errorCode).toBe('GDE-PVR-006');
+    });
+
+    it('should map Manuable Nest expiration responses to GDE-PVR-006', () => {
+      const error = new BadRequestException({
+        errors: { reason: 'Rate request already has a label' },
+      });
+
+      const result = (service as any).buildProviderErrorResult(error, 'Mn');
+
+      expect(result.errorCode).toBe('GDE-PVR-006');
+    });
   });
 
   describe('addComment', () => {
@@ -874,16 +899,11 @@ describe('GuidesDbService', () => {
           parcel: { length: 10, weight: 1 },
         }),
       );
-      mockManuableService.createGuideStandardized.mockRejectedValue({
-        message: 'Bad Request Exception',
-        response: {
-          status: 400,
-          data: { errors: { reason: 'Rate request already has a label' } },
-        },
-        getResponse: () => ({
+      mockManuableService.createGuideStandardized.mockRejectedValue(
+        new BadRequestException({
           errors: { reason: 'Rate request already has a label' },
         }),
-      });
+      );
 
       await expect(
         service.updateGuideData(
@@ -895,6 +915,41 @@ describe('GuidesDbService', () => {
           },
         ),
       ).rejects.toThrow('Quote has expired, please create a new quote');
+      expect(mockGuideModel.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should not persist a changed-quote update when Manuable reports expiration', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'Mn',
+          quoteData: { quote: { id: 'old-quote' } },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { content: 'Stored', satProductId: 'SAT-1' },
+        }),
+      );
+      mockManuableService.createGuideStandardized.mockRejectedValue(
+        new BadRequestException({
+          errors: { reason: 'Rate request already has a label' },
+        }),
+      );
+
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quote: { id: 'new-quote' } },
+        ),
+      ).rejects.toMatchObject({
+        code: 'GDE-PVR-006',
+        message:
+          'Quote has expired, please create a new quote before updating the guide',
+      });
+      expect(mockGuideModel.findByIdAndUpdate).not.toHaveBeenCalled();
     });
 
     it('should mark guide as failed when provider returns other error', async () => {

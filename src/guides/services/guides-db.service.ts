@@ -821,7 +821,11 @@ export class GuidesDbService {
     return {
       success: false,
       error: errorDetails,
-      errorCode: this.mapProviderErrorToKraftCode(error, provider),
+      errorCode: this.mapProviderErrorToKraftCode(
+        error,
+        provider,
+        responseData,
+      ),
       response: responseData ?? this.fallbackResponse(error),
     };
   }
@@ -917,6 +921,7 @@ export class GuidesDbService {
   private mapProviderErrorToKraftCode(
     error: unknown,
     provider?: string,
+    responseData: Record<string, unknown> | null = null,
   ): string {
     const err = error as {
       code?: string;
@@ -929,7 +934,8 @@ export class GuidesDbService {
     if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
     if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
     if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
-    if (this.isQuoteExpiredError(err, provider)) return CONST.GDE_PVR_006;
+    if (this.isQuoteExpiredError(err, provider, responseData))
+      return CONST.GDE_PVR_006;
     if (err.response?.status === 401) return CONST.GDE_PVR_003;
     if (err.response?.status === 400 && err.response?.data?.errors)
       return CONST.GDE_PVR_005;
@@ -953,13 +959,24 @@ export class GuidesDbService {
       };
     },
     provider?: string,
+    responseData: Record<string, unknown> | null = null,
   ): boolean {
     if (provider !== 'Mn') return false;
+
+    const responseErrors = responseData?.errors as
+      | { reason?: unknown }
+      | undefined;
 
     const text = [
       error.message,
       error.response?.data?.message,
       (error.response?.data?.errors as { reason?: string })?.reason,
+      typeof responseData?.message === 'string'
+        ? responseData.message
+        : undefined,
+      typeof responseErrors?.reason === 'string'
+        ? responseErrors.reason
+        : undefined,
     ]
       .filter(Boolean)
       .join(' ')
