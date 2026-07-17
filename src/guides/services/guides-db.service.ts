@@ -347,7 +347,7 @@ export class GuidesDbService {
    */
   async updateGuideData(
     guideId: string,
-    user: { email?: string } | undefined,
+    user: { email?: string; role?: string[] } | undefined,
     dto: UpdateGuideDto,
   ): Promise<GuideResponseDto> {
     try {
@@ -356,17 +356,73 @@ export class GuidesDbService {
       }
 
       const userId = await this.getUserId(user);
+      const isAdmin = user?.role?.includes('admin') ?? false;
       const guide = await this.findAccessibleGuide({
         guideId,
         userId,
-        isAdmin: false,
+        isAdmin,
       });
+
+      const isSameQuote =
+        String(dto.quote?.id ?? guide.quoteData.quote!.id) ===
+        String(guide.quoteData.quote!.id);
+
+      if (isSameQuote) {
+        const hasForbiddenQuoteField = Object.keys(dto.quote ?? {}).some(
+          (field) => field !== 'id',
+        );
+        const hasForbiddenParcelField = Object.keys(dto.parcel ?? {}).some(
+          (field) => field !== 'content' && field !== 'satProductId',
+        );
+        if (
+          dto.origin ||
+          dto.destination ||
+          dto.notifyMe !== undefined ||
+          hasForbiddenQuoteField ||
+          hasForbiddenParcelField
+        ) {
+          throw new KraftError(
+            CONST.GDE_BUS_008,
+            CONST.MSG_INVALID_SAME_QUOTE_UPDATE,
+          );
+        }
+
+        const contentChanged =
+          dto.parcel?.content !== undefined &&
+          dto.parcel.content !== guide.parcel.content;
+        const satProductIdChanged =
+          dto.parcel?.satProductId !== undefined &&
+          dto.parcel.satProductId !== guide.parcel.satProductId;
+        if (!contentChanged && !satProductIdChanged) {
+          throw new KraftError(
+            CONST.GDE_BDN_013,
+            CONST.MSG_EMPTY_UPDATE_PAYLOAD,
+          );
+        }
+      } else if (dto.parcel) {
+        const requiredParcelFields = [
+          dto.parcel.length,
+          dto.parcel.width,
+          dto.parcel.height,
+          dto.parcel.weight,
+          dto.parcel.content,
+          dto.parcel.satProductId,
+        ];
+        if (requiredParcelFields.some((field) => field === undefined)) {
+          throw new KraftError(
+            CONST.GDE_BUS_008,
+            CONST.MSG_INCOMPLETE_CHANGED_QUOTE_PARCEL,
+          );
+        }
+      }
 
       // Build merged payload for the provider call
       const mergedPayload = {
         provider: guide.provider as ProviderSource,
         quote: dto.quote ?? guide.quoteData.quote,
-        parcel: dto.parcel ?? guide.parcel,
+        parcel: isSameQuote
+          ? { ...guide.parcel, ...dto.parcel }
+          : (dto.parcel ?? guide.parcel),
         origin: dto.origin ?? guide.origin,
         destination: dto.destination ?? guide.destination,
         notifyMe: dto.notifyMe ?? false,
@@ -387,7 +443,16 @@ export class GuidesDbService {
       // Build DB update — only fields that were provided
       const setFields: Record<string, unknown> = {};
       if (dto.quote) setFields['quoteData.quote'] = dto.quote;
-      if (dto.parcel) setFields.parcel = dto.parcel;
+      if (isSameQuote) {
+        if (dto.parcel?.content !== undefined) {
+          setFields['parcel.content'] = dto.parcel.content;
+        }
+        if (dto.parcel?.satProductId !== undefined) {
+          setFields['parcel.satProductId'] = dto.parcel.satProductId;
+        }
+      } else if (dto.parcel) {
+        setFields.parcel = dto.parcel;
+      }
       if (dto.origin) setFields.origin = dto.origin;
       if (dto.destination) setFields.destination = dto.destination;
 
