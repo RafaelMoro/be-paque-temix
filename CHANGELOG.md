@@ -1,3 +1,9 @@
+## v1.4.0 (2026-07-17)
+
+### Pull Requests
+[#96](https://github.com/RafaelMoro/be-paque-temix/pull/96) | Add Create guide db with mock without getting external providers
+
+
 ## v1.3.1 (2026-07-14)
 
 ### Pull Requests
