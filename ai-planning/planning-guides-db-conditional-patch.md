@@ -1,7 +1,7 @@
 # Plan - Guides DB Conditional PATCH
 
 **Research:** [`ai-research/guides-db-conditional-patch-research.md`](../ai-research/guides-db-conditional-patch-research.md)  
-**Status:** Phase 2 complete; awaiting final-validation sign-off
+**Status:** Implementation complete; manual API validation pending a running local server
 
 ## Scope
 
@@ -112,4 +112,4 @@ None before implementation.
 - [x] Phase 2 code and focused unit tests
 - [x] Phase 2 automated criteria (`pnpm test -- guides/services/guides-db.service.spec.ts --runInBand`, `pnpm build`)
 - [ ] Phase 2 manual Manuable API check
-- [ ] Final full test suite
+- [x] Final full test suite (`pnpm test`)
