@@ -121,11 +121,11 @@ Local and Lambda bootstraps use `ValidationPipe` with `whitelist: true` and `for
 - Concurrent PATCH requests can each create provider guides and race on the final document because there is no transaction or optimistic concurrency check.
 - Soft-deleted guides remain inaccessible to owners and admins through this route.
 
-## Open Questions
+## Decisions
 
-1. If a newly submitted quote ID is also rejected by the provider as expired, should PATCH return the same `GDE-PVR-006`/`MSG_QUOTE_EXPIRED` validation response or persist a normal failed-provider result?
-2. Should quote ID equality normalize values as strings so numeric `123` and string `"123"` are treated as the same ID?
-3. If a same-quote request contains no actual `content` or `satProductId` value change, should it be rejected as an empty/no-op update or retain the current provider reissue behavior?
+1. If a newly submitted quote ID is rejected by the provider as expired, PATCH returns `GDE-PVR-006` with `MSG_QUOTE_EXPIRED`; the client must create a new quote and try again. Do not persist it as a normal failed-provider result because that makes an expired quote look like a guide-generation failure.
+2. Quote ID equality normalizes both values with `String(value)` before comparison, so numeric `123` and string `"123"` are treated as the same quote. This matches the persisted Mongoose string shape and prevents a false "new quote" path when validation receives a numeric ID.
+3. A same-quote request with no actual `content` or `satProductId` value change is rejected as an empty/no-op update.
 
 ## Assumptions
 
