@@ -6,7 +6,7 @@ import { Inject } from '@nestjs/common';
 import axios from 'axios';
 import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
-import { CreateGuideDto } from '../dtos/guides-db.dto';
+import { CreateGuideDto, CreateGuideQueryDto } from '../dtos/guides-db.dto';
 import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
@@ -53,6 +53,7 @@ export class GuidesDbService {
   async createGuide(
     user: { email?: string } | undefined,
     payload: CreateGuideDto,
+    mock?: CreateGuideQueryDto['mock'],
   ): Promise<GuideResponseDto> {
     try {
       if (!user?.email) {
@@ -68,7 +69,9 @@ export class GuidesDbService {
       }
 
       const kraftId = await this.generateKraftId();
-      const providerResult = await this.callProviderApi(payload);
+      const providerResult = mock
+        ? this.mockProviderResult(mock, kraftId)
+        : await this.callProviderApi(payload);
 
       const guide = await this.guideModel.create({
         userId: dbUser._id,
@@ -716,6 +719,26 @@ export class GuidesDbService {
       if (error instanceof KraftError) throw error;
       return this.buildProviderErrorResult(error, payload.provider);
     }
+  }
+
+  private mockProviderResult(
+    mock: NonNullable<CreateGuideQueryDto['mock']>,
+    kraftId: string,
+  ): ProviderResult {
+    if (mock === 'success') {
+      return {
+        success: true,
+        externalId: `MOCK-${kraftId}`,
+        labelUrl: 'https://example.com/mock-label.pdf',
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Mock provider failure',
+      errorCode: CONST.GDE_PVR_001,
+      response: { mock },
+    };
   }
 
   /**

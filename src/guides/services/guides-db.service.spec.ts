@@ -273,6 +273,40 @@ describe('GuidesDbService', () => {
       expect(result.data.failureInfo).toBeDefined();
     });
 
+    it.each([
+      ['success', 'created'],
+      ['failed', 'failed'],
+    ] as const)(
+      'should create a %s mocked guide without calling the provider',
+      async (mock, status) => {
+        mockUsersService.findByEmail.mockResolvedValue(user);
+        mockCounterModel.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
+        mockGuideModel.create.mockImplementation((guide) =>
+          Promise.resolve({
+            ...guide,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }),
+        );
+
+        const result = await service.createGuide(
+          { email: user.email },
+          payload,
+          mock,
+        );
+
+        expect(result.data.status).toBe(status);
+        if (mock === 'success') {
+          expect(result.data.externalId).toMatch(/^MOCK-KFT-/);
+        } else {
+          expect(result.data.externalId).toBeNull();
+        }
+        expect(
+          mockGuiaEnviaService.createGuideStandardized,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
     it('should throw KraftError when user is not found', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
