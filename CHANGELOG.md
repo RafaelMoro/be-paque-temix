@@ -1,3 +1,9 @@
+## v1.5.0 (2026-07-19)
+
+### Pull Requests
+[#97](https://github.com/RafaelMoro/be-paque-temix/pull/97) | Enhance guides db endpoints
+
+
 ## v1.4.0 (2026-07-17)
 
 ### Pull Requests
