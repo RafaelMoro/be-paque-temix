@@ -235,6 +235,52 @@ export class ParcelDto {
   quantity: number = 1;
 }
 
+export class UpdateParcelDto {
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  length?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  width?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  height?: number;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  weight?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  content?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  satProductId?: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  value?: number;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  quantity?: number;
+}
+
 export class QuoteSnapshotDto {
   @ApiProperty()
   @IsNotEmpty()
@@ -328,11 +374,11 @@ export class UpdateGuideDto {
   @IsOptional()
   quote?: QuoteSnapshotDto;
 
-  @ApiProperty({ required: false, type: ParcelDto })
+  @ApiProperty({ required: false, type: UpdateParcelDto })
   @ValidateNested()
-  @Type(() => ParcelDto)
+  @Type(() => UpdateParcelDto)
   @IsOptional()
-  parcel?: ParcelDto;
+  parcel?: UpdateParcelDto;
 
   @ApiProperty({ required: false, type: CreateGuideAddressDto })
   @ValidateNested()

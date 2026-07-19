@@ -45,6 +45,8 @@ export const GDE_TMOT_001 = 'GDE-TMOT-001';
 export const GDE_RLIM_003 = 'GDE-RLIM-003';
 /** Used when invalid provider is specified */
 export const GDE_BUS_007 = 'GDE-BUS-007';
+/** Used when a guide update violates the quote-dependent PATCH contract */
+export const GDE_BUS_008 = 'GDE-BUS-008';
 
 export const RETRY_MAX_ATTEMPTS = 10;
 export const RETRY_COOLDOWN_MS = 5 * 60 * 1000;
@@ -69,3 +71,7 @@ export const MSG_QUOTE_EXPIRED =
   'Quote has expired, please create a new quote before updating the guide';
 export const MSG_FAILED_UPDATE_GUIDE = 'Failed to update guide data';
 export const MSG_EMPTY_UPDATE_PAYLOAD = 'Update payload cannot be empty';
+export const MSG_INVALID_SAME_QUOTE_UPDATE =
+  'Only parcel content and satProductId can be changed when reusing the stored quote';
+export const MSG_INCOMPLETE_CHANGED_QUOTE_PARCEL =
+  'Parcel content, satProductId, and measurements are required when changing the quote';

@@ -7,6 +7,7 @@ jest.mock('@/users/services/users.service', () => {
 });
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { GuidesDbService } from './guides-db.service';
@@ -654,6 +655,30 @@ describe('GuidesDbService', () => {
       const result = (service as any).mapProviderErrorToKraftCode({});
       expect(result).toBe('GDE-PVR-001');
     });
+
+    it('should map Manuable Axios expiration responses to GDE-PVR-006', () => {
+      const error = {
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: { errors: { reason: 'Rate request already has a label' } },
+        },
+      };
+
+      const result = (service as any).buildProviderErrorResult(error, 'Mn');
+
+      expect(result.errorCode).toBe('GDE-PVR-006');
+    });
+
+    it('should map Manuable Nest expiration responses to GDE-PVR-006', () => {
+      const error = new BadRequestException({
+        errors: { reason: 'Rate request already has a label' },
+      });
+
+      const result = (service as any).buildProviderErrorResult(error, 'Mn');
+
+      expect(result.errorCode).toBe('GDE-PVR-006');
+    });
   });
 
   describe('addComment', () => {
@@ -874,24 +899,57 @@ describe('GuidesDbService', () => {
           parcel: { length: 10, weight: 1 },
         }),
       );
-      mockManuableService.createGuideStandardized.mockRejectedValue({
-        message: 'Bad Request Exception',
-        response: {
-          status: 400,
-          data: { errors: { reason: 'Rate request already has a label' } },
-        },
-        getResponse: () => ({
+      mockManuableService.createGuideStandardized.mockRejectedValue(
+        new BadRequestException({
           errors: { reason: 'Rate request already has a label' },
         }),
-      });
+      );
 
       await expect(
         service.updateGuideData(
           'KFT-202606-000001',
           { email: user.email },
-          { quote: { id: 'expired-quote' } },
+          {
+            quote: { id: 'expired-quote' },
+            parcel: { content: 'Updated content' },
+          },
         ),
       ).rejects.toThrow('Quote has expired, please create a new quote');
+      expect(mockGuideModel.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should not persist a changed-quote update when Manuable reports expiration', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'Mn',
+          quoteData: { quote: { id: 'old-quote' } },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { content: 'Stored', satProductId: 'SAT-1' },
+        }),
+      );
+      mockManuableService.createGuideStandardized.mockRejectedValue(
+        new BadRequestException({
+          errors: { reason: 'Rate request already has a label' },
+        }),
+      );
+
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quote: { id: 'new-quote' } },
+        ),
+      ).rejects.toMatchObject({
+        code: 'GDE-PVR-006',
+        message:
+          'Quote has expired, please create a new quote before updating the guide',
+      });
+      expect(mockGuideModel.findByIdAndUpdate).not.toHaveBeenCalled();
     });
 
     it('should mark guide as failed when provider returns other error', async () => {
@@ -931,10 +989,170 @@ describe('GuidesDbService', () => {
       const result = await service.updateGuideData(
         'KFT-202606-000001',
         { email: user.email },
-        { quote: { id: 'q1' } },
+        { quote: { id: 'q1' }, parcel: { content: 'Updated content' } },
       );
 
       expect(result.data.status).toBe('failed');
+    });
+
+    it.each([
+      ['content', { content: 'Updated content' }],
+      ['satProductId', { satProductId: 'SAT-2' }],
+    ])(
+      'should update same-quote parcel %s without replacing stored fields',
+      async (_field, parcel) => {
+        mockUsersService.findByEmail.mockResolvedValue(user);
+        const guideId = new Types.ObjectId();
+        const storedParcel = {
+          length: 10,
+          width: 20,
+          height: 30,
+          weight: 1,
+          content: 'Stored content',
+          satProductId: 'SAT-1',
+          value: 100,
+          quantity: 2,
+        };
+        mockGuideModel.findOne.mockReturnValue(
+          createMockFindOneQuery({
+            _id: guideId,
+            kraftId: 'KFT-202606-000001',
+            status: 'created',
+            provider: 'GE',
+            quoteData: { quote: { id: 123 } },
+            origin: { alias: 'o' },
+            destination: { alias: 'd' },
+            parcel: storedParcel,
+          }),
+        );
+        mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
+          data: { guide: { trackingNumber: 'NEW-EXT' } },
+        });
+        mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+        mockGuideModel.findById.mockResolvedValue({
+          _id: guideId,
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          quoteData: { quote: { id: 123 } },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { ...storedParcel, ...parcel },
+        });
+
+        await service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quote: { id: '123' }, parcel },
+        );
+
+        expect(mockGuiaEnviaService.createGuideStandardized).toHaveBeenCalledWith(
+          expect.objectContaining({ parcel: { ...storedParcel, ...parcel } }),
+        );
+        expect(mockGuideModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          guideId,
+          expect.objectContaining({
+            $set: expect.objectContaining(
+              Object.fromEntries(
+                Object.entries(parcel).map(([field, value]) => [
+                  `parcel.${field}`,
+                  value,
+                ]),
+              ),
+            ),
+          }),
+        );
+      },
+    );
+
+    it('should reject disallowed same-quote fields before provider or database calls', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          quoteData: { quote: { id: 'q1' } },
+          parcel: { content: 'Stored', satProductId: 'SAT-1' },
+        }),
+      );
+
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quote: { id: 'q1', service: 'standard' } },
+        ),
+      ).rejects.toMatchObject({ code: 'GDE-BUS-008' });
+
+      expect(mockGuiaEnviaService.createGuideStandardized).not.toHaveBeenCalled();
+      expect(mockGuideModel.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should reject same-quote no-op updates', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.findOne.mockReturnValue(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          quoteData: { quote: { id: 'q1' } },
+          parcel: { content: 'Stored', satProductId: 'SAT-1' },
+        }),
+      );
+
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: user.email },
+          { quote: { id: 'q1' }, parcel: { content: 'Stored' } },
+        ),
+      ).rejects.toMatchObject({ code: 'GDE-BDN-013' });
+    });
+
+    it('should allow an admin to update another user guide but not a soft-deleted guide', async () => {
+      const admin = { _id: new Types.ObjectId(), email: 'admin@example.com' };
+      mockUsersService.findByEmail.mockResolvedValue(admin);
+      mockGuideModel.findOne.mockReturnValueOnce(
+        createMockFindOneQuery({
+          _id: new Types.ObjectId(),
+          kraftId: 'KFT-202606-000001',
+          status: 'created',
+          provider: 'GE',
+          quoteData: { quote: { id: 'q1' } },
+          origin: { alias: 'o' },
+          destination: { alias: 'd' },
+          parcel: { content: 'Stored', satProductId: 'SAT-1' },
+        }),
+      );
+      mockGuiaEnviaService.createGuideStandardized.mockResolvedValue({
+        data: { guide: { trackingNumber: 'NEW-EXT' } },
+      });
+      mockGuideModel.findByIdAndUpdate.mockResolvedValue({});
+      mockGuideModel.findById.mockResolvedValue({
+        kraftId: 'KFT-202606-000001',
+        status: 'created',
+        provider: 'GE',
+        quoteData: { quote: { id: 'q1' } },
+        parcel: { content: 'Updated', satProductId: 'SAT-1' },
+      });
+
+      await service.updateGuideData(
+        'KFT-202606-000001',
+        { email: admin.email, role: ['admin'] },
+        { parcel: { content: 'Updated' } },
+      );
+
+      expect(mockGuideModel.findOne).toHaveBeenCalledWith(
+        expect.not.objectContaining({ userId: admin._id }),
+      );
+
+      mockGuideModel.findOne.mockReturnValueOnce(createMockFindOneQuery(null));
+      await expect(
+        service.updateGuideData(
+          'KFT-202606-000001',
+          { email: admin.email, role: ['admin'] },
+          { parcel: { content: 'Updated again' } },
+        ),
+      ).rejects.toMatchObject({ code: 'GDE-NF-001' });
     });
   });
 
