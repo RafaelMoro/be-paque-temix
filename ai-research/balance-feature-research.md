@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add a user **Balance** (a per-user wallet) that grows through admin-validated **Balance Requests**. A user creates a request to add funds (after depositing money externally); admins are notified by email, verify the transaction out-of-band, and approve or reject it. On approval the user's wallet is credited and the user is notified by email. Users can cancel their own pending requests (admins notified), and both users and admins can browse requests by month/year. The wallet is **spent when a guide is created**: guide creation must verify the user's balance covers the guide total and debit it.
+Add a user **Balance** (a per-user wallet) that grows through admin-validated **Balance Requests**. A user creates a request to add funds (after depositing money externally); admins are notified by email, verify the transaction out-of-band, and approve or reject it. On approval the user's wallet is credited and the user is notified by email. Users can cancel their own pending requests (no notification is sent), and both users and admins can browse requests by month/year. The wallet is **spent when a guide is created**: guide creation must verify the user's balance covers the guide total and debit it.
 
 This feature mirrors the existing **guides-db** module, which is the closest analog (per-user ownership, admin vs user views, month/year filtering, status lifecycle, `KraftError` handling, response envelopes). Reuse its patterns rather than inventing new ones.
 
@@ -23,10 +23,10 @@ This feature mirrors the existing **guides-db** module, which is the closest ana
 
 1. A user can `POST` a balance request with `{ amount, paymentReference? }`; it is persisted with `status: 'pending'`, `adminInCharge: null`, owned by the caller, and **all admins receive a notification email**.
 2. An admin can approve or reject a pending request with an optional reason; approval **atomically credits the user's `Balance.amount`** and records `adminInCharge`, and the **requesting user is notified by email** of the outcome. Rejection changes status only (no wallet change).
-3. A user can cancel **their own pending** request; status becomes `cancelled` and **admins are notified by email**. Requests that are not `pending` cannot be cancelled.
+3. A user can cancel **their own pending** request; status becomes `cancelled`. **No notification email is sent on cancellation.** The service validates the caller owns the request (`req.user.email` === the request's `userEmail`) before cancelling. Requests that are not `pending` cannot be cancelled.
 4. A user can list **their own** requests filtered by month/year (both **optional**, defaulting to the current month/year) and see each request's status; a user never sees `adminInCharge`.
 5. An admin can list requests filtered by month/year (optional, default current), filter by **pending-only or all** statuses, with each request showing the requesting user's **name** resolved from `userEmail`.
-6. Creating a guide **validates the user's balance covers the guide total** and **debits** the wallet atomically on success; if the balance is insufficient, guide creation is rejected with a business error and the wallet is unchanged.
+6. Creating a guide **validates the user's balance covers the guide total** (`quote.total`) *before* creating anything; if the balance is insufficient, guide creation is rejected with a business error and the wallet is unchanged. When covered, the guide is created, the provider API is called, and the total is **debited regardless of provider success or failure** — a `failed` guide holds the debit, and retrying it does not re-charge.
 
 ## Scope
 
@@ -94,17 +94,18 @@ Route prefix `balance`. Class-level `@UseGuards(JwtGuard)`. Admin endpoints add 
 
 | Method & path | Actor | Body / Query | Purpose |
 | --- | --- | --- | --- |
-| `POST /balance/requests` | user | `{ amount, paymentReference? }` | Create pending request; email all admins |
+| `POST /balance/requests` | user | `{ amount, paymentReference? }` | Create pending request owned by `req.user.email` (userEmail stored from the JWT, not the body); email all admins |
 | `GET /balance/requests` | user | `?month&year&page&limit` | List **own** requests by month/year |
-| `GET /balance/requests/admin` | admin | `?month&year&status&page&limit` | List all requests, populated userId→name; `status` filters pending-only vs all |
+| `GET /balance/requests/admin` | admin | `?month&year&status&page&limit` | List all requests, resolving `userEmail`→`name`; `status` filters pending-only vs all |
 | `PATCH /balance/requests/:id/decision` | admin | `{ action: 'approve' \| 'reject', reason?, paymentReference? }` | Approve (credits wallet) or reject; email user |
-| `PATCH /balance/requests/:id/cancel` | user | — | Cancel own pending request; email admins |
+| `PATCH /balance/requests/:id/cancel` | user | — | Cancel own pending request (service validates `req.user.email` === request `userEmail`); no email sent |
 | `GET /balance` | user | — | Read own current wallet `amount` (also checked at guide creation) |
 
 Notes:
 - Identify the caller by `req.user.email` (there is **no** `userId`/`sub` on the JWT payload) and store/query `userEmail` **directly** — no ObjectId resolution step. This is simpler than the guides `getUserId()` pattern, which only exists because guides stores `userId` as an ObjectId ref.
 - Admin check inline: `req.user?.role?.includes('admin') ?? false`.
 - Admin decision endpoint uses **one** PATCH with an `action: 'approve' | 'reject'` discriminator (confirmed — single route, not split). Keeps reason/paymentReference handling in one place.
+- **Cancel ownership guard (confirmed):** the cancel PATCH must verify the JWT identity matches the request owner — reject unless `req.user.email` === the request's `userEmail` — so a user cannot cancel someone else's request. (The decision PATCH is admin-only and does not need this check.)
 - Query DTOs mirror `GetGuidesQueryDto`: `page=1`, `limit=10`, `month {1-12}`, `year` — **month and year are optional and default to the current month/year**, all `@IsOptional()` with `@Type(() => Number)` coercion. Admin query adds a `status` filter (`'pending'` vs all).
 - `GET /balance` returns the caller's own wallet `amount`; it is also the value the guide-creation flow checks against (see Guide-Creation Integration).
 
@@ -115,10 +116,7 @@ Notes:
 - **User resolution:** NOT needed here — store `req.user.email` as `userEmail` directly. (Guides' `getUserId()` at `guides-db.service.ts` L599-613 exists only because guides refs `userId` as an ObjectId; balance skips it.)
 - **Month/year filtering:** `buildBaseQuery()` L615-650 — `targetMonth = filters.month || now.getMonth()+1`; `targetYear = filters.year || now.getFullYear()`; `startOfMonth = new Date(year, month-1, 1)`; `endOfMonth = new Date(year, month, 0, 23,59,59,999)`. Both month and year default to current when absent. Copy verbatim for both list endpoints (swapping the `userId` scoping for `userEmail`).
 - **Pagination:** `executePaginatedQuery()` L652-690 — parallel `Promise.all([find(...).sort({createdAt:-1}).skip().limit().lean(), countDocuments])`, returns `{ total, page, limit, totalPages: Math.ceil(total/limit) }` inside the envelope.
-- **Resolving user name by email (admin view):** because the link is `userEmail` (a string, not an ObjectId ref), Mongoose `.populate()` does **not** apply directly. Resolve names by looking up the users collection by email. Two viable approaches (decide at plan time):
-  - **Batch lookup (recommended for lists):** collect the page's distinct `userEmail`s, `usersModel.find({ email: { $in: emails } }, 'email name lastName')`, build an email→`"name lastName"` map, and attach `userName` when shaping each item. One extra query per page.
-  - **Virtual populate:** define a Mongoose virtual with `ref: 'User'`, `localField: 'userEmail'`, `foreignField: 'email'`, `justOne: true`, then `.populate('user', 'name lastName')`. More setup; keeps it in the query.
-  - Either way add a `userName` field to the admin response DTO. Full name = `name` + `lastName` (there is no `firstName`). Add `UsersService.findByEmails(emails)` (or reuse `findByEmail` in a loop for the single-item case).
+- **Resolving user name by email (admin view):** because the link is `userEmail` (a string, not an ObjectId ref), Mongoose `.populate()` does **not** apply directly. **Confirmed approach: batch lookup** (see *Resolved Decisions* for the rationale over virtual populate). Collect the page's distinct `userEmail`s, `usersModel.find({ email: { $in: emails } }, 'email name lastName')`, build an email→`"name lastName"` map, and attach `userName` when shaping each item — one extra query per page. Add a `userName` field to the admin response DTO. Full name = `name` + `lastName` (there is no `firstName`). Add `UsersService.findByEmails(emails)`.
 - **Status update (approve/reject):** `updateGuideStatus()` L325-340 — `$set` then re-fetch then re-shape. For approval, use an **atomic conditional update** (see Edge Cases).
 - **Soft-delete/mutate envelope + `adminId` capture:** `softDeleteGuide()` L497-533 and `addComment()` L295-320 (`$push` with `adminId`, `timestamp`).
 - **Response envelope + single shaper:** `formatGuideResponse()` L988-1083; `GeneralResponse` in `src/global.interface.ts` L7-12 (`{ version, data, message, error }`); `version` from `this.configService.version` via `@Inject(config.KEY)`.
@@ -130,24 +128,22 @@ Notes:
 Creating a guide must be gated on the user's wallet. This touches the **guides** module, not just balance.
 
 - **Where:** `GuidesDbService.createGuide()` (`src/guides/services/guides-db.service.ts`). `GuidesModule` imports `BalanceModule`; `GuidesDbService` injects `BalanceService`.
-- **Guide total:** the amount to charge is the guide's quote total — the `quote.total` already stored on the guide (see the guides quote snapshot / `buildQuoteResponse`). Confirm the exact field at plan time (the customer-facing total after profit margin).
-- **Atomic check-and-debit:** debit with a single conditional update that both verifies sufficiency and decrements, avoiding a check-then-act race / overdraft:
-  `Balance.findOneAndUpdate({ userEmail, amount: { $gte: total } }, { $inc: { amount: -total } }, { new: true })`.
-  If it returns `null`, the balance is insufficient → throw a business `KraftError` (e.g. `BAL-BUS-00x` "Saldo insuficiente") and **do not create the guide**.
-- **Ordering / rollback:** decide the sequence at plan time — debit before the external provider call vs after. Key edge case: if the provider call **fails** after debiting, either (a) debit only on provider success, or (b) debit up-front and **refund** (`$inc: +total`) on failure. Since guides persist even on provider failure (status `failed`) and support retry, the plan must define whether a `failed` guide holds the debit or is refunded. **Open question — see below.**
+- **Guide total (confirmed):** the amount to charge is `quote.total` — the customer-facing quote total (after profit margin) already stored on the guide (see the guides quote snapshot / `buildQuoteResponse`).
+- **Confirmed sequence:** (1) **validate** the balance covers the total — read the wallet and check `amount >= total` **without** debiting; if insufficient → throw a business `KraftError` (e.g. `BAL-BUS-00x` "Saldo insuficiente") and **do not create the guide**. (2) **Create** the guide. (3) **Call** the provider API. (4) **Debit** the total from the wallet **regardless of whether the provider call succeeded or failed**.
+- **Failed guides hold the debit:** because the debit happens after the provider call irrespective of its outcome, a `failed` guide keeps its charge. **Retry must not re-debit** — the wallet was already charged at the original creation. The plan must ensure the debit fires exactly once per guide (at creation), never again on retry/sync.
+- **Overdraft note (risk for plan):** the confirmed flow validates and debits in **separate** steps (check-then-act), not the single atomic conditional update. Between the up-front check and the final `$inc: -total`, a concurrent guide could drive the balance below the total. The plan should decide whether the final debit is a plain `$inc: { amount: -total }` or is re-guarded (`findOneAndUpdate({ userEmail, amount: { $gte: total } }, ...)`), and what to do if a re-guarded debit finds the balance no longer sufficient after the guide/provider work already ran.
 - **Truncation:** the debited `total` must be truncated to 2 decimals to stay consistent with wallet precision.
 
 ## Email Notifications
 
 `MailService` (`src/mail/services/mail.service.ts`) currently exposes only `sendUserForgotPasswordEmail`. Pattern: instantiate `new Resend(this.configService.mail.resendApiKey)`, `from = this.configService.mail.mailerMail`, render a React Email template with `render(React.createElement(Template, props))`, then `resend.emails.send({ from, to, subject, html })`. `to` accepts a **string or array** — pass an array of admin emails for the admin notifications.
 
-Three new templates in `emails/` + three new `MailService` methods:
+Two new templates in `emails/` + two new `MailService` methods (no cancellation email — cancellation sends no notification):
 
 | Trigger | Recipients | Template props |
 | --- | --- | --- |
 | Request created | all admins | requesting user name, amount, paymentReference, date |
 | Request approved / rejected | requesting user | outcome, amount, optional reason |
-| Request cancelled | all admins | user name, amount |
 
 Templates follow `ResetPassword.tsx`: default-export function component with a typed props interface, wrapped in `<Html><Head><Tailwind><Body><Container>`, Spanish copy, "Kraft Envios" branding.
 
@@ -171,7 +167,7 @@ Templates follow `ResetPassword.tsx`: default-export function component with a t
 - **State guards:** approve/reject allowed only from `pending`; **cancel allowed only from `pending`** (confirmed) and only by the owner. Any other transition → business `KraftError`.
 - **Ownership isolation:** users list/cancel only their own requests (filter by `userEmail` from the JWT); a non-owner must not act on a request.
 - **`adminInCharge` visibility:** strip `adminInCharge` (and possibly `decisionReason`) from the user-facing response shaper; include only in the admin shaper. Consider two response DTOs or an `isAdmin` flag through the single shaper (guides passes `includeInternalPricing` similarly).
-- **amount validation:** required, numeric, `> 0`; reject `0`/negative/`NaN` at the DTO layer; **truncate to 2 decimals** (`19.487 → 19.48`) on write. Decide on a per-request max at plan time.
+- **amount validation:** required, numeric, `> 0`, **max `100000`** per request (confirmed); reject `0`/negative/`NaN`/over-max at the DTO layer; **truncate to 2 decimals** (`19.487 → 19.48`) on write.
 - **Email failure isolation (best-effort):** the DB mutation (status change, wallet credit/debit) is the source of truth and must **commit regardless of email outcome**. Concretely: perform the mutation first, then send notifications inside their own `try/catch`; on a Resend failure, **log it and continue** — do **not** throw, do **not** roll back the mutation, and still return the success envelope. A failed email therefore means the action succeeded but the notice didn't go out (acceptable; retry/alerting is a future concern). The alternative — surfacing the email error to the client — is rejected because it would misreport a committed approval/credit as failed.
 - **Month/year defaults:** absent month/year → current month window (matches guides), so lists are always bounded.
 - **Rejection is terminal:** rejected requests do not touch the wallet and cannot be re-actioned; the user would submit a new request.
@@ -184,13 +180,18 @@ Templates follow `ResetPassword.tsx`: default-export function component with a t
 - **`GET /balance`** — **in scope**; it's the wallet the guide-creation flow checks and debits.
 - **Decision endpoint** — **single** `PATCH .../decision { action }` route.
 - **Multiple requests** — **allowed**; no open-request guard.
+- **Cancel notification** — **none**. Cancelling a pending request sends **no** email (previously admins were notified). Only two email templates remain: request-created (to admins) and decision (to user).
+- **Cancel ownership** — the cancel PATCH validates `req.user.email` === the request's `userEmail`; a user cannot cancel another user's request.
+- **Guide debit ordering** — validate `balance >= quote.total` **without** debiting → create guide → call provider → **debit the total regardless of provider success/failure**. A `failed` guide **holds** the debit; **retry does not re-charge** (debit fires exactly once, at creation).
+- **Guide total field** — the charge is **`quote.total`** (customer-facing total after profit margin).
+- **Per-request maximum** — a single balance request `amount` is capped at **`100000`** (validated at the DTO layer).
+- **Name-resolution approach (admin list)** — **batch lookup** (recommended). For each page, collect the distinct `userEmail`s and run one `usersModel.find({ email: { $in: emails } }, 'email name lastName')`, build an email→name map, and attach `userName` when shaping items. **Why over virtual populate:** the link is a plain `userEmail` string (not an ObjectId ref), so it needs no schema virtual/`ref` wiring; it's a single bounded extra query per page (page size, not result set); it keeps name resolution in the service shaper (explicit, testable) rather than coupling the entity schema to `User`; and it degrades gracefully (email with no matching user → fall back to the raw email) without populate surprises. Virtual populate works but adds schema setup and hides a per-row lookup for no gain at list scale.
 
 ## Open Questions
 
-1. **Guide debit ordering / refund on provider failure** — guides persist even when the provider call fails (status `failed`) and support retry. Does a `failed` guide **hold** the debit (so retry doesn't re-charge) or should the debit be **refunded** on provider failure and re-applied on a successful retry? This changes where the `$inc` sits relative to the provider call. (Recommendation: debit only on provider success, so `failed` guides carry no charge; needs confirmation.)
-2. **Guide total field** — confirm the exact stored field used as the charge (customer-facing `quote.total` after profit margin) so the debit matches what the user was shown.
-3. **Per-request maximum** `amount` — is there an upper bound on a single balance request?
-4. **Name-resolution approach** — batch lookup vs Mongoose virtual populate (both viable; batch recommended for lists).
+All previously open questions are resolved (see *Resolved Decisions*). One plan-phase implementation choice remains, not a stakeholder question:
+
+- **Overdraft handling at debit time** — the confirmed guide flow validates and debits in separate steps (check-then-act). The plan must decide whether the final debit is a plain `$inc: { amount: -total }` or a re-guarded conditional update, and how to handle the rare case where a concurrent guide drained the balance between the up-front check and the debit. (See *Guide-Creation Integration*.)
 
 ## Assumptions
 
