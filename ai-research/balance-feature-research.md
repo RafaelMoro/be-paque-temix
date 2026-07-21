@@ -206,3 +206,21 @@ None remaining — all previously open questions are resolved (see *Resolved Dec
 - The admin list view's "July 2026" style timeframe = the month/year window from `buildBaseQuery`, ordered `createdAt: -1`.
 - Best-effort email delivery (does not block the mutation) — see *Email failure isolation*.
 - Error codes use a new `BAL-*` family following the guides `GDE-*` convention. Changes to existing modules: `UsersService` helper additions (`findAdmins`, `findByEmails`), `GuidesModule`/`GuidesDbService` for the balance check-and-debit at guide creation, and `app.module.ts` registration.
+
+## Post-Research Decisions (made during planning)
+
+These decisions were confirmed with the stakeholder after research and supersede the corresponding items above where they conflict. See [`ai-planning/planning-balance-feature.md`](../ai-planning/planning-balance-feature.md).
+
+1. **Denormalize requester name onto `BalanceRequest`.** On `POST /balance/requests`, store `userName` and `userLastName` (both **separate** fields) directly from the JWT payload (`PayloadToken` already carries `email`, `name`, `lastName`, `role`), alongside `userEmail`. They are a point-in-time snapshot captured at creation and are not updated on later profile changes.
+   - **Consequence:** the admin list and decision responses read the display name (`userName + ' ' + userLastName`) straight from the stored request. The researched **batch lookup `UsersService.findByEmails`** and its missing-user email fallback are **no longer needed and are dropped**. Only `UsersService.findAdmins()` is added (for the request-created admin notification). No auth/token change is required.
+
+2. **`insufficient`-marked failed guides are retryable.** The research/first plan treated an insufficient-balance guide-creation failure as terminal for retry. Revised: a guide that failed with `balanceChargeStatus: 'insufficient'` (wallet drained at the guarded-debit step, or under-funded) **can be retried**. Retry re-runs `assertSufficientBalance` + the guarded debit transaction before the provider call, so a user who tops up their wallet can retry the same failed guide, which then debits **for the first time** and calls the provider. If the wallet is still short, the guide stays `failed`/`insufficient`. The debit still fires **at most once** per guide.
+   - Retry matrix by internal `balanceChargeStatus`: `debited` → retry with no re-debit; `insufficient` → retry re-checks + may debit once; `pending`/`bypassed` → not retryable; legacy `undefined` → existing pre-balance behavior.
+
+3. **Guide failure reason storage.** The reason a balance-gated guide failed reuses the **existing** `Guide.failureInfo` field (`errorDetails` = human-readable reason, `errorCode` = shared insufficient-funds constant). No new reason field is added.
+
+4. **Internal charge-marker fields live on the `Guide` entity.** `balanceChargeStatus`, `balanceDebitAmountInCents`, and `balanceDebitedAt` are internal optional fields on `src/guides/entities/guide.entity.ts` (not a new collection, not a new `status` enum member, and excluded from public guide response DTOs).
+
+5. **Scaffold via the Nest CLI.** Per `.github/IMPLEMENTATION_GUIDELINES.md`, the module/service/controller are generated with `nest g mo balance`, `nest g s balance/balance`, `nest g co balance/balance` (which also registers `BalanceModule` in `AppModule`), rather than hand-created. Entities, DTOs, constants, utils, interfaces, and email templates remain hand-authored.
+
+6. **Money stored as integer cents.** Wallet/request values persist as `amountInCents` internally and convert to decimal `amount` only at the API/email boundary, replacing the research's truncate-on-write-with-normalization option (safer against float `$inc` drift).
