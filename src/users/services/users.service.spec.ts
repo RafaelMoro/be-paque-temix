@@ -117,6 +117,7 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     const mockUserModel = {
+      find: jest.fn(),
       findOne: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findOneAndDelete: jest.fn(),
@@ -216,7 +217,6 @@ describe('UsersService', () => {
         exec: jest.fn().mockRejectedValue(error),
       } as any);
 
-      // The database error is not caught by try-catch since it's a promise rejection
       await expect(service.findByEmail(email)).rejects.toThrow(
         'Database error',
       );
@@ -228,9 +228,32 @@ describe('UsersService', () => {
         exec: jest.fn().mockRejectedValue('Unknown error'),
       } as any);
 
-      // Promise rejections are not caught by try-catch in this implementation
-      // String rejections will be thrown as-is
-      await expect(service.findByEmail(email)).rejects.toBe('Unknown error');
+      await expect(service.findByEmail(email)).rejects.toThrow(
+        'An unknown error occurred',
+      );
+    });
+  });
+
+  describe('findAdmins', () => {
+    it('finds admins using array membership and a limited projection', async () => {
+      const exec = jest.fn().mockResolvedValue([mockUser]);
+      const select = jest.fn().mockReturnValue({ exec });
+      userModel.find.mockReturnValue({ select } as any);
+
+      await expect(service.findAdmins()).resolves.toEqual([mockUser]);
+
+      expect(userModel.find).toHaveBeenCalledWith({ role: 'admin' });
+      expect(select).toHaveBeenCalledWith('email name lastName');
+      expect(exec).toHaveBeenCalled();
+    });
+
+    it('wraps asynchronous database failures', async () => {
+      const select = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
+      userModel.find.mockReturnValue({ select } as any);
+
+      await expect(service.findAdmins()).rejects.toThrow('Database error');
     });
   });
 
