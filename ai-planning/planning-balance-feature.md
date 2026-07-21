@@ -2,7 +2,7 @@
 
 **Story:** Add a per-user wallet funded through admin-approved balance requests, then spend the wallet during persisted guide creation.
 **Research doc:** [`ai-research/balance-feature-research.md`](../ai-research/balance-feature-research.md)
-**Status:** Awaiting sign-off
+**Status:** Phase 1 complete; awaiting Phase 2 sign-off
 
 ---
 
@@ -557,6 +557,14 @@ Key logic and placement:
 ---
 
 ## Final Verification Matrix
+
+## Implementation Checklist
+
+- [x] Phase 1 - Domain Contracts and Persistence
+- [ ] Phase 2 - User Lookup and Notification Infrastructure
+- [ ] Phase 3 - Balance Service and Request Lifecycle
+- [ ] Phase 4 - HTTP API, Guards, and Root Registration
+- [ ] Phase 5 - Persisted Guide Check and Atomic Debit
 
 | Area | Automated command | Manual focus |
 | --- | --- | --- |
