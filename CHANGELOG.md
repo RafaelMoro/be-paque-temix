@@ -1,3 +1,9 @@
+## v1.6.0 (2026-07-21)
+
+### Pull Requests
+[#98](https://github.com/RafaelMoro/be-paque-temix/pull/98) | Add balance feature
+
+
 ## v1.5.0 (2026-07-19)
 
 ### Pull Requests
