@@ -51,11 +51,7 @@ export class GuidesDbController {
     @Query() query: CreateGuideQueryDto,
     @Request() req: ExpressRequest,
   ): Promise<GuideResponseDto> {
-    return this.guidesDbService.createGuide(
-      req.user,
-      createGuideDto,
-      query.mock,
-    );
+    return this.guidesDbService.createGuide(req.user, createGuideDto, query);
   }
 
   @Get()

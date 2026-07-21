@@ -5,13 +5,14 @@ import {
   IsBoolean,
   IsNumber,
   IsOptional,
+  IsPositive,
   ValidateNested,
   Matches,
   IsEmail,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import {
   QuoteAdjustmentMode,
   QuoteAdjustmentSourceReference,
@@ -75,6 +76,14 @@ export class CreateGuideQueryDto {
   @IsOptional()
   @IsEnum(['success', 'failed'])
   mock?: 'success' | 'failed';
+
+  @ApiProperty({ required: false, type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) =>
+    value === undefined ? undefined : value === 'true' || value === true,
+  )
+  bypassBalance?: boolean;
 }
 
 export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
@@ -336,15 +345,25 @@ export class QuoteSnapshotDto {
   courier?: QuoteCourier | null;
 }
 
+export class CreateQuoteSnapshotDto extends OmitType(QuoteSnapshotDto, [
+  'total',
+] as const) {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsPositive()
+  total: number;
+}
+
 export class CreateGuideDto {
   @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
   @IsEnum(['GE', 'TONE', 'Pkk', 'Mn'])
   provider: 'GE' | 'TONE' | 'Pkk' | 'Mn';
 
-  @ApiProperty({ type: QuoteSnapshotDto, required: true })
+  @ApiProperty({ type: CreateQuoteSnapshotDto, required: true })
   @ValidateNested()
-  @Type(() => QuoteSnapshotDto)
-  quote: QuoteSnapshotDto;
+  @Type(() => CreateQuoteSnapshotDto)
+  quote: CreateQuoteSnapshotDto;
 
   @ApiProperty({ type: ParcelDto })
   @ValidateNested()

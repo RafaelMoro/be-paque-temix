@@ -31,6 +31,7 @@ AppModule (Root)
 └── Feature Modules
     ├── QuotesModule (aggregates shipping quotes)
     ├── GuidesModule (creates shipping guides)
+    ├── BalanceModule (user wallet and balance requests)
     ├── AddressesModule (manages user addresses)
     ├── GlobalConfigsModule (system configuration)
     └── Provider Integration Modules
@@ -213,7 +214,25 @@ Email sending capabilities (using Resend API).
 
 ---
 
-### 9. **GlobalConfigsModule** (`src/global-configs/global-configs.module.ts`)
+### 9. **BalanceModule** (`src/balance/balance.module.ts`)
+
+**Purpose:** Maintains per-user wallets and balance funding requests.
+
+**Imports:** `UsersModule`, `MailModule`, and Mongoose models for `Balance` and `BalanceRequest`.
+**Providers:** `BalanceService` (exported for persisted guide creation)
+**Controllers:** `BalanceController` (route: `/balance`, protected by `JwtGuard`)
+
+**Key Features:**
+
+- Wallet values and requests are stored as integer cents; absent wallets read as zero.
+- Users can create, list, and cancel pending requests, and read their own balance.
+- Admin decisions use an atomic request-transition and wallet-credit transaction.
+- Request-created and decision emails are best-effort notifications.
+- Only persisted guide creation is balance-gated; mock guide creation bypasses the wallet.
+
+---
+
+### 10. **GlobalConfigsModule** (`src/global-configs/global-configs.module.ts`)
 
 **Purpose:** System-wide configuration, feature flags, and profit margin management
 
@@ -416,6 +435,13 @@ GuidesService
 ├─→ PakkeService
 └─→ ManuableService
 
+GuidesDbService
+└─→ BalanceService (wallet check and guarded debit for persisted guide creation)
+
+BalanceService
+├─→ UsersService (admin notification recipients)
+└─→ MailService (balance-request notifications)
+
 UsersService
 └─→ MailService (send emails)
 
@@ -436,6 +462,7 @@ AuthService
 | `GuidesController`        | `/guides`         | `JwtGuard`                               | Create shipping guides                 |
 | `GuidesDbController`      | `/guides/db`      | `JwtGuard`                               | DB-persisted guides with retry/sync    |
 | `AddressesController`     | `/addresses`      | `JwtGuard`                               | Manage user addresses                  |
+| `BalanceController`       | `/balance`        | `JwtGuard`, admin routes add `RolesGuard` | User wallet and balance requests      |
 | `GlobalConfigsController` | `/global-configs` | `JwtGuard` + `RolesGuard` (likely admin) | System configuration                   |
 | `GuiaEnviaController`     | `/ge`             | `JwtGuard`                               | Direct Guia Envia API access           |
 | `T1Controller`            | `/tone`           | `JwtGuard`                               | Direct T1 API access                   |
@@ -489,6 +516,8 @@ All provider services follow a similar pattern:
 | `addresses`     | AddressesModule     | User shipping addresses                                      |
 | `globalconfigs` | GlobalConfigsModule | System configuration, feature flags, provider profit margins |
 | `generalinfodb` | GeneralInfoDbModule | OAuth tokens for T1 and Manuable, provider metadata          |
+| `balances`      | BalanceModule       | Per-user wallet amounts stored as integer cents               |
+| `balance_requests` | BalanceModule    | Pending and decided balance funding requests                  |
 
 ---
 

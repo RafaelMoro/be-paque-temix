@@ -37,6 +37,7 @@ You are running the **planning phase** for a story or task. Input is a completed
    - Function signatures, key logic, and critical conditionals
    - Non-obvious edge cases
    - Short rationale only when useful
+   - **Respect the scaffolding convention in `.github/IMPLEMENTATION_GUIDELINES.md`:** when a phase introduces a new NestJS module, service, or controller, plan it as a Nest CLI generation step (`nest g mo <name>`, `nest g s <name>/<name>`, `nest g co <name>/<name>`) rather than a manual file "create". Note that `nest g mo` also registers the module in `AppModule`, so downstream root-registration steps become a **verify**, not a hand edit. Mark the remaining files the CLI does not scaffold (entities, DTOs, constants, interfaces, utils, email templates) as hand-authored "create"/"populate" actions.
 7. Specify success criteria per phase:
    - Exact automated commands using `pnpm`
    - Manual verification steps when applicable

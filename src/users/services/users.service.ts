@@ -53,7 +53,21 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<UserDoc | null> {
     try {
-      return this.userModel.findOne({ email }).exec();
+      return await this.userModel.findOne({ email }).exec();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async findAdmins(): Promise<UserDoc[]> {
+    try {
+      return await this.userModel
+        .find({ role: 'admin' })
+        .select('email name lastName')
+        .exec();
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);

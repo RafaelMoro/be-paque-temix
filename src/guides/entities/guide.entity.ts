@@ -38,7 +38,7 @@ class Parcel {
 class QuoteSnapshot {
   @Prop({ type: String, required: true }) id: string | number;
   @Prop() service?: string;
-  @Prop() total?: number;
+  @Prop({ required: true }) total: number;
   @Prop() qBaseRef?: number;
   @Prop() qAdjFactor?: number;
   @Prop() qAdjBasis?: number;
@@ -146,6 +146,22 @@ export class Guide extends Document {
 
   @Prop({ type: [Comment], default: [] })
   comments: Comment[];
+
+  @Prop({
+    enum: ['pending', 'debited', 'insufficient', 'bypassed', 'admin_bypassed'],
+  })
+  balanceChargeStatus?:
+    | 'pending'
+    | 'debited'
+    | 'insufficient'
+    | 'bypassed'
+    | 'admin_bypassed';
+
+  @Prop({ min: 1 })
+  balanceDebitAmountInCents?: number;
+
+  @Prop()
+  balanceDebitedAt?: Date;
 
   @Prop() lastSyncTimestamp?: Date;
   @Prop() deletedAt?: Date;
