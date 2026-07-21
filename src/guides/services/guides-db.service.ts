@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, FilterQuery, Model, Types } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
 import { Inject } from '@nestjs/common';
 import axios from 'axios';
@@ -32,6 +32,12 @@ import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
+import { BalanceService } from '@/balance/services/balance.service';
+import { fromMoneyCents, toMoneyCents } from '@/balance/balance.utils';
+import {
+  BAL_BUS_001,
+  MSG_BALANCE_INSUFFICIENT_FUNDS,
+} from '@/balance/balance.constants';
 import { ProviderSource } from '@/global.interface';
 import config from '@/config';
 import * as CONST from '../guides-db.constants';
@@ -47,16 +53,27 @@ export class GuidesDbService {
     private readonly pakkeService: PakkeService,
     private readonly manuableService: ManuableService,
     private readonly usersService: UsersService,
+    private readonly balanceService: BalanceService,
+    @InjectConnection() private connection: Connection,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
   async createGuide(
-    user: { email?: string } | undefined,
+    user: { email?: string; role?: string[] } | undefined,
     payload: CreateGuideDto,
-    mock?: CreateGuideQueryDto['mock'],
+    options?: CreateGuideQueryDto,
   ): Promise<GuideResponseDto> {
     try {
       if (!user?.email) {
+        throw new KraftError(
+          CONST.GDE_AUTH_001,
+          CONST.MSG_USER_NOT_AUTHENTICATED,
+        );
+      }
+
+      const isMock = !!options?.mock;
+      const isAdminBypass = !isMock && options?.bypassBalance === true;
+      if (isAdminBypass && !user.role?.includes('admin')) {
         throw new KraftError(
           CONST.GDE_AUTH_001,
           CONST.MSG_USER_NOT_AUTHENTICATED,
@@ -69,35 +86,101 @@ export class GuidesDbService {
       }
 
       const kraftId = await this.generateKraftId();
-      const providerResult = mock
-        ? this.mockProviderResult(mock, kraftId)
-        : await this.callProviderApi(payload);
-
+      const normalizedTotal = fromMoneyCents(toMoneyCents(payload.quote.total));
       const guide = await this.guideModel.create({
         userId: dbUser._id,
         kraftId,
         provider: payload.provider,
-        status: providerResult.success ? 'created' : 'failed',
-        externalId: providerResult.externalId || null,
-        isProviderTrackingSynced: !!providerResult.externalId,
+        status: 'waiting',
+        balanceChargeStatus: isMock
+          ? 'bypassed'
+          : isAdminBypass
+            ? 'admin_bypassed'
+            : 'pending',
+        externalId: null,
+        isProviderTrackingSynced: false,
         origin: payload.origin,
         destination: payload.destination,
         parcel: payload.parcel,
-        quoteData: { quote: payload.quote },
-        labelUrl: providerResult.labelUrl,
-        failureInfo: providerResult.success
-          ? undefined
-          : {
-              errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
-              errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
-              providerResponse: providerResult.response || {},
-              timestamp: new Date(),
-            },
+        quoteData: { quote: { ...payload.quote, total: normalizedTotal } },
         retries: { retryAttempts: [], retryCount: 0 },
         comments: [],
       });
 
-      return this.formatGuideResponse(guide, false, providerResult);
+      if (!isMock && !isAdminBypass) {
+        try {
+          await this.balanceService.assertSufficientBalance(
+            user.email,
+            normalizedTotal,
+          );
+          const debitAmountInCents = toMoneyCents(normalizedTotal);
+          await this.connection.transaction(async (session) => {
+            await this.balanceService.debitBalance({
+              userEmail: user.email!,
+              amount: normalizedTotal,
+              session,
+            });
+            const marked = await this.guideModel.findByIdAndUpdate(
+              guide._id,
+              {
+                balanceChargeStatus: 'debited',
+                balanceDebitAmountInCents: debitAmountInCents,
+                balanceDebitedAt: new Date(),
+              },
+              { new: true, session },
+            );
+            if (!marked) throw new Error('Guide debit marker update failed');
+          });
+        } catch (error) {
+          if (error instanceof KraftError && error.code === BAL_BUS_001) {
+            await this.markInsufficientGuide(guide._id);
+            throw error;
+          }
+          throw error;
+        }
+      }
+
+      let providerResult: ProviderResult;
+      try {
+        providerResult = isMock
+          ? this.mockProviderResult(options.mock!, kraftId)
+          : await this.callProviderApi(payload);
+      } catch (error) {
+        await this.guideModel.findByIdAndUpdate(guide._id, {
+          status: 'failed',
+          failureInfo: {
+            errorDetails:
+              error instanceof KraftError
+                ? error.userMessage
+                : CONST.MSG_PROVIDER_ERROR,
+            errorCode:
+              error instanceof KraftError ? error.code : CONST.GDE_PVR_001,
+            providerResponse: {},
+            timestamp: new Date(),
+          },
+        });
+        throw error;
+      }
+      const updated = await this.guideModel.findByIdAndUpdate(
+        guide._id,
+        {
+          status: providerResult.success ? 'created' : 'failed',
+          externalId: providerResult.externalId || null,
+          isProviderTrackingSynced: !!providerResult.externalId,
+          labelUrl: providerResult.labelUrl,
+          failureInfo: providerResult.success
+            ? null
+            : {
+                errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
+                errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
+                providerResponse: providerResult.response || {},
+                timestamp: new Date(),
+              },
+        },
+        { new: true },
+      );
+
+      return this.formatGuideResponse(updated ?? guide, false, providerResult);
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -186,6 +269,43 @@ export class GuidesDbService {
       notifyMe: false,
     };
 
+    if (guide.balanceChargeStatus === 'insufficient') {
+      const total = guide.quoteData.quote?.total;
+      if (total === undefined) {
+        throw new KraftError(CONST.GDE_RTL_001, CONST.MSG_NOT_ELIGIBLE_RETRY);
+      }
+      const dbUser = await this.usersService.findByEmail(user?.email!);
+      if (!dbUser) {
+        throw new KraftError(CONST.GDE_AUTH_001, CONST.MSG_USER_NOT_FOUND);
+      }
+      try {
+        await this.balanceService.assertSufficientBalance(user!.email!, total);
+        const debitAmountInCents = toMoneyCents(total);
+        await this.connection.transaction(async (session) => {
+          await this.balanceService.debitBalance({
+            userEmail: user!.email!,
+            amount: total,
+            session,
+          });
+          const marked = await this.guideModel.findByIdAndUpdate(
+            guide._id,
+            {
+              balanceChargeStatus: 'debited',
+              balanceDebitAmountInCents: debitAmountInCents,
+              balanceDebitedAt: new Date(),
+            },
+            { new: true, session },
+          );
+          if (!marked) throw new Error('Guide debit marker update failed');
+        });
+      } catch (error) {
+        if (error instanceof KraftError && error.code === BAL_BUS_001) {
+          await this.markInsufficientGuide(guide._id);
+        }
+        throw error;
+      }
+    }
+
     const providerResult = await this.callProviderApi(
       retryPayload as unknown as CreateGuideDto,
     );
@@ -233,6 +353,15 @@ export class GuidesDbService {
     eligible: boolean;
     reason?: string;
   } {
+    if (guide.status !== 'failed') {
+      return { eligible: false, reason: CONST.MSG_NOT_ELIGIBLE_RETRY };
+    }
+    if (
+      guide.balanceChargeStatus === 'pending' ||
+      guide.balanceChargeStatus === 'bypassed'
+    ) {
+      return { eligible: false, reason: CONST.MSG_NOT_ELIGIBLE_RETRY };
+    }
     if (guide.retries.retryCount >= CONST.RETRY_MAX_ATTEMPTS) {
       return {
         eligible: false,
@@ -562,6 +691,19 @@ export class GuidesDbService {
         error,
       );
     }
+  }
+
+  private async markInsufficientGuide(guideId: Types.ObjectId): Promise<void> {
+    await this.guideModel.findByIdAndUpdate(guideId, {
+      status: 'failed',
+      balanceChargeStatus: 'insufficient',
+      failureInfo: {
+        errorDetails: MSG_BALANCE_INSUFFICIENT_FUNDS,
+        errorCode: BAL_BUS_001,
+        providerResponse: {},
+        timestamp: new Date(),
+      },
+    });
   }
 
   private async fetchProviderStatus(

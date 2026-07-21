@@ -8,7 +8,7 @@ jest.mock('@/users/services/users.service', () => {
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
+import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { GuidesDbService } from './guides-db.service';
 import { Guide, GuideDoc } from '../entities/guide.entity';
@@ -18,6 +18,7 @@ import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
+import { BalanceService } from '@/balance/services/balance.service';
 import { QuoteCourier } from '@/quotes/quotes.interface';
 import config from '@/config';
 
@@ -67,6 +68,13 @@ const mockManuableService = {
 describe('GuidesDbService', () => {
   let service: GuidesDbService;
   const mockUsersService = { findByEmail: jest.fn() };
+  const mockBalanceService = {
+    assertSufficientBalance: jest.fn(),
+    debitBalance: jest.fn(),
+  };
+  const mockConnection = {
+    transaction: jest.fn(async (callback) => callback({})),
+  };
 
   beforeEach(async () => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -105,6 +113,14 @@ describe('GuidesDbService', () => {
           useValue: mockUsersService,
         },
         {
+          provide: BalanceService,
+          useValue: mockBalanceService,
+        },
+        {
+          provide: getConnectionToken(),
+          useValue: mockConnection,
+        },
+        {
           provide: config.KEY,
           useValue: { version: '1.0.0' },
         },
@@ -114,6 +130,18 @@ describe('GuidesDbService', () => {
     service = module.get<GuidesDbService>(GuidesDbService);
 
     jest.clearAllMocks();
+    mockBalanceService.assertSufficientBalance.mockResolvedValue({});
+    mockBalanceService.debitBalance.mockResolvedValue({});
+    mockGuideModel.findByIdAndUpdate.mockImplementation(
+      async (_id, update) => ({
+        ...update,
+        _id: new Types.ObjectId(),
+        kraftId: 'KFT-202606-000001',
+        status: update.status ?? 'waiting',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
   });
 
   afterEach(() => {
@@ -293,7 +321,7 @@ describe('GuidesDbService', () => {
         const result = await service.createGuide(
           { email: user.email },
           payload,
-          mock,
+          { mock },
         );
 
         expect(result.data.status).toBe(status);
@@ -447,6 +475,7 @@ describe('GuidesDbService', () => {
   describe('checkRetryEligibility', () => {
     it('should return eligible when no retries yet', () => {
       const guide = {
+        status: 'failed',
         retries: { retryCount: 0, retryAttempts: [], lastRetryAt: undefined },
       } as any;
 
@@ -457,6 +486,7 @@ describe('GuidesDbService', () => {
 
     it('should return not eligible when max retries reached', () => {
       const guide = {
+        status: 'failed',
         retries: { retryCount: 10, retryAttempts: [], lastRetryAt: new Date() },
       } as any;
 
@@ -469,6 +499,7 @@ describe('GuidesDbService', () => {
     it('should return not eligible when cooldown active', () => {
       const recentRetry = new Date(Date.now() - 60 * 1000);
       const guide = {
+        status: 'failed',
         retries: { retryCount: 1, retryAttempts: [], lastRetryAt: recentRetry },
       } as any;
 
