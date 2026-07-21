@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 import {
   BALANCE_REQUEST_STATUSES,
   BalanceRequestStatus,
@@ -6,7 +7,7 @@ import {
 } from '../balance.constants';
 
 @Schema({ timestamps: true, collection: 'balance_requests' })
-export class BalanceRequest {
+export class BalanceRequest extends Document {
   @Prop({ required: true, index: true })
   userEmail: string;
 
