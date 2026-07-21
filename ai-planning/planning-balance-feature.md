@@ -15,7 +15,8 @@
 - Let admins list requests and atomically approve or reject a pending request; approval credits the wallet exactly once (AC 2, 5).
 - Add two best-effort email notifications: request-created to all admins and decision outcome to the requesting user (AC 1, 2).
 - Require an admin-supplied payment reference on approval; expose `decisionReason` to the request owner while hiding `adminInCharge` from all user responses (user-confirmed planning decisions).
-- Gate only `POST /guides/db/create` on the wallet, except that existing `?mock=success|failed` requests bypass both balance validation and debit (AC 6 plus user-confirmed planning decisions).
+- Gate only `POST /guides/db/create` on the wallet, except that (a) existing `?mock=success|failed` requests bypass both balance validation and debit, and (b) an **admin-only** `?bypassBalance=true` flag lets an admin create a **real** (provider-called) guide without any balance check or debit (AC 6 plus user-confirmed planning decisions).
+- On insufficient funds during persisted creation, **create the guide and mark it `failed`** with a balance failure reason and **do not call the provider** (user callout); the failed guide is a persisted, retryable record.
 - Require a finite, positive `quote.total` for persisted guide creation and truncate it to two decimal places before checking/debiting (direct prerequisite of AC 6).
 - Update repository architecture documentation for the new module and dependency edge (repo convention).
 
@@ -23,10 +24,11 @@
 
 - Balance-gating direct provider creation routes under `/ge`, `/tone`, `/pkk`, or `/mn` (user-confirmed).
 - Charging, refunding, or reconciling balance during `PATCH /guides/db/:guideId` (`updateGuideData`) (user-confirmed by selecting DB-create-only scope).
-- Debiting mock guide creation requests (user-confirmed).
+- Debiting mock guide creation requests, and debiting admin `?bypassBalance=true` creations (user-confirmed). A non-admin caller may never bypass the debit.
 - Receipt/file uploads, request pre-assignment, admin assignment fields on `User`, refunds, reversals, notification retry queues, and frontend work (research scope).
 - Refunding a debit after provider failure; a provider-failed guide keeps its original charge (AC 6).
-- Re-charging an already-`debited` guide on retry, and charging legacy marker-less guides on retry; those paths never invoke wallet debit (AC 6). **Exception (user callout):** retrying an `insufficient`-marked guide *does* run the balance check and guarded debit — that is the guide's first successful charge, not a double charge.
+- **Re-charging on retry.** A guide that already reached `balanceChargeStatus: 'debited'` was charged exactly once at creation; retrying it (e.g. after a provider failure) re-calls the provider but **never** touches the wallet again. Legacy guides with no charge marker also never debit on retry. This "no second charge" guarantee is what is out of scope here.
+  - This is **not** the same as an `insufficient` guide. An `insufficient` guide was **never charged** (its debit was rejected at creation), so retrying it performs its **first and only** debit — that is in scope and specified in Phase 5's retry matrix. In short: `debited` retry = no charge (out of scope for debit); `insufficient` retry = first charge (in scope).
 - Migrating existing guides or users. The balance collections are new, and users without a wallet document read as zero.
 - Unrelated lint cleanup, the known JWT guard test failure, and unrelated environment/configuration corrections.
 
@@ -75,9 +77,9 @@ Rejection needs only the atomic conditional request update because it does not t
 
 Use existing guide states instead of adding a new `status` enum value:
 
-- Persist the provisional guide with `status: 'waiting'` and `balanceChargeStatus: 'pending'` after the initial balance check; mock guides use `balanceChargeStatus: 'bypassed'`.
+- **Always create the provisional guide first** (`status: 'waiting'`, `balanceChargeStatus: 'pending'`), *then* determine sufficiency. This is a deliberate change from the research's "reject before creating anything": on insufficient funds the guide must exist as a persisted `failed` record so the owner can see it and retry it once funded. Mock guides use `balanceChargeStatus: 'bypassed'`; admin `?bypassBalance=true` guides use `balanceChargeStatus: 'admin_bypassed'`.
 - Commit the guarded wallet debit and guide charge marker (`balanceChargeStatus: 'debited'`, charged cents, debit timestamp) in one MongoDB transaction immediately before the provider call. A process interruption can therefore leave neither a debit-only nor marker-only state.
-- If guarded debit returns `null`, abort the transaction, update the guide to `status: 'failed'` plus `balanceChargeStatus: 'insufficient'`, set the shared balance insufficient-funds `failureInfo.errorCode`, and set `failureInfo.errorDetails` to the human-readable insufficient-funds reason, then throw the same business error without calling the provider.
+- **Insufficient funds → fail the guide, never call the provider (user callout).** Whether insufficiency is detected by the pre-debit read (`assertSufficientBalance`) or by the guarded `$inc` returning `null` (wallet drained by a concurrent creation after the read), the handling is identical: no wallet change, update the already-created guide to `status: 'failed'` + `balanceChargeStatus: 'insufficient'`, set the shared insufficient-funds `failureInfo.errorCode` and a human-readable `failureInfo.errorDetails`, then throw the insufficient business `KraftError` **without any provider call**. The provider is reached only after a debit succeeds.
 - Provider success/failure finalizes the provisional guide as `created`/`failed` using the existing provider result mapping.
 
 **Retry eligibility (revised per user callout).** A guide is retry-eligible only when `status === 'failed'`, and the `balanceChargeStatus` marker then decides *how* retry behaves:
@@ -86,11 +88,12 @@ Use existing guide states instead of adding a new `status` enum value:
 | --- | --- | --- |
 | `debited` | Yes | Provider retry only — **never** re-debits (wallet already charged once). |
 | `insufficient` | **Yes (new)** | Re-runs the balance check + guarded debit before the provider call, because the user may have topped up their wallet since the failure. This is the guide's **first** debit, not a re-charge. If the wallet is still short, the guide stays `failed`/`insufficient`. |
+| `admin_bypassed` | Yes | Provider retry only — never debits (admin created it with the debit bypassed). |
 | `pending` | No | Provisional guide mid-flight; never reached a terminal decision. |
 | `bypassed` | No | Mock guide; wallet was never involved. |
 | `undefined` (legacy) | Yes | Existing pre-balance retry behavior; never debits. |
 
-"Explicitly reject `pending` and `bypassed`" means `checkRetryEligibility` returns ineligible for those two markers so a provisional (`pending`) or mock (`bypassed`) guide can never be retried into a provider call. `insufficient` is **no longer** rejected — it is the one marker whose retry re-checks the wallet and can debit for the first time.
+"Explicitly reject `pending` and `bypassed`" means `checkRetryEligibility` returns ineligible for those two markers so a provisional (`pending`) or mock (`bypassed`) guide can never be retried into a provider call. `insufficient` is **no longer** rejected — it is the one marker whose retry re-checks the wallet and can debit for the first time. `admin_bypassed` is retryable but, like `debited`, never re-debits.
 
 The markers are internal and must not be added to public guide response DTOs.
 
@@ -432,15 +435,22 @@ Key logic and placement:
 - Add a create-only quote DTO composed from `QuoteSnapshotDto` with `total` replaced by a required, finite, numeric, positive field (use Nest Swagger mapped types such as `OmitType`/`IntersectionType`, not a duplicated full quote class).
 - Change only `CreateGuideDto.quote` to that create-only DTO. Missing/invalid total is then rejected at the HTTP boundary, while BalanceService still validates direct service calls.
 
+- Add an optional admin-only `bypassBalance?: boolean` to `CreateGuideQueryDto` (current lines 73-78) alongside `mock`: `@IsOptional()`, `@IsBoolean()`, and a `@Transform`/`@Type` boolean coercion so `?bypassBalance=true` parses correctly (the global `ValidationPipe` does not enable `transform`). DTO validation only shapes the flag; the admin authorization check lives in the service.
+
+**`src/guides/controllers/guides-db.controller.ts` - Modify `createGuide` at current lines 48-58**
+
+- Pass the whole `CreateGuideQueryDto` (containing `mock` and `bypassBalance`) plus `req.user` to `guidesDbService.createGuide` instead of only `query.mock`, keeping the controller thin (no admin/bypass conditional in the controller — the service enforces it). Fold the flags into one options argument so the service signature stays within the 3-parameter convention.
+
 **`src/guides/dtos/guides-db.dto.spec.ts` - Create**
 
 - Validate that create requires finite, positive `quote.total`, including mock-mode payload DTOs, while update quote validation remains unchanged.
+- Validate `bypassBalance` boolean coercion (`'true'`/`'false'`/absent) on `CreateGuideQueryDto`.
 
 **`src/guides/entities/guide.entity.ts` - Modify `QuoteSnapshot.total` at current line 41**
 
 - Mark `total` required for new quote snapshots so persisted guides created under this contract always record their charge basis.
 - Existing documents without total remain readable; no migration or startup backfill.
-- Add internal optional fields for backward-compatible persisted state: `balanceChargeStatus?: 'pending' | 'debited' | 'insufficient' | 'bypassed'`, `balanceDebitAmountInCents?: number`, and `balanceDebitedAt?: Date`. New create flows always set a status; old guide documents remain marker-less.
+- Add internal optional fields for backward-compatible persisted state: `balanceChargeStatus?: 'pending' | 'debited' | 'insufficient' | 'bypassed' | 'admin_bypassed'`, `balanceDebitAmountInCents?: number`, and `balanceDebitedAt?: Date`. New create flows always set a status; old guide documents remain marker-less.
 - The **reason** a balance-gated guide failed reuses the **existing** `failureInfo` field (`errorDetails` = human-readable reason, `errorCode` = shared insufficient-funds constant). No new reason field is added — the insufficient-funds path just populates `failureInfo` like the provider-failure path already does.
 - Do not add these internal payment fields to `GuideDataDto` or `formatGuideResponse`.
 
@@ -451,20 +461,25 @@ Key logic and placement:
 **`src/guides/services/guides-db.service.ts` - Modify constructor and `createGuide()` at current lines 41-109**
 
 - Inject `BalanceService` after `UsersService` and Mongoose `Connection` through `@InjectConnection()` for the debit-plus-marker transaction.
-- Keep the existing signature `createGuide(user, payload, mock?): Promise<GuideResponseDto>`.
-- Normalize `payload.quote.total` through the balance money utility/service before any wallet operation.
+- Update the signature to carry both flags in one options object so it stays within the 3-parameter convention: `createGuide(user, payload, options?: { mock?: 'success' | 'failed'; bypassBalance?: boolean }): Promise<GuideResponseDto>`.
+- **Resolve the effective mode once, in the service:**
+  - `isMock = !!options?.mock`.
+  - `isAdminBypass = options?.bypassBalance === true`. If `bypassBalance` is set, assert the caller is admin (`user.role.includes('admin')`); a non-admin bypass attempt throws an auth `KraftError` (forbidden) and creates nothing.
+  - `mock` takes precedence over `bypassBalance` if both are supplied (mock is already a no-wallet path).
+- Normalize `payload.quote.total` through the balance money utility/service for every mode (a positive `quote.total` is still required so the guide records its basis).
 - Build `normalizedTotal = fromMoneyCents(toMoneyCents(payload.quote.total))` once and persist that normalized value in `quoteData.quote.total`; wallet checks/debits and the stored charge basis must use the same cents conversion.
-- For non-mock requests, execute in this exact order:
+- **For a non-mock, non-bypass (wallet-gated) request, execute in this exact order:**
 
 1. Validate JWT email and resolve the database user as today.
-2. Call `balanceService.assertSufficientBalance(user.email, normalizedTotal)` before incrementing the Kraft ID counter or creating a guide.
-3. Generate `kraftId` and create a provisional guide with the request snapshot plus normalized `quote.total`, empty provider fields, retries/comments defaults, `status: 'waiting'`, and `balanceChargeStatus: 'pending'` (`bypassed` for mock requests).
+2. Generate `kraftId` and create the provisional guide with the request snapshot plus normalized `quote.total`, empty provider fields, retries/comments defaults, `status: 'waiting'`, and `balanceChargeStatus: 'pending'`. **The guide record is created before sufficiency is decided** so an insufficient outcome is a persisted, retryable `failed` guide.
+3. Pre-debit read: `balanceService.assertSufficientBalance(user.email, normalizedTotal)`. If it reports insufficient, jump to the insufficient handler in step 5 (do not open the transaction, do not call the provider).
 4. Immediately before any provider API call, run a `Connection.transaction()` that calls `balanceService.debitBalance({ userEmail: user.email, amount: normalizedTotal, session })`, then conditionally updates `{ _id, status: 'waiting', balanceChargeStatus: 'pending' }` in the same session with `balanceChargeStatus: 'debited'`, `balanceDebitAmountInCents`, and `balanceDebitedAt`. A null guide update must throw and abort the transaction so the wallet debit cannot commit without its marker.
-5. If guarded debit throws insufficient funds, let the transaction roll back, then update the provisional guide to `failed` with `balanceChargeStatus: 'insufficient'` and balance-specific `failureInfo`; rethrow and do not invoke provider/mocked-provider helpers.
-6. Call `callProviderApi(payload)` only after successful debit.
+5. **Insufficient handler (shared by steps 3 and 4).** With no wallet change (transaction rolled back if it had opened), update the provisional guide to `status: 'failed'` + `balanceChargeStatus: 'insufficient'` + balance-specific `failureInfo` (shared insufficient code + human-readable `errorDetails`), then rethrow the insufficient `KraftError`. **Never invoke `callProviderApi`, `routeToProvider`, or any mocked-provider helper on this path.**
+6. Call `callProviderApi(payload)` only after a successful debit.
 7. Update the same provisional document through `findByIdAndUpdate(..., { new: true })` with current provider success/failure fields and final `created`/`failed` status; return `formatGuideResponse(updatedGuide, false, providerResult)` so non-persisted provider response fields remain available.
 
-- For user-confirmed mock requests, skip steps 2, 4, and 5 entirely; still require/normalize positive `quote.total` through the create DTO, persist `balanceChargeStatus: 'bypassed'`, and use the provisional-create/final-update orchestration plus `mockProviderResult` so mock behavior exercises persistence without touching a real wallet.
+- **For user-confirmed mock requests,** skip steps 3, 4, and 5 entirely; persist `balanceChargeStatus: 'bypassed'`, and use the provisional-create/final-update orchestration plus `mockProviderResult` so mock behavior exercises persistence without touching a real wallet.
+- **For admin `bypassBalance` requests,** skip steps 3, 4, and 5 (no read, no debit, no insufficient path), persist `balanceChargeStatus: 'admin_bypassed'`, and run the **real** provisional-create → `callProviderApi` → final-update orchestration exactly like a wallet-gated request minus the balance operations. The wallet is never read or written.
 - If provider execution fails, use the existing `ProviderResult` failure mapping; do not refund or compensate the wallet.
 - Keep debit out of `callProviderApi`, `routeToProvider`, and shared helpers because retry/update reuse those paths.
 - After a successful debit, catch every thrown provider/finalization error, including an existing provider `KraftError`; best-effort update the provisional guide to `failed` with the original code/message in `failureInfo`, never refund, then rethrow the original KraftError or apply the existing create-guide wrapper for unknown errors. No post-debit error may leave an intentionally handled request in `waiting`.
@@ -475,6 +490,7 @@ Key logic and placement:
 - Then branch on `balanceChargeStatus`:
   - `debited` → eligible (provider retry, no re-debit).
   - `insufficient` → **eligible (revised per user callout)**; retry re-checks the wallet and may debit for the first time. Do not use the insufficient-funds error code to hard-block retry anymore — an insufficient guide is now the *retryable* balance case.
+  - `admin_bypassed` → eligible (provider retry, no debit).
   - `pending` or `bypassed` → ineligible (provisional mid-flight, or mock guide that never touched the wallet).
   - `undefined` (legacy) → eligible under the existing pre-balance retry rules.
 - Apply the existing 10-attempt limit and 5-minute cooldown to every eligible branch.
@@ -484,7 +500,7 @@ Key logic and placement:
 - Inject `BalanceService` here as well (already injected for `createGuide`); the retry path now needs it for the `insufficient` branch.
 - After confirming eligibility, branch on `balanceChargeStatus`:
   - `insufficient`: run the same guarded debit transaction as create — `balanceService.assertSufficientBalance(user.email, normalizedTotal)` then the `Connection.transaction()` debit-plus-marker update that flips the guide to `balanceChargeStatus: 'debited'` with `balanceDebitAmountInCents`/`balanceDebitedAt`, **before** calling the provider. If still insufficient, leave the guide `failed`/`insufficient` (refresh `failureInfo`) and do not call the provider. Use the guide's stored `quote.total` as the charge basis (never re-derive a new amount).
-  - `debited` and legacy `undefined`: proceed directly to the provider retry with **no** balance call, exactly as today. The debit already fired once (or never applied for legacy) and must not repeat.
+  - `debited`, `admin_bypassed`, and legacy `undefined`: proceed directly to the provider retry with **no** balance call, exactly as today. The debit already fired once (`debited`) or never applied (`admin_bypassed`/legacy) and must not repeat.
 - The debit still fires **at most once** per guide across create + retry: a guide can only be debited while transitioning out of `insufficient`/`pending`, never while already `debited`.
 
 **`src/guides/guides.module.spec.ts` - Create**
@@ -498,16 +514,18 @@ Key logic and placement:
 - Register a Mongoose Connection transaction mock and verify the same session reaches wallet debit and guide marker update.
 - Cover a null conditional marker update: transaction aborts, provider is not called, and no wallet debit is committed.
 - Update existing create assertions for provisional `create` followed by final `findByIdAndUpdate(..., { new: true })` instead of one final-state create.
-- Add call-order and branch coverage for initial check, guarded debit, provider invocation, provider failure retention, race failure, mock bypass, and all retry branches: `debited` (no balance call), `insufficient` still-short (re-fail, no provider), `insufficient` topped-up (one debit + provider), and legacy marker-less.
+- Add call-order and branch coverage for initial insufficient (guide created then marked `failed`/`insufficient`, no provider call), guarded debit, provider invocation, provider failure retention, race failure, mock bypass, admin bypass, and all retry branches: `debited` (no balance call), `insufficient` still-short (re-fail, no provider), `insufficient` topped-up (one debit + provider), `admin_bypassed` (provider retry, no balance call), and legacy marker-less.
+- Cover admin bypass: non-admin `bypassBalance=true` is rejected (nothing created); admin `bypassBalance=true` creates a real guide with `balanceChargeStatus: 'admin_bypassed'`, calls the provider, and makes zero balance-service calls.
 - Ensure existing quote snapshot/internal-pricing tests remain intact.
 
 #### Edge Cases
 
-- Initial insufficiency: no Kraft ID increment, no guide write, no provider call, no wallet update.
-- Concurrent drain after precheck: provisional guide becomes failed with balance error; guarded `$inc` does not execute, and provider is not called.
+- Initial insufficiency: the provisional guide **is** created and immediately marked `failed`/`insufficient` (a retryable record), but no provider call and no wallet change occur; the Kraft ID it consumed is not reused.
+- Concurrent drain after the pre-debit read: guarded `$inc` returns `null`, the transaction rolls back, the provisional guide becomes `failed`/`insufficient`, and the provider is not called.
+- Admin `bypassBalance=true`: real provider call, `balanceChargeStatus: 'admin_bypassed'`, no wallet read/write; a non-admin using the flag is rejected before any guide is created.
 - Provider failure: debit remains (`debited`), guide is failed and retryable, and retry does not debit again.
 - Insufficient-balance failed guide (`insufficient`): retry re-checks the wallet — if the user topped up, retry debits for the first time then calls the provider; if still short, the guide stays `failed`/`insufficient` and the provider is not called.
-- `waiting` (`pending`), mock-success, and mock-failure (`bypassed`) guides are not retryable; mock flows neither read nor debit balance. `insufficient` guides **are** retryable (may debit once); `debited` guides are retryable without re-debit.
+- `waiting` (`pending`), mock-success, and mock-failure (`bypassed`) guides are not retryable; mock flows neither read nor debit balance. `insufficient` guides **are** retryable (may debit once); `debited` and `admin_bypassed` guides are retryable without any debit.
 - Legacy `failed` guides without a charge marker retain their current retry eligibility rules.
 - Existing guides lacking `quote.total` remain readable; retry continues using quote ID and never derives a new debit.
 - The current client-supplied quote snapshot remains authoritative by accepted scope; server-side quote revalidation is not introduced.
@@ -516,11 +534,12 @@ Key logic and placement:
 
 - Missing/zero/negative/non-finite/sub-cent/unsafe `quote.total` validation, positive truncation, and normalized stored total.
 - Strict operation order for non-mock success.
-- Initial insufficient balance causes zero counter/guide/provider writes.
+- Initial insufficient balance creates the provisional guide, marks it `failed`/`insufficient` with balance `failureInfo`, and causes **zero provider calls and zero wallet change** (the guide record exists and is retryable).
 - Guarded debit null/error persists failed balance `failureInfo` and causes zero provider calls; null marker transition aborts both transaction changes and also causes zero provider calls.
 - Provider success and failure both have exactly one debit; provider failure has zero refunds.
 - Debit and guide `debited` marker use one session/transaction; transaction rollback leaves neither change committed.
 - Mock modes have zero balance method calls and failed mocks cannot retry into a real provider call.
+- Admin `bypassBalance=true`: real provider call, `admin_bypassed` marker, zero balance-service calls; non-admin bypass rejected before creation; `admin_bypassed` provider failure is retryable with zero balance calls.
 - Waiting guides cannot retry; legacy marker-less failed guides remain backward compatible.
 - Retry of a `debited` (charged) provider failure has zero balance method calls. Retry of an `insufficient` failure: (a) still-short wallet re-fails as `insufficient` with no provider call, and (b) topped-up wallet debits exactly once, flips the marker to `debited`, and then calls the provider. `bypassed`/`pending` guides remain non-retryable.
 - Existing user resolution, provider result, quote response, update, and listing behavior remains covered.
@@ -533,6 +552,7 @@ Key logic and placement:
 - Manual: create a persisted guide against an under-funded wallet, confirm the guide is `failed`/`insufficient` with a balance `failureInfo` reason and no debit; then approve a top-up request and retry the same guide, confirming exactly one debit occurs and the provider is then called.
 - Manual: submit two concurrent persisted creations whose combined totals exceed the wallet; confirm at most one guarded debit succeeds, no negative balance occurs, and the losing guide never reaches a provider.
 - Manual: create both mock outcomes and confirm wallet amount is unchanged.
+- Manual: as an admin, create a guide with `?bypassBalance=true` and confirm a real guide is created (`admin_bypassed`) with no wallet change; as a non-admin, confirm the same flag is rejected and no guide is created.
 
 ---
 
@@ -544,7 +564,7 @@ Key logic and placement:
 | Users/mail | `pnpm exec jest src/users/services/users.service.spec.ts src/mail/services/mail.service.spec.ts --runInBand` | Template content and all-admin recipient list |
 | Balance lifecycle | `pnpm exec jest src/balance/services/balance.service.spec.ts src/balance/balance.module.spec.ts --runInBand` | Create/approve/reject/cancel/list/read workflows |
 | HTTP delegation/guards | `pnpm exec jest src/balance/controllers/balance.controller.spec.ts --runInBand` | User/admin authorization and response visibility |
-| Guide integration | `pnpm exec jest src/guides/dtos/guides-db.dto.spec.ts src/guides/guides.module.spec.ts src/guides/services/guides-db.service.spec.ts --runInBand` | Debit ordering/marker transaction, concurrency fallback, failure retention, retry/no-charge, mock bypass |
+| Guide integration | `pnpm exec jest src/guides/dtos/guides-db.dto.spec.ts src/guides/guides.module.spec.ts src/guides/services/guides-db.service.spec.ts --runInBand` | Debit ordering/marker transaction, insufficient→failed-guide-no-provider, concurrency fallback, failure retention, retry/no-charge, insufficient retry debit, mock bypass, admin bypass |
 | Deployable artifact | `pnpm build && pnpm bundle` | Lambda bundle produced after successful build |
 
 Do not use the full `pnpm test` result as this story's green gate until the pre-existing unrelated JWT guard suite failure is resolved. The targeted mail suite is expected to become green through the TSX transform correction in Phase 2.
@@ -557,7 +577,9 @@ Do not use the full `pnpm test` result as this story's green gate until the pre-
 - API currency values are positive decimal units; integer cents are an internal persistence detail and never exposed as cents.
 - Existing users without a wallet document have a zero balance; no eager backfill is needed.
 - Admin-list `status` omitted or `all` means all statuses for the selected month; `pending` means pending only.
-- A missing user record during admin name resolution falls back to `userEmail`.
+- The admin list/decision display name is read from the request's denormalized `userName`/`userLastName` (captured at creation); no per-list user lookup or missing-user fallback is required.
+- On insufficient funds, persisted guide creation always leaves a `failed` guide record (retryable) rather than rejecting before any write; this supersedes the research's "reject before creating anything" and is required by the retry-when-funded behavior.
+- The admin `?bypassBalance=true` flag is trusted only for callers whose JWT role includes `admin`; a non-admin supplying it is rejected, not silently ignored.
 - Existing direct provider routes and `updateGuideData` retain current behavior by explicit user decision.
 - Existing quote snapshots are client supplied; making create `quote.total` required/positive addresses charge presence but does not authenticate the quoted price against a server-side quote store.
 
@@ -570,6 +592,8 @@ None. Planning gaps were resolved by the user: DB-create-only charging, mock wal
 - Store money as integer `amountInCents` fields and convert only at API/email boundaries, rather than using repeated floating-point `$inc` operations.
 - Use a MongoDB transaction for approval's request transition plus wallet credit; individually atomic operations are insufficient across two collections.
 - Make persisted guide creation's `quote.total` finite, positive, and required as a direct prerequisite of charging.
+- **On insufficient funds, create the guide and mark it `failed`/`insufficient` (never call the provider) instead of rejecting before any write (user callout).** This makes every insufficient outcome a persisted, retryable record and is what enables the insufficient-retry behavior; it supersedes the research's "validate before creating anything."
+- **Add an admin-only `?bypassBalance=true` create flag (user callout):** an admin can create a real, provider-called guide without any balance check or debit, marked `balanceChargeStatus: 'admin_bypassed'` (retryable without debit). Non-admin use of the flag is rejected. `mock` still bypasses the wallet independently and takes precedence if both are set.
 - Reuse guide `waiting` for provisional persistence and `failed` plus an internal `balanceChargeStatus` marker for outcomes; no new public guide status is added. These markers live on the existing `Guide` entity (`src/guides/entities/guide.entity.ts`), and the failure reason reuses the existing `failureInfo` field rather than adding a new one.
 - Commit guarded debit and the guide's charged marker in one transaction. Block retries for `pending`/`bypassed` markers and never re-charge `debited` or legacy failures. **Make `insufficient`-marked guides retryable (user callout):** their retry re-runs the balance check and guarded debit, so a user who tops up their wallet can retry the same failed guide, which then debits for the first time and calls the provider. The debit still fires at most once per guide.
 - **Denormalize the requester's `name` and `lastName` from the JWT onto each `BalanceRequest` at creation (user callout).** The admin list and decision responses read the display name straight from the stored request, eliminating the researched `UsersService.findByEmails` batch lookup and its missing-user fallback. Only `findAdmins` (for the created-notification recipients) is added to `UsersService`. The JWT already carries `name`/`lastName` (`PayloadToken`), so no auth/token change is required.
