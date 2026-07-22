@@ -10,6 +10,8 @@ import {
   Matches,
   IsEmail,
   Min,
+  Max,
+  IsISO8601,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
@@ -48,19 +50,35 @@ export class GetGuidesQueryDto {
   @IsString()
   trackingNumber?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    format: 'date-time',
+    example: '2026-02-01T00:00:00-06:00',
+    description: 'ISO 8601 date-time with explicit Z or numeric UTC offset',
+  })
   @IsOptional()
-  @Type(() => Date)
-  startDate?: Date;
+  @IsString()
+  @IsISO8601({ strict: true })
+  @Matches(/T.*(?:Z|[+-]\d{2}:\d{2})$/)
+  startDate?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    format: 'date-time',
+    example: '2026-03-01T00:00:00-06:00',
+    description: 'ISO 8601 date-time with explicit Z or numeric UTC offset',
+  })
   @IsOptional()
-  @Type(() => Date)
-  endDate?: Date;
+  @IsString()
+  @IsISO8601({ strict: true })
+  @Matches(/T.*(?:Z|[+-]\d{2}:\d{2})$/)
+  endDate?: string;
 
   @ApiProperty({ required: false, minimum: 1, maximum: 12 })
   @IsOptional()
   @IsNumber()
+  @Min(1)
+  @Max(12)
   @Type(() => Number)
   month?: number;
 
