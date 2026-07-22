@@ -50,7 +50,14 @@ Establish the current behavior and the unresolved policy for monthly filters and
 - `src/balance/dtos/balance.dto.ts`
 - Guide and balance request response DTOs
 
-## Remaining Planning Inputs
+## Resolved Planning Inputs
 
-- Confirm whether the timezone should be deployed as a validated environment variable (recommended for a runtime-configurable policy) or as a code constant. This determines the configuration and deployment scope.
+- Deploy the timezone as the required `BUSINESS_TIMEZONE` environment variable. Validate that its value is a supported IANA timezone identifier; configure it as `America/Mexico_City` for the current business policy.
 - This research covers guide and balance-request month/year filters, the only implemented month/year filters found in the backend.
+
+## Expanded Scope - API-Wide Date Consistency
+
+- Persist all application-created timestamps as UTC instants. Existing Mongoose timestamps and `new Date()` assignments already meet this requirement because a JavaScript `Date` is an instant and JSON serialization emits UTC ISO 8601 values with `Z`; do not convert persisted values to the business timezone.
+- Apply `BUSINESS_TIMEZONE` whenever the application interprets a calendar value, derives a current calendar month/year, constructs a date filter from calendar input, or generates a calendar-based identifier.
+- The audit found no additional persisted date filters beyond guides and balance requests. It did identify `GuidesDbService.generateKraftId()` as another host-local calendar calculation: its `KFT-YYYYMM` component must use the business timezone.
+- Introduce a small shared date-time utility for business-calendar conversion so current and future date filters/identifiers cannot fall back to host-local `Date` construction. It is not needed to wrap ordinary timestamp creation.
