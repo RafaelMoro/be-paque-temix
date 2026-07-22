@@ -48,7 +48,7 @@
 
 - [x] Phase 1 - Runtime Timezone Contract
 - [x] Phase 2 - Guide Month Query Semantics
-- [ ] Phase 3 - Balance Request Month Query Semantics
+- [x] Phase 3 - Balance Request Month Query Semantics
 - [ ] Phase 4 - Frontend Contract Handoff
 
 ### Phase 1 - Runtime Timezone Contract

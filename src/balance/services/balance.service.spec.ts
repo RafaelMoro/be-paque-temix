@@ -6,6 +6,7 @@ import {
   MAX_SAFE_MONEY_CENTS,
   MSG_BALANCE_INSUFFICIENT_FUNDS,
 } from '../balance.constants';
+import { getBusinessMonthRange } from '@/date-time/date-time.utils';
 import { BalanceCaller } from '../balance.interface';
 import { BalanceService } from './balance.service';
 
@@ -15,7 +16,11 @@ const caller: BalanceCaller = {
   lastName: 'Doe',
   role: ['user'],
 };
-const admin: BalanceCaller = { ...caller, email: 'admin@example.com', role: ['admin'] };
+const admin: BalanceCaller = {
+  ...caller,
+  email: 'admin@example.com',
+  role: ['admin'],
+};
 const request = {
   _id: { toString: () => 'request-id' },
   userEmail: caller.email,
@@ -30,6 +35,13 @@ const request = {
 };
 
 const query = (value: unknown): { exec: jest.Mock } => ({
+  exec: jest.fn().mockResolvedValue(value),
+});
+
+const listQuery = (value: unknown): Record<string, jest.Mock> => ({
+  sort: jest.fn().mockReturnThis(),
+  skip: jest.fn().mockReturnThis(),
+  limit: jest.fn().mockReturnThis(),
   exec: jest.fn().mockResolvedValue(value),
 });
 
@@ -65,8 +77,12 @@ describe('BalanceService', () => {
       connection,
       usersService,
       mailService,
-      { version: '1.5.0' } as any,
+      { version: '1.5.0', businessTimezone: 'America/Mexico_City' } as any,
     );
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('creates a pending request in cents with an explicit null admin', async () => {
@@ -99,7 +115,132 @@ describe('BalanceService', () => {
     await expect(service.getBalance(caller)).resolves.toMatchObject({
       data: { balance: { amount: 0 } },
     });
-    expect(balanceModel.findOne).toHaveBeenCalledWith({ userEmail: caller.email });
+    expect(balanceModel.findOne).toHaveBeenCalledWith({
+      userEmail: caller.email,
+    });
+  });
+
+  it('lists owner requests with explicit business-month UTC bounds', async () => {
+    requestModel.find.mockReturnValue(listQuery([]));
+    requestModel.countDocuments.mockReturnValue(query(0));
+
+    await service.getRequestsByUser(caller, { month: 2, year: 2026 });
+
+    const expectedQuery = {
+      userEmail: caller.email,
+      createdAt: {
+        $gte: new Date('2026-02-01T06:00:00.000Z'),
+        $lt: new Date('2026-03-01T06:00:00.000Z'),
+      },
+    };
+    expect(requestModel.find).toHaveBeenCalledWith(expectedQuery);
+    expect(requestModel.countDocuments).toHaveBeenCalledWith(expectedQuery);
+  });
+
+  it('lists admin requests with the same explicit business-month UTC bounds', async () => {
+    requestModel.find.mockReturnValue(listQuery([]));
+    requestModel.countDocuments.mockReturnValue(query(0));
+
+    await service.getAllRequests(admin, {
+      month: 2,
+      year: 2026,
+      status: 'pending',
+    });
+
+    const expectedQuery = {
+      createdAt: {
+        $gte: new Date('2026-02-01T06:00:00.000Z'),
+        $lt: new Date('2026-03-01T06:00:00.000Z'),
+      },
+      status: 'pending',
+    };
+    expect(requestModel.find).toHaveBeenCalledWith(expectedQuery);
+    expect(requestModel.countDocuments).toHaveBeenCalledWith(expectedQuery);
+  });
+
+  it('defaults omitted month/year from the business timezone near a local boundary', async () => {
+    requestModel.find.mockReturnValue(listQuery([]));
+    requestModel.countDocuments.mockReturnValue(query(0));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-02-01T05:59:59.999Z'));
+
+    await service.getRequestsByUser(caller, {});
+
+    expect(requestModel.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createdAt: {
+          $gte: new Date('2026-01-01T06:00:00.000Z'),
+          $lt: new Date('2026-02-01T06:00:00.000Z'),
+        },
+      }),
+    );
+  });
+
+  it('defaults partial month/year filters from the business timezone', async () => {
+    requestModel.find.mockReturnValue(listQuery([]));
+    requestModel.countDocuments.mockReturnValue(query(0));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-02-01T05:59:59.999Z'));
+
+    await service.getRequestsByUser(caller, { month: 6 });
+    expect(requestModel.find).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        createdAt: {
+          $gte: new Date('2026-06-01T06:00:00.000Z'),
+          $lt: new Date('2026-07-01T06:00:00.000Z'),
+        },
+      }),
+    );
+
+    await service.getRequestsByUser(caller, { year: 2027 });
+    expect(requestModel.find).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        createdAt: {
+          $gte: new Date('2027-01-01T06:00:00.000Z'),
+          $lt: new Date('2027-02-01T06:00:00.000Z'),
+        },
+      }),
+    );
+  });
+
+  it('uses named-zone DST conversion through the shared range utility', () => {
+    expect(
+      getBusinessMonthRange({
+        businessTimezone: 'America/New_York',
+        month: 3,
+        year: 2026,
+      }),
+    ).toMatchObject({
+      startOfMonth: new Date('2026-03-01T05:00:00.000Z'),
+      startOfNextMonth: new Date('2026-04-01T04:00:00.000Z'),
+    });
+  });
+
+  it('keeps formatted timestamps as Date values', async () => {
+    const decidedRequest = {
+      ...request,
+      status: 'approved',
+      adminInCharge: admin.email,
+      decisionAt: new Date('2026-07-02T00:00:00.000Z'),
+    };
+    requestModel.find.mockReturnValue(listQuery([decidedRequest]));
+    requestModel.countDocuments.mockReturnValue(query(1));
+
+    const ownerResult = await service.getRequestsByUser(caller, {
+      month: 7,
+      year: 2026,
+    });
+    const adminResult = await service.getAllRequests(admin, {
+      month: 7,
+      year: 2026,
+    });
+
+    expect(ownerResult.data.requests[0].createdAt).toBeInstanceOf(Date);
+    expect(ownerResult.data.requests[0].updatedAt).toBeInstanceOf(Date);
+    expect(ownerResult.data.requests[0].decisionAt).toBeInstanceOf(Date);
+    expect(adminResult.data.requests[0].createdAt).toBeInstanceOf(Date);
+    expect(adminResult.data.requests[0].updatedAt).toBeInstanceOf(Date);
+    expect(adminResult.data.requests[0].decisionAt).toBeInstanceOf(Date);
   });
 
   it('approves and credits a request in a single transaction', async () => {
