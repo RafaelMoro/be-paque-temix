@@ -8,9 +8,12 @@ jest.mock('@/users/services/users.service', () => {
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { GuidesDbService } from './guides-db.service';
+import { GetGuidesQueryDto } from '../dtos/guides-db.dto';
 import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
 import { GuiaEnviaService } from '@/guia-envia/services/guia-envia.service';
@@ -122,7 +125,10 @@ describe('GuidesDbService', () => {
         },
         {
           provide: config.KEY,
-          useValue: { version: '1.0.0' },
+          useValue: {
+            version: '1.0.0',
+            businessTimezone: 'America/Mexico_City',
+          },
         },
       ],
     }).compile();
@@ -145,6 +151,7 @@ describe('GuidesDbService', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -167,6 +174,31 @@ describe('GuidesDbService', () => {
 
       expect(id2.split('-')[2]).toBe(
         (parseInt(id1.split('-')[2]) + 1).toString().padStart(6, '0'),
+      );
+    });
+
+    it('uses the business timezone calendar month for the counter key', async () => {
+      mockCounterModel.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
+      jest.useFakeTimers();
+
+      jest.setSystemTime(new Date('2026-02-01T05:59:59.999Z'));
+      await expect(service.generateKraftId()).resolves.toBe(
+        'KFT-202601-000001',
+      );
+      expect(mockCounterModel.findOneAndUpdate).toHaveBeenLastCalledWith(
+        { yearMonth: '202601' },
+        expect.any(Object),
+        expect.any(Object),
+      );
+
+      jest.setSystemTime(new Date('2026-02-01T06:00:00.000Z'));
+      await expect(service.generateKraftId()).resolves.toBe(
+        'KFT-202602-000001',
+      );
+      expect(mockCounterModel.findOneAndUpdate).toHaveBeenLastCalledWith(
+        { yearMonth: '202602' },
+        expect.any(Object),
+        expect.any(Object),
       );
     });
   });
@@ -381,9 +413,29 @@ describe('GuidesDbService', () => {
           userId: user._id,
           deletedAt: null,
           createdAt: expect.objectContaining({
-            $gte: new Date(2026, 5, 1),
-            $lte: new Date(2026, 6, 0, 23, 59, 59, 999),
+            $gte: new Date('2026-06-01T06:00:00.000Z'),
+            $lt: new Date('2026-07-01T06:00:00.000Z'),
           }),
+        }),
+      );
+    });
+
+    it('uses Mexico City local midnight for February 2026 boundaries', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      await service.getGuidesByUser(
+        { email: user.email },
+        { page: 1, limit: 10, month: 2, year: 2026 },
+      );
+
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdAt: {
+            $gte: new Date('2026-02-01T06:00:00.000Z'),
+            $lt: new Date('2026-03-01T06:00:00.000Z'),
+          },
         }),
       );
     });
@@ -392,31 +444,133 @@ describe('GuidesDbService', () => {
       mockUsersService.findByEmail.mockResolvedValue(user);
       mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
       mockGuideModel.countDocuments.mockResolvedValue(0);
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-02-01T05:59:59.999Z'));
 
       await service.getGuidesByUser(
         { email: user.email },
         { page: 1, limit: 10 },
       );
 
-      const now = new Date();
-      const expectedStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const expectedEnd = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdAt: expect.objectContaining({
+            $gte: new Date('2026-01-01T06:00:00.000Z'),
+            $lt: new Date('2026-02-01T06:00:00.000Z'),
+          }),
+        }),
+      );
+    });
+
+    it('uses explicit offset date ranges when no month or year is supplied', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      await service.getGuidesByUser(
+        { email: user.email },
+        {
+          page: 1,
+          limit: 10,
+          startDate: '2026-02-01T00:00:00-06:00',
+          endDate: '2026-02-01T06:00:00Z',
+        },
       );
 
       expect(mockGuideModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          createdAt: expect.objectContaining({
-            $gte: expectedStart,
-            $lte: expectedEnd,
-          }),
+          createdAt: {
+            $gte: new Date('2026-02-01T06:00:00.000Z'),
+            $lte: new Date('2026-02-01T06:00:00.000Z'),
+          },
         }),
+      );
+    });
+
+    it('rejects ambiguous date ranges before querying MongoDB', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+
+      await expect(
+        service.getGuidesByUser(
+          { email: user.email },
+          { page: 1, limit: 10, startDate: '2026-02-01' },
+        ),
+      ).rejects.toThrow('explicit UTC offset');
+      await expect(
+        service.getGuidesByUser(
+          { email: user.email },
+          { page: 1, limit: 10, startDate: '2026-02-01T00:00:00' },
+        ),
+      ).rejects.toThrow('explicit UTC offset');
+      await expect(
+        service.getGuidesByUser(
+          { email: user.email },
+          { page: 1, limit: 10, startDate: 'not-a-date' },
+        ),
+      ).rejects.toThrow('explicit UTC offset');
+
+      expect(mockGuideModel.find).not.toHaveBeenCalled();
+    });
+
+    it('preserves month/year precedence over explicit date ranges', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockGuideModel.find.mockReturnValue(createMockFindQuery([]));
+      mockGuideModel.countDocuments.mockResolvedValue(0);
+
+      await service.getGuidesByUser(
+        { email: user.email },
+        {
+          page: 1,
+          limit: 10,
+          month: 2,
+          year: 2026,
+          startDate: '2026-01-01T00:00:00-06:00',
+        },
+      );
+
+      expect(mockGuideModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdAt: {
+            $gte: new Date('2026-02-01T06:00:00.000Z'),
+            $lt: new Date('2026-03-01T06:00:00.000Z'),
+          },
+        }),
+      );
+    });
+
+    it('validates guide date range DTO values require explicit offsets', async () => {
+      const validOffset = plainToInstance(GetGuidesQueryDto, {
+        startDate: '2026-02-01T00:00:00-06:00',
+      });
+      const validUtc = plainToInstance(GetGuidesQueryDto, {
+        startDate: '2026-02-01T06:00:00Z',
+      });
+      const dateOnly = plainToInstance(GetGuidesQueryDto, {
+        startDate: '2026-02-01',
+      });
+      const offsetFree = plainToInstance(GetGuidesQueryDto, {
+        startDate: '2026-02-01T00:00:00',
+      });
+      const malformed = plainToInstance(GetGuidesQueryDto, {
+        startDate: 'not-a-date',
+      });
+
+      await expect(validate(validOffset)).resolves.toHaveLength(0);
+      await expect(validate(validUtc)).resolves.toHaveLength(0);
+      await expect(validate(dateOnly)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ property: 'startDate' }),
+        ]),
+      );
+      await expect(validate(offsetFree)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ property: 'startDate' }),
+        ]),
+      );
+      await expect(validate(malformed)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ property: 'startDate' }),
+        ]),
       );
     });
   });
@@ -435,7 +589,13 @@ describe('GuidesDbService', () => {
 
       expect(result.data.total).toBe(0);
       expect(mockGuideModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ deletedAt: null }),
+        expect.objectContaining({
+          deletedAt: null,
+          createdAt: {
+            $gte: new Date('2026-06-01T06:00:00.000Z'),
+            $lt: new Date('2026-07-01T06:00:00.000Z'),
+          },
+        }),
       );
     });
   });

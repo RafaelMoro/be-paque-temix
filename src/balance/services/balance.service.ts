@@ -3,6 +3,7 @@ import { ConfigType } from '@nestjs/config';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model } from 'mongoose';
 import config from '@/config';
+import { getBusinessMonthRange } from '@/date-time/date-time.utils';
 import { KraftError } from '@/guides/kraft-error';
 import {
   MailBalanceRequestCreatedDto,
@@ -400,9 +401,11 @@ export class BalanceService {
   private normalizeFilters(
     filters: GetBalanceRequestsQueryDto | GetAdminBalanceRequestsQueryDto,
   ): BalanceRequestsFilter {
-    const now = new Date();
-    const month = Number(filters.month ?? now.getMonth() + 1);
-    const year = Number(filters.year ?? now.getFullYear());
+    const { month, year } = getBusinessMonthRange({
+      businessTimezone: this.configService.businessTimezone!,
+      month: filters.month,
+      year: filters.year,
+    });
     const page = Number(filters.page ?? 1);
     const limit = Number(filters.limit ?? 10);
     return {
@@ -421,9 +424,15 @@ export class BalanceService {
     $gte: Date;
     $lt: Date;
   } {
+    const { startOfMonth, startOfNextMonth } = getBusinessMonthRange({
+      businessTimezone: this.configService.businessTimezone!,
+      month: filters.month,
+      year: filters.year,
+    });
+
     return {
-      $gte: new Date(filters.year, filters.month - 1, 1),
-      $lt: new Date(filters.year, filters.month, 1),
+      $gte: startOfMonth,
+      $lt: startOfNextMonth,
     };
   }
 

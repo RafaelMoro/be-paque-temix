@@ -11,6 +11,7 @@ provider:
   apiName: kraft-envios-api
   environment:
     NODE_ENV: ${env:NODE_ENV}
+    BUSINESS_TIMEZONE: ${env:BUSINESS_TIMEZONE}
     PORT: ${env:PORT}
     CLUSTER: ${env:CLUSTER}
     MONGO_USER: ${env:MONGO_USER}

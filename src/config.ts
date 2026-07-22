@@ -15,6 +15,7 @@ export default registerAs('config', () => {
     FRONTEND_PORT,
     FRONTEND_URI,
     NODE_ENV,
+    BUSINESS_TIMEZONE,
     RESEND_API_KEY,
     MAILER_MAIL,
     GUIA_ENVIA_KEY,
@@ -84,6 +85,7 @@ export default registerAs('config', () => {
       uri: MANUABLE_URI,
     },
     environment: NODE_ENV,
+    businessTimezone: BUSINESS_TIMEZONE,
     version: npmVersion,
   };
 });

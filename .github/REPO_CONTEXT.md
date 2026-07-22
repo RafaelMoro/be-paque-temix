@@ -1,6 +1,6 @@
 # Repository Context - be-paque-temix
 
-**Last Updated:** 2026-06-26
+**Last Updated:** 2026-07-22
 
 This document describes the architecture, modules, services, guards, and how they connect within the be-paque-temix NestJS backend application.
 
@@ -535,8 +535,11 @@ Managed by `ConfigModule` with Joi validation in `src/app.module.ts`.
 - `PAKKE_KEY`, `PAKKE_URI` - Pakke API
 - `MANUABLE_*` - Manuable API credentials
 - `FRONTEND_URI`, `FRONTEND_PORT` - CORS/redirect configuration
+- `BUSINESS_TIMEZONE` - Required IANA timezone used for business-calendar month/year filters and calendar-based IDs
 
 **Config Object:** `src/config.ts` exports typed configuration
+
+**Business Timezone Policy:** `BUSINESS_TIMEZONE` is validated at bootstrap with Luxon IANA-zone validation. Guides and balance-request month/year filters use local month boundaries in this configured zone, converted to UTC `Date` instances for MongoDB queries. Stored and returned timestamps remain UTC instants; clients localize only for display.
 
 ---
 
@@ -626,6 +629,8 @@ When adding new modules to this codebase:
 | ------------------------------------------- | ------------------------------------------------------------ |
 | `src/main.ts`                               | Application entry point, Swagger setup, global pipes/filters |
 | `src/config.ts`                             | Typed configuration object                                   |
+| `src/config.validation.ts`                  | Shared config validation helpers, including IANA timezone validation |
+| `src/date-time/date-time.utils.ts`          | Shared business-calendar timezone utilities and offset date-time parsing |
 | `src/app.constant.ts`                       | Application-wide constants                                   |
 | `src/global.interface.ts`                   | Shared TypeScript interfaces                                 |
 | `src/express.d.ts`                          | Express type extensions                                      |

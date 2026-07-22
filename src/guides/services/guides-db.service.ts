@@ -35,6 +35,11 @@ import { UsersService } from '@/users/services/users.service';
 import { BalanceService } from '@/balance/services/balance.service';
 import { fromMoneyCents, toMoneyCents } from '@/balance/balance.utils';
 import {
+  getBusinessMonthRange,
+  getBusinessYearMonth,
+  parseOffsetDateTime,
+} from '@/date-time/date-time.utils';
+import {
   BAL_BUS_001,
   MSG_BALANCE_INSUFFICIENT_FUNDS,
 } from '@/balance/balance.constants';
@@ -770,22 +775,27 @@ export class GuidesDbService {
       ];
     }
 
-    // Default to current month/year when not provided, so results are scoped
-    // and don't return a large unbounded set.
-    // Month/year filter takes precedence over startDate/endDate.
-    const now = new Date();
-    const targetMonth = filters.month || now.getMonth() + 1;
-    const targetYear = filters.year || now.getFullYear();
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
-    if (filters.startDate || filters.endDate) {
+    const hasMonthRange =
+      filters.month !== undefined || filters.year !== undefined;
+
+    if (!hasMonthRange && (filters.startDate || filters.endDate)) {
       query.createdAt = {};
       if (filters.startDate)
-        (query.createdAt as Record<string, Date>).$gte = filters.startDate;
+        (query.createdAt as Record<string, Date>).$gte = parseOffsetDateTime(
+          filters.startDate,
+        );
       if (filters.endDate)
-        (query.createdAt as Record<string, Date>).$lte = filters.endDate;
+        (query.createdAt as Record<string, Date>).$lte = parseOffsetDateTime(
+          filters.endDate,
+        );
     } else {
-      query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
+      // Default to the configured business month so results stay bounded.
+      const { startOfMonth, startOfNextMonth } = getBusinessMonthRange({
+        businessTimezone: this.configService.businessTimezone!,
+        month: filters.month,
+        year: filters.year,
+      });
+      query.createdAt = { $gte: startOfMonth, $lt: startOfNextMonth };
     }
 
     return query;
@@ -868,8 +878,9 @@ export class GuidesDbService {
   }
 
   async generateKraftId(): Promise<string> {
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const yearMonth = getBusinessYearMonth({
+      businessTimezone: this.configService.businessTimezone!,
+    });
 
     try {
       const counter = await this.kraftIdCounterModel.findOneAndUpdate(

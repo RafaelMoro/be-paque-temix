@@ -21,6 +21,7 @@ import { TokenManagerModule } from './token-manager/token-manager.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { GuidesModule } from './guides/guides.module';
 import { BalanceModule } from './balance/balance.module';
+import { businessTimezoneSchema } from './config.validation';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { BalanceModule } from './balance/balance.module';
         MONGO_DB_NAME: Joi.string().required(),
         MONGO_CONNECTION: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
+        BUSINESS_TIMEZONE: businessTimezoneSchema,
         JWT_KEY: Joi.string().required(),
         ONE_TIME_JWT_KEY: Joi.string().required(),
         PUBLIC_KEY: Joi.string().required(),
