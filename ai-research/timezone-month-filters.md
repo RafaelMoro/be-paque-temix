@@ -19,12 +19,22 @@ Establish the current behavior and the unresolved policy for monthly filters and
 - Guides and balance records are Mongoose timestamp fields. Response formatting returns the `Date` objects unchanged in `src/guides/services/guides-db.service.ts:1152-1161` and `src/balance/services/balance.service.ts:430-440`. Nest/Express JSON serialization serializes `Date` values as ISO 8601 UTC strings with `Z`.
 - No backend or repository-level frontend code establishes an agreed display timezone.
 
-## Expected Policy Once A Named Business Timezone Is Chosen
+## Agreed Policy
 
+- Use the named IANA business and display timezone `America/Mexico_City`.
+- Use Luxon for named-timezone conversion in the backend and frontend.
 - Keep persisted and API timestamps as UTC ISO 8601 instants, for example `2026-02-01T06:00:00.000Z`.
-- Interpret `month` and `year` as calendar values in the chosen IANA business timezone. The query range should be inclusive at local midnight on the first day and exclusive at local midnight on the first day of the next month.
-- The frontend should render returned UTC instants in that same agreed display timezone, rather than relying on each browser's local timezone. It must not alter the raw API values.
-- A timezone-aware library or platform API must derive each local boundary's actual offset. Do not use a fixed UTC offset.
+- Interpret `month` and `year` as calendar values in `America/Mexico_City`. The query range should be inclusive at local midnight on the first day and exclusive at local midnight on the first day of the next month.
+- The frontend must render returned UTC instants in `America/Mexico_City`, rather than relying on each browser's local timezone. It must not alter the raw API values.
+- Never use a fixed UTC offset; Luxon must derive each local boundary's actual offset from IANA timezone data.
+
+## Frontend Contract
+
+- Define the same canonical `America/Mexico_City` timezone value in the frontend configuration. It must not use the browser's detected timezone as the display policy.
+- Parse API timestamps as UTC instants and convert them to the business zone only for presentation.
+- For month filtering, send calendar values only, such as `month=1&year=2026`; the frontend must not derive or submit UTC month boundaries.
+- If a date-range UI uses `startDate` and `endDate`, interpret selected dates in the business timezone before submitting offset-bearing ISO values.
+- Frontend tests must cover local month-midnight rendering and DST-boundary conversion.
 
 ## Boundary And DST Behavior
 
@@ -40,10 +50,7 @@ Establish the current behavior and the unresolved policy for monthly filters and
 - `src/balance/dtos/balance.dto.ts`
 - Guide and balance request response DTOs
 
-## Open Question
+## Remaining Planning Inputs
 
-- Confirm the canonical business/display IANA timezone. `America/Mexico_City` is an example in the request, but is not configured or agreed in this repository.
-
-## Assumption
-
+- Confirm whether the timezone should be deployed as a validated environment variable (recommended for a runtime-configurable policy) or as a code constant. This determines the configuration and deployment scope.
 - This research covers guide and balance-request month/year filters, the only implemented month/year filters found in the backend.
