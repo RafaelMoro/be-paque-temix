@@ -8,8 +8,9 @@
 
 ### In Scope
 
-- Add required, validated `BUSINESS_TIMEZONE` configuration and deploy it to both Lambda stages (research policy; AC 1).
-- Use Luxon and the configured IANA timezone to derive current month defaults and local-month query windows for guides and balance requests (AC 1, AC 3).
+- Add required, validated `BUSINESS_TIMEZONE` configuration to local and Lambda environments (research policy; AC 1).
+- Add a shared Luxon utility for configured business-calendar calculations, then use it for guide/balance month filters and guide calendar-based IDs (AC 1, AC 3; expanded scope).
+- Preserve UTC instants for every application-created timestamp. Mongoose timestamps and `new Date()` already do this, so they must not be localized before persistence (expanded scope).
 - Preserve `Date` response fields and their existing UTC ISO 8601 JSON wire representation (AC 2).
 - Update affected unit tests to prove local-boundary inclusion/exclusion, default-month behavior, and DST-safe named-zone conversion (AC 3).
 - Document the frontend integration contract and manual verification, since this repository contains no frontend source (AC 4).
@@ -19,7 +20,7 @@
 - Converting stored MongoDB timestamps, changing API timestamp field types, or returning localized timestamp strings. UTC instants remain the persistence and wire contract.
 - Changing guide `startDate`/`endDate` semantics: they are already parsed as offset-bearing instants; the existing rule that explicit `month`/`year` takes precedence remains intact.
 - Adding frontend source files or a browser-timezone fallback. The frontend repository must adopt the agreed Luxon policy separately.
-- Extending month/year policy to endpoints without an implemented month/year filter.
+- Extending month/year policy to endpoints without an implemented month/year filter. Future date filters must reuse the shared utility when introduced.
 - Setting process-level `TZ`; application code must use the configured named zone directly.
 
 ## Acceptance-Criteria Traceability
@@ -38,6 +39,7 @@
 - Build each monthly range as `[local first-of-month 00:00, local first-of-next-month 00:00)`, converted to UTC `Date` instances for MongoDB. Use `$gte` and `$lt`, not an end-of-day `$lte` sentinel.
 - For an omitted month/year, derive both calendar fields from `DateTime.now().setZone(businessTimezone)`, never from host-local `Date#getMonth()`/`getFullYear()`.
 - Response DTO fields stay typed as `Date`; Express serialization remains the canonical UTC ISO 8601 `Z` wire representation. No DTO shape change is needed.
+- Do not introduce a timestamp-creation wrapper: `new Date()` and Mongoose timestamps already create UTC-representable instants. The shared utility is intentionally limited to business-calendar interpretation, boundary construction, and calendar-based identifiers.
 
 ## Phases
 
@@ -61,6 +63,17 @@
 - Read `BUSINESS_TIMEZONE` and expose it as a typed configuration property, colocated with application-level environment/version fields.
 - The resulting property is the only timezone source injected by `GuidesDbService` and `BalanceService`.
 
+**`src/date-time/date-time.utils.ts` - Create**
+
+- Add a small, pure Luxon utility for business-calendar operations. Its public functions must accept an object parameter containing `businessTimezone`, optional `month`/`year`, and an optional clock instant for deterministic tests.
+- Define `getBusinessMonthRange({ businessTimezone, month, year, now }: BusinessMonthRangeOptions): BusinessMonthRange` and `getBusinessYearMonth({ businessTimezone, now }: BusinessYearMonthOptions): string`; the range result includes resolved `month`/`year`, `startOfMonth`, and `startOfNextMonth` as UTC JS `Date` instances.
+- Return the resolved calendar month/year plus UTC `Date` boundaries for the half-open local-month range; add a narrowly scoped helper for the current business `YYYYMM` identifier component.
+- Derive offsets from the named zone for every call. Do not accept a numeric UTC offset, use host-local `Date` component getters, format API response dates, or wrap ordinary `new Date()` timestamp creation.
+
+**`src/date-time/date-time.utils.spec.ts` - Create**
+
+- Cover explicit and default calendar fields, Mexico City local-month boundaries, partial month/year defaults, a DST-changing IANA zone regression, and the business-zone `YYYYMM` result at a UTC month boundary.
+
 **`serverless.yml` - Modify `provider.environment` after `NODE_ENV` at lines 12-44**
 
 - Forward `BUSINESS_TIMEZONE: ${env:BUSINESS_TIMEZONE}` to production Lambda.
@@ -71,7 +84,12 @@
 
 **`.env-example` - Modify the variable template**
 
-- Add `BUSINESS_TIMEZONE=America/Mexico_City` with the other bootstrap variables. Do not expose or alter local secret values in `.env` or `.env.local`.
+- Add `BUSINESS_TIMEZONE=America/Mexico_City` with the other bootstrap variables. Do not expose or alter secret values in `.env`.
+
+**`.env.local` - Modify the local runtime configuration**
+
+- Add `BUSINESS_TIMEZONE=America/Mexico_City` so the existing `ConfigModule.forRoot({ envFilePath: '.env.local' })` bootstrap path passes the new required validation during local development and tests that load local configuration.
+- Preserve all existing local values; only add this non-secret setting.
 
 **`src/config.spec.ts` - Create**
 
@@ -87,12 +105,13 @@
 
 - Valid IANA zone acceptance, invalid zone rejection, and missing-value rejection.
 - Config object exposure of the validated zone.
+- Shared business-calendar range and `YYYYMM` helper behavior across local boundaries and a DST-changing zone.
 
 #### Success Criteria
 
-- `pnpm exec jest src/config.spec.ts --runInBand`
+- `pnpm exec jest src/config.spec.ts src/date-time/date-time.utils.spec.ts --runInBand`
 - `pnpm build`
-- Manually verify `BUSINESS_TIMEZONE=America/Mexico_City` is present in the environment files/secret source used by production and stage deployment before deploying.
+- Manually verify `BUSINESS_TIMEZONE=America/Mexico_City` is present in `.env.local` and the environment files/secret sources used by production and stage deployment before deploying.
 
 ### Phase 2 - Guide Month Query Semantics
 
@@ -100,13 +119,14 @@
 
 #### Changes Required
 
-**`src/guides/services/guides-db.service.ts` - Modify imports and `buildBaseQuery()` at lines 776-809**
+**`src/guides/services/guides-db.service.ts` - Modify imports, `buildBaseQuery()` at lines 776-809, and `generateKraftId()` at lines 870-887**
 
-- Import Luxon's `DateTime` and read the injected `configService` business timezone.
-- Replace host-local `new Date()` defaulting with named-zone current calendar values.
-- Replace `new Date(targetYear, targetMonth - 1, 1)` and last-millisecond end construction with named-zone local midnight start and next-month local midnight end, converted to JS `Date` instants.
+- Call the shared business-calendar utility with the injected `configService.businessTimezone` rather than importing Luxon or constructing date boundaries locally.
+- Replace host-local `new Date()` defaulting with the utility's named-zone current calendar values.
+- Use the utility's named-zone local-midnight UTC boundaries instead of `new Date(targetYear, targetMonth - 1, 1)` and last-millisecond end construction.
 - Set the automatic monthly MongoDB predicate as `{ $gte: startOfMonth, $lt: startOfNextMonth }`.
 - Retain status/provider/tracking filters, deleted filtering, and the existing conditional that uses caller-supplied `startDate`/`endDate` only when no month range is requested.
+- Generate the `KFT-YYYYMM` counter key from the shared utility's business-zone calendar component. Keep the counter `updatedAt: new Date()` value as a UTC timestamp; it is not a calendar interpretation.
 - Do not change `formatGuideResponse()` at lines 1152 onward: its `Date` assignments intentionally preserve the UTC wire contract.
 
 **`src/guides/services/guides-db.service.spec.ts` - Modify `getGuidesByUser` month tests at lines 369-426 and add focused cases nearby**
@@ -115,6 +135,7 @@
 - Assert June 2026's query boundaries are the UTC instants corresponding to Mexico City local midnight and use `$lt` for the next local month, replacing host-local `new Date(year, month, ...)` expectations.
 - Test the February 2026 boundary: `2026-02-01T05:59:59.999Z` is excluded and `2026-02-01T06:00:00.000Z` is included for `month=2&year=2026`.
 - Test the omitted month/year path with a mocked current instant near a Mexico City month boundary, proving the configured zone determines the selected calendar month.
+- Test `generateKraftId()` immediately before and after a Mexico City local-month boundary, proving its counter key changes with the business calendar rather than the host-local calendar.
 - Add a named-zone DST regression using an IANA zone/date with an offset change, asserting adjacent local-month midnights produce the correct UTC range rather than a fixed offset. This proves the Luxon conversion logic even though current Mexico City rules have no seasonal DST.
 
 #### Edge Cases
@@ -139,10 +160,9 @@
 
 #### Changes Required
 
-**`src/balance/services/balance.service.ts` - Modify imports, `normalizeFilters()` at lines 400-417, and `monthRange()` at lines 420-428**
+**`src/balance/services/balance.service.ts` - Modify `normalizeFilters()` at lines 400-417 and `monthRange()` at lines 420-428**
 
-- Import Luxon's `DateTime` and use `configService.businessTimezone` to obtain default month/year when filters omit either value.
-- Build range boundaries from local midnight on the requested month's first day and the following month's first day, then convert both to UTC JS `Date` values.
+- Call the shared business-calendar utility with `configService.businessTimezone` to obtain default month/year and UTC bounds when filters omit either value.
 - Preserve the existing `{ $gte, $lt }` return type and use it unchanged in `getRequestsByUser()` (lines 94-126) and `getAllRequests()` (lines 128-160), so owner/admin/status behavior does not change.
 - Do not alter `formatRequest()`/`formatAdminRequest()` timestamp assignments: returned `Date` values must remain raw instants for JSON UTC serialization.
 
@@ -202,9 +222,12 @@
 
 ## Unresolved Questions
 
-None before backend implementation. Frontend implementation is an external, explicitly defined dependency rather than an unresolved policy decision.
+Frontend implementation is an external, explicitly defined dependency rather than an unresolved policy decision.
+
+Decide whether the backend must reject date-only `startDate`/`endDate` values that lack an ISO 8601 offset. Month/year filtering is fully covered by this plan; date-range filtering is consistent only when callers follow the agreed contract to submit offset-bearing ISO instants. The current DTO transforms any parseable date directly to a `Date`, so it cannot distinguish a date-only value from an explicitly UTC value after transformation.
 
 ## Decisions Beyond Research
 
 - Use half-open MongoDB month ranges (`$gte` / `$lt`) for both services; this removes the guide service's end-of-day millisecond sentinel while preserving the agreed inclusive-start/exclusive-next-midnight policy.
 - Add Luxon as a direct dependency because the lockfile's transitive copy is not a supported application dependency.
+- Reuse a shared business-calendar utility for filtering and calendar-derived IDs, but retain Mongoose timestamps and `new Date()` for persisting ordinary UTC instants. The audit found no other date-filter implementations to migrate.
