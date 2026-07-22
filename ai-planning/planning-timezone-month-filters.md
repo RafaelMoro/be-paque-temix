@@ -18,7 +18,7 @@
 ### Out of Scope
 
 - Converting stored MongoDB timestamps, changing API timestamp field types, or returning localized timestamp strings. UTC instants remain the persistence and wire contract.
-- Changing guide `startDate`/`endDate` semantics: they are already parsed as offset-bearing instants; the existing rule that explicit `month`/`year` takes precedence remains intact.
+- Changing the month/year precedence over guide `startDate`/`endDate`; explicit `month`/`year` remains authoritative when both filters are supplied.
 - Adding frontend source files or a browser-timezone fallback. The frontend repository must adopt the agreed Luxon policy separately.
 - Extending month/year policy to endpoints without an implemented month/year filter. Future date filters must reuse the shared utility when introduced.
 - Setting process-level `TZ`; application code must use the configured named zone directly.
@@ -40,6 +40,7 @@
 - For an omitted month/year, derive both calendar fields from `DateTime.now().setZone(businessTimezone)`, never from host-local `Date#getMonth()`/`getFullYear()`.
 - Response DTO fields stay typed as `Date`; Express serialization remains the canonical UTC ISO 8601 `Z` wire representation. No DTO shape change is needed.
 - Do not introduce a timestamp-creation wrapper: `new Date()` and Mongoose timestamps already create UTC-representable instants. The shared utility is intentionally limited to business-calendar interpretation, boundary construction, and calendar-based identifiers.
+- Guide date-range inputs must be ISO 8601 date-time strings with an explicit `Z` or numeric offset. Reject date-only and offset-free date-time strings at DTO validation, then parse accepted values to UTC instants in the shared utility before building MongoDB predicates.
 
 ## Phases
 
@@ -67,12 +68,14 @@
 
 - Add a small, pure Luxon utility for business-calendar operations. Its public functions must accept an object parameter containing `businessTimezone`, optional `month`/`year`, and an optional clock instant for deterministic tests.
 - Define `getBusinessMonthRange({ businessTimezone, month, year, now }: BusinessMonthRangeOptions): BusinessMonthRange` and `getBusinessYearMonth({ businessTimezone, now }: BusinessYearMonthOptions): string`; the range result includes resolved `month`/`year`, `startOfMonth`, and `startOfNextMonth` as UTC JS `Date` instances.
+- Define `parseOffsetDateTime(value: string): Date`, which accepts only a valid ISO 8601 date-time string containing `Z` or a numeric UTC offset and returns its UTC JS `Date` instant. It must reject date-only and offset-free strings rather than applying a default timezone.
 - Return the resolved calendar month/year plus UTC `Date` boundaries for the half-open local-month range; add a narrowly scoped helper for the current business `YYYYMM` identifier component.
 - Derive offsets from the named zone for every call. Do not accept a numeric UTC offset, use host-local `Date` component getters, format API response dates, or wrap ordinary `new Date()` timestamp creation.
 
 **`src/date-time/date-time.utils.spec.ts` - Create**
 
 - Cover explicit and default calendar fields, Mexico City local-month boundaries, partial month/year defaults, a DST-changing IANA zone regression, and the business-zone `YYYYMM` result at a UTC month boundary.
+- Cover valid `Z`/numeric-offset date-time parsing plus rejection of date-only, offset-free, and malformed inputs.
 
 **`serverless.yml` - Modify `provider.environment` after `NODE_ENV` at lines 12-44**
 
@@ -125,9 +128,15 @@
 - Replace host-local `new Date()` defaulting with the utility's named-zone current calendar values.
 - Use the utility's named-zone local-midnight UTC boundaries instead of `new Date(targetYear, targetMonth - 1, 1)` and last-millisecond end construction.
 - Set the automatic monthly MongoDB predicate as `{ $gte: startOfMonth, $lt: startOfNextMonth }`.
-- Retain status/provider/tracking filters, deleted filtering, and the existing conditional that uses caller-supplied `startDate`/`endDate` only when no month range is requested.
+- Retain status/provider/tracking filters, deleted filtering, and the existing conditional that uses caller-supplied `startDate`/`endDate` only when no month range is requested; parse accepted raw range strings with `parseOffsetDateTime()` before assigning `$gte`/`$lte` predicates.
 - Generate the `KFT-YYYYMM` counter key from the shared utility's business-zone calendar component. Keep the counter `updatedAt: new Date()` value as a UTC timestamp; it is not a calendar interpretation.
 - Do not change `formatGuideResponse()` at lines 1152 onward: its `Date` assignments intentionally preserve the UTC wire contract.
+
+**`src/guides/dtos/guides-db.dto.ts` - Modify `GetGuidesQueryDto.startDate` and `.endDate` at lines 51-59**
+
+- Change the query DTO fields to preserve raw request strings through validation rather than transforming them immediately to `Date`.
+- Add validation and Swagger format/examples requiring ISO 8601 date-time values with an explicit `Z` or numeric offset. Date-only values such as `2026-02-01` and offset-free date-times such as `2026-02-01T00:00:00` must receive a validation 400 response.
+- Keep the service responsible for converting validated strings to UTC instants; do not add browser/local timezone fallback behavior to the DTO.
 
 **`src/guides/services/guides-db.service.spec.ts` - Modify `getGuidesByUser` month tests at lines 369-426 and add focused cases nearby**
 
@@ -136,6 +145,7 @@
 - Test the February 2026 boundary: `2026-02-01T05:59:59.999Z` is excluded and `2026-02-01T06:00:00.000Z` is included for `month=2&year=2026`.
 - Test the omitted month/year path with a mocked current instant near a Mexico City month boundary, proving the configured zone determines the selected calendar month.
 - Test `generateKraftId()` immediately before and after a Mexico City local-month boundary, proving its counter key changes with the business calendar rather than the host-local calendar.
+- Add DTO/service coverage accepting `2026-02-01T00:00:00-06:00` and `2026-02-01T06:00:00Z`, while rejecting date-only, offset-free, and malformed range values before a MongoDB query is built.
 - Add a named-zone DST regression using an IANA zone/date with an offset change, asserting adjacent local-month midnights produce the correct UTC range rather than a fixed offset. This proves the Luxon conversion logic even though current Mexico City rules have no seasonal DST.
 
 #### Edge Cases
@@ -146,7 +156,7 @@
 #### Test Coverage
 
 - Explicit month/year range, implicit current-month selection, January/February rollover, local-boundary inclusion/exclusion, and DST-offset conversion.
-- Existing start/end-date precedence and UTC `Date` response serialization remain unchanged.
+- Month/year precedence, explicit-offset date-range filtering, rejected ambiguous date inputs, and UTC `Date` response serialization.
 
 #### Success Criteria
 
@@ -222,12 +232,11 @@
 
 ## Unresolved Questions
 
-Frontend implementation is an external, explicitly defined dependency rather than an unresolved policy decision.
-
-Decide whether the backend must reject date-only `startDate`/`endDate` values that lack an ISO 8601 offset. Month/year filtering is fully covered by this plan; date-range filtering is consistent only when callers follow the agreed contract to submit offset-bearing ISO instants. The current DTO transforms any parseable date directly to a `Date`, so it cannot distinguish a date-only value from an explicitly UTC value after transformation.
+None. Frontend implementation is an external, explicitly defined dependency rather than an unresolved policy decision.
 
 ## Decisions Beyond Research
 
 - Use half-open MongoDB month ranges (`$gte` / `$lt`) for both services; this removes the guide service's end-of-day millisecond sentinel while preserving the agreed inclusive-start/exclusive-next-midnight policy.
 - Add Luxon as a direct dependency because the lockfile's transitive copy is not a supported application dependency.
 - Reuse a shared business-calendar utility for filtering and calendar-derived IDs, but retain Mongoose timestamps and `new Date()` for persisting ordinary UTC instants. The audit found no other date-filter implementations to migrate.
+- Reject date-only and offset-free guide date-range inputs instead of guessing a timezone. Valid date ranges are explicit UTC instants before MongoDB receives them.
