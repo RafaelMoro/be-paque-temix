@@ -74,6 +74,7 @@
     "@types/aws-lambda": "^8.10.152",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/luxon": "^3.7.2",
     "@types/mongodb": "^4.0.7",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
