@@ -1,3 +1,9 @@
+## v1.7.0 (2026-07-22)
+
+### Pull Requests
+[#99](https://github.com/RafaelMoro/be-paque-temix/pull/99) | Add timezone configuration
+
+
 ## v1.6.0 (2026-07-21)
 
 ### Pull Requests
