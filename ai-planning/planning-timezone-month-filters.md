@@ -44,6 +44,13 @@
 
 ## Phases
 
+## Implementation Checklist
+
+- [x] Phase 1 - Runtime Timezone Contract
+- [ ] Phase 2 - Guide Month Query Semantics
+- [ ] Phase 3 - Balance Request Month Query Semantics
+- [ ] Phase 4 - Frontend Contract Handoff
+
 ### Phase 1 - Runtime Timezone Contract
 
 **Goal:** Make the business timezone explicit, validated, typed, and available in deployed Lambda environments.

@@ -50,6 +50,7 @@
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
     "joi": "^17.13.3",
+    "luxon": "^3.7.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.4",
     "passport": "^0.7.0",
