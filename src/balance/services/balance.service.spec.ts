@@ -1,10 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpStatus } from '@nestjs/common';
 import { KraftError } from '@/guides/kraft-error';
 import {
+  BAL_AUTH_001,
+  BAL_AUTH_002,
   BAL_BUS_001,
+  BAL_NF_001,
   MAX_SAFE_MONEY_CENTS,
   MSG_BALANCE_INSUFFICIENT_FUNDS,
+  MSG_BALANCE_REQUEST_FORBIDDEN,
+  MSG_BALANCE_REQUEST_NOT_FOUND,
+  MSG_BALANCE_USER_NOT_AUTHENTICATED,
 } from '../balance.constants';
 import { getBusinessMonthRange } from '@/date-time/date-time.utils';
 import { BalanceCaller } from '../balance.interface';
@@ -107,6 +112,35 @@ describe('BalanceService', () => {
       expect.objectContaining({ amount: 1.15, status: 'pending' }),
     );
     expect(result.data.request).not.toHaveProperty('adminInCharge');
+  });
+
+  it('includes the requestId in the created-request notification payload', async () => {
+    requestModel.create.mockResolvedValue(request);
+    usersService.findAdmins.mockResolvedValue([{ email: admin.email }]);
+
+    await service.createRequest(caller, {
+      amount: 1.159,
+      paymentReference: 'SPEI-123',
+    });
+
+    expect(mailService.sendBalanceRequestCreatedEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: 'request-id' }),
+    );
+  });
+
+  it('resolves createRequest even when the notification email fails', async () => {
+    requestModel.create.mockResolvedValue(request);
+    usersService.findAdmins.mockResolvedValue([{ email: admin.email }]);
+    mailService.sendBalanceRequestCreatedEmail.mockRejectedValue(
+      new Error('Resend failed'),
+    );
+
+    await expect(
+      service.createRequest(caller, {
+        amount: 1.159,
+        paymentReference: 'SPEI-123',
+      }),
+    ).resolves.toMatchObject({ data: { request: { status: 'pending' } } });
   });
 
   it('reads an implicit zero balance without creating a wallet', async () => {
@@ -244,9 +278,15 @@ describe('BalanceService', () => {
   });
 
   it('approves and credits a request in a single transaction', async () => {
-    const approvedRequest = { ...request, status: 'approved', adminInCharge: admin.email };
+    const approvedRequest = {
+      ...request,
+      status: 'approved',
+      adminInCharge: admin.email,
+    };
     const session = { id: 'session' };
-    connection.transaction.mockImplementation(async (callback: any) => callback(session));
+    connection.transaction.mockImplementation(async (callback: any) =>
+      callback(session),
+    );
     requestModel.findOneAndUpdate.mockReturnValue(query(approvedRequest));
     balanceModel.findOneAndUpdate.mockReturnValue(
       query({ amountInCents: 115 }),
@@ -298,11 +338,16 @@ describe('BalanceService', () => {
       query({ ...request, status: 'cancelled' }),
     );
 
-    await expect(service.cancelRequest('request-id', caller)).resolves.toMatchObject({
+    await expect(
+      service.cancelRequest('request-id', caller),
+    ).resolves.toMatchObject({
       data: { request: { status: 'cancelled' } },
     });
     await expect(
-      service.cancelRequest('request-id', { ...caller, email: 'other@example.com' }),
+      service.cancelRequest('request-id', {
+        ...caller,
+        email: 'other@example.com',
+      }),
     ).rejects.toMatchObject({ status: HttpStatus.FORBIDDEN });
     expect(mailService.sendBalanceRequestDecisionEmail).not.toHaveBeenCalled();
   });
@@ -322,13 +367,83 @@ describe('BalanceService', () => {
     balanceModel.findOneAndUpdate.mockReturnValue(query(null));
     await expect(
       service.debitBalance({ userEmail: caller.email, amount: 1 }),
-    ).rejects.toMatchObject({ code: BAL_BUS_001, message: MSG_BALANCE_INSUFFICIENT_FUNDS });
+    ).rejects.toMatchObject({
+      code: BAL_BUS_001,
+      message: MSG_BALANCE_INSUFFICIENT_FUNDS,
+    });
+  });
+
+  it('lets an admin fetch another user request by id in admin shape', async () => {
+    requestModel.findById.mockReturnValue(query(request));
+
+    await expect(
+      service.getRequestByIdAdmin(admin, '507f1f77bcf86cd799439011'),
+    ).resolves.toMatchObject({
+      data: {
+        request: {
+          userEmail: caller.email,
+          userName: 'Jane Doe',
+          adminInCharge: null,
+        },
+      },
+    });
+    expect(requestModel.findById).toHaveBeenCalledWith(
+      '507f1f77bcf86cd799439011',
+    );
+  });
+
+  it('forbids a non-admin caller from fetching a request by id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(caller, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_AUTH_002,
+      message: MSG_BALANCE_REQUEST_FORBIDDEN,
+      status: HttpStatus.FORBIDDEN,
+    });
+    expect(requestModel.findById).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication to fetch a request by id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(undefined, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_AUTH_001,
+      message: MSG_BALANCE_USER_NOT_AUTHENTICATED,
+      status: HttpStatus.UNAUTHORIZED,
+    });
+  });
+
+  it('returns 404 when no request matches a well-formed id', async () => {
+    requestModel.findById.mockReturnValue(query(null));
+
+    await expect(
+      service.getRequestByIdAdmin(admin, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_NF_001,
+      message: MSG_BALANCE_REQUEST_NOT_FOUND,
+      status: HttpStatus.NOT_FOUND,
+    });
+  });
+
+  it('returns 404 instead of a database error for a malformed id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(admin, 'not-an-object-id'),
+    ).rejects.toMatchObject({
+      code: BAL_NF_001,
+      message: MSG_BALANCE_REQUEST_NOT_FOUND,
+      status: HttpStatus.NOT_FOUND,
+    });
+    expect(requestModel.findById).not.toHaveBeenCalled();
   });
 
   it('does not approve a credit that exceeds the safe wallet limit', async () => {
     const session = { id: 'session' };
-    connection.transaction.mockImplementation(async (callback: any) => callback(session));
-    requestModel.findOneAndUpdate.mockReturnValue(query({ ...request, amountInCents: 1 }));
+    connection.transaction.mockImplementation(async (callback: any) =>
+      callback(session),
+    );
+    requestModel.findOneAndUpdate.mockReturnValue(
+      query({ ...request, amountInCents: 1 }),
+    );
     balanceModel.findOneAndUpdate.mockReturnValue(
       query({ amountInCents: MAX_SAFE_MONEY_CENTS + 1 }),
     );

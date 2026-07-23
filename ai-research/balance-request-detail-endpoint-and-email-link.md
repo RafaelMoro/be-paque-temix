@@ -21,6 +21,11 @@ Two coupled deliverables:
   this story.
 - **Email:** Full link change — add `requestId` to the mail flow, build the URL,
   and replace the informational text with a `Link` button (ResetPassword pattern).
+- **Email content:** Keep the existing amount, payment reference, and request-date
+  details. Label the new button `Ver solicitud`.
+- **Invalid identifiers:** Both a malformed Mongo ObjectId and a well-formed id
+  with no matching request return `BAL_NF_001` / `MSG_BALANCE_REQUEST_NOT_FOUND`
+  with HTTP 404.
 
 ## Acceptance criteria
 
@@ -28,24 +33,24 @@ Two coupled deliverables:
    `AdminBalanceRequestResponseDto` envelope (admin detail: `userEmail`,
    `userName`, `adminInCharge` plus base fields). Admin can read any user's request.
 2. Non-admins are rejected by `RolesGuard` (403); unauthenticated requests are
-   rejected by `JwtGuard` (401). A missing/invalid id returns `BAL_NF_001` /
-   `MSG_BALANCE_REQUEST_NOT_FOUND` (404) via `KraftError`, not a raw 500.
+   rejected by `JwtGuard` (401). A malformed Mongo ObjectId or an id with no
+   matching request returns `BAL_NF_001` / `MSG_BALANCE_REQUEST_NOT_FOUND` (404)
+   via `KraftError`, not a raw 500.
 3. The `BalanceRequestCreated` email renders a link button pointing to
    `${FRONTEND_URI}/dashboard/requests/{requestId}`.
 4. `requestId` (the request `_id`) flows from `notifyRequestCreated` → mail DTO →
    email template props; email failure still does not fail request creation.
-5. Existing behavior (amount, payment reference, created date content) preserved
-   as decided (button added, existing detail lines kept per "Button only" was
-   not chosen — full link change replaces the CTA area while keeping detail lines).
+5. Existing amount, payment reference, and created-date content is preserved,
+   with a `Ver solicitud` button added as the CTA.
 
 ## Affected files & modules
 
 ### API endpoint (BalanceModule)
 - `src/balance/controllers/balance.controller.ts` — add `@Get('requests/admin/:id')`.
-  **Ordering constraint:** must be declared after the static `@Get('requests/admin')`
-  (list) route and after `@Get('requests')`, but the `/admin/:id` prefix avoids
-  colliding with `requests/:id`-style dynamic matching. Extract `req.user as
-  BalanceCaller` and pass raw to the service (controllers stay thin).
+  Keep the static `@Get('requests/admin')` list route distinct from the detail
+  route. The current exact `@Get('requests')` route does not collide with either.
+  Extract `req.user as BalanceCaller` and pass raw to the service (controllers
+  stay thin).
 - `src/balance/services/balance.service.ts` — add a public method
   (e.g. `getRequestByIdAdmin(user, requestId)`) modeled on the find/not-found half
   of `cancelRequest` (lines 188-196) but using `getAdminCaller` (lines 387-398)
@@ -75,6 +80,10 @@ Two coupled deliverables:
 - `src/balance/services/balance.service.ts` — `notifyRequestCreated`
   (lines 468-490): add `requestId: request._id.toString()` to the payload
   (`request._id` already used at `formatRequest` line 432).
+- Existing verification surfaces affected by the contract changes:
+  `src/balance/controllers/balance.controller.spec.ts`,
+  `src/balance/services/balance.service.spec.ts`, and
+  `src/mail/services/mail.service.spec.ts`.
 
 ## Existing patterns to follow
 
@@ -116,13 +125,9 @@ Two coupled deliverables:
 
 ## Open questions
 
-1. Where should the deep-link URL be constructed — in `MailService`
-   (mirrors ResetPassword, template receives `url`) or in `notifyRequestCreated`
-   (template receives `requestId` and builds nothing)? Leaning toward MailService
-   for consistency with ResetPassword. **Planning decision.**
-2. Button label copy in Spanish (e.g. "Ver solicitud")? Confirm wording.
-3. Should the detail lines (amount/reference/date) remain alongside the new button?
-   (User picked "Full link change"; assumed detail lines stay, CTA added.)
+None. The internal location where the URL is assembled is a planning decision;
+the external contract is fixed to
+`${FRONTEND_URI}/dashboard/requests/{requestId}`.
 
 ## Assumptions
 

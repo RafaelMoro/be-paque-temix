@@ -71,6 +71,22 @@ export class BalanceController {
     );
   }
 
+  @Get('requests/admin/:id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get one balance request with admin scope' })
+  @ApiResponse({ status: 200, type: AdminBalanceRequestResponseDto })
+  async getAdminRequestById(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest,
+  ): Promise<AdminBalanceRequestResponseDto> {
+    return this.balanceService.getRequestByIdAdmin(
+      req.user as BalanceCaller | undefined,
+      id,
+    );
+  }
+
   @Get('requests')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List authenticated user balance requests' })

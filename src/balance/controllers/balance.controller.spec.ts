@@ -18,6 +18,7 @@ describe('BalanceController', () => {
     createRequest: jest.fn(),
     getRequestsByUser: jest.fn(),
     getAllRequests: jest.fn(),
+    getRequestByIdAdmin: jest.fn(),
     decideRequest: jest.fn(),
     cancelRequest: jest.fn(),
     getBalance: jest.fn(),
@@ -54,12 +55,18 @@ describe('BalanceController', () => {
     const query = { status: 'pending' } as any;
     const dto = { action: 'approve', paymentReference: 'SPEI-123' } as any;
     balanceService.getAllRequests.mockResolvedValue({} as any);
+    balanceService.getRequestByIdAdmin.mockResolvedValue({} as any);
     balanceService.decideRequest.mockResolvedValue({} as any);
 
     await controller.getAdminRequests(query, adminRequest);
+    await controller.getAdminRequestById('request-id', adminRequest);
     await controller.decideRequest('request-id', dto, adminRequest);
 
     expect(balanceService.getAllRequests).toHaveBeenCalledWith(admin, query);
+    expect(balanceService.getRequestByIdAdmin).toHaveBeenCalledWith(
+      admin,
+      'request-id',
+    );
     expect(balanceService.decideRequest).toHaveBeenCalledWith(
       'request-id',
       admin,
@@ -78,6 +85,12 @@ describe('BalanceController', () => {
       Reflect.getMetadata(
         GUARDS_METADATA,
         BalanceController.prototype.getAdminRequests,
+      ),
+    ).toEqual([JwtGuard, RolesGuard]);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        BalanceController.prototype.getAdminRequestById,
       ),
     ).toEqual([JwtGuard, RolesGuard]);
     expect(
