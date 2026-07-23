@@ -62,6 +62,10 @@ export default function BalanceRequestCreated({
                 </Link>
               </Column>
             </Row>
+            <Text className="text-sm text-gray-500 mt-4">
+              Ingresa a la plataforma para revisar y aprobar o rechazar esta
+              solicitud.
+            </Text>
           </Container>
         </Body>
       </Tailwind>
