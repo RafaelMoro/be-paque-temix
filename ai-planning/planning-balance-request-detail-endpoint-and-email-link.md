@@ -138,3 +138,8 @@ Traces to AC 3, AC 4, AC 5.
 ## Unresolved questions before implementation
 
 None. Ready for sign-off.
+
+## Implementation checklist
+
+- [x] Phase 1 — Admin single-request detail endpoint (`getRequestByIdAdmin` service method, `GET /balance/requests/admin/:id` route, unit tests). `pnpm build` and `pnpm test -- balance` pass.
+- [ ] Phase 2 — Balance request email deep link (DTO `requestId`, mail service URL assembly, email template CTA, `notifyRequestCreated` payload).

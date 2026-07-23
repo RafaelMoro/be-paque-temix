@@ -2,9 +2,15 @@
 import { HttpStatus } from '@nestjs/common';
 import { KraftError } from '@/guides/kraft-error';
 import {
+  BAL_AUTH_001,
+  BAL_AUTH_002,
   BAL_BUS_001,
+  BAL_NF_001,
   MAX_SAFE_MONEY_CENTS,
   MSG_BALANCE_INSUFFICIENT_FUNDS,
+  MSG_BALANCE_REQUEST_FORBIDDEN,
+  MSG_BALANCE_REQUEST_NOT_FOUND,
+  MSG_BALANCE_USER_NOT_AUTHENTICATED,
 } from '../balance.constants';
 import { getBusinessMonthRange } from '@/date-time/date-time.utils';
 import { BalanceCaller } from '../balance.interface';
@@ -323,6 +329,69 @@ describe('BalanceService', () => {
     await expect(
       service.debitBalance({ userEmail: caller.email, amount: 1 }),
     ).rejects.toMatchObject({ code: BAL_BUS_001, message: MSG_BALANCE_INSUFFICIENT_FUNDS });
+  });
+
+  it('lets an admin fetch another user request by id in admin shape', async () => {
+    requestModel.findById.mockReturnValue(query(request));
+
+    await expect(
+      service.getRequestByIdAdmin(admin, '507f1f77bcf86cd799439011'),
+    ).resolves.toMatchObject({
+      data: {
+        request: {
+          userEmail: caller.email,
+          userName: 'Jane Doe',
+          adminInCharge: null,
+        },
+      },
+    });
+    expect(requestModel.findById).toHaveBeenCalledWith(
+      '507f1f77bcf86cd799439011',
+    );
+  });
+
+  it('forbids a non-admin caller from fetching a request by id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(caller, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_AUTH_002,
+      message: MSG_BALANCE_REQUEST_FORBIDDEN,
+      status: HttpStatus.FORBIDDEN,
+    });
+    expect(requestModel.findById).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication to fetch a request by id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(undefined, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_AUTH_001,
+      message: MSG_BALANCE_USER_NOT_AUTHENTICATED,
+      status: HttpStatus.UNAUTHORIZED,
+    });
+  });
+
+  it('returns 404 when no request matches a well-formed id', async () => {
+    requestModel.findById.mockReturnValue(query(null));
+
+    await expect(
+      service.getRequestByIdAdmin(admin, '507f1f77bcf86cd799439011'),
+    ).rejects.toMatchObject({
+      code: BAL_NF_001,
+      message: MSG_BALANCE_REQUEST_NOT_FOUND,
+      status: HttpStatus.NOT_FOUND,
+    });
+  });
+
+  it('returns 404 instead of a database error for a malformed id', async () => {
+    await expect(
+      service.getRequestByIdAdmin(admin, 'not-an-object-id'),
+    ).rejects.toMatchObject({
+      code: BAL_NF_001,
+      message: MSG_BALANCE_REQUEST_NOT_FOUND,
+      status: HttpStatus.NOT_FOUND,
+    });
+    expect(requestModel.findById).not.toHaveBeenCalled();
   });
 
   it('does not approve a credit that exceeds the safe wallet limit', async () => {

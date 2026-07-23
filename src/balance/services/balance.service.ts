@@ -1,7 +1,7 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Connection, Model } from 'mongoose';
+import { ClientSession, Connection, isValidObjectId, Model } from 'mongoose';
 import config from '@/config';
 import { getBusinessMonthRange } from '@/date-time/date-time.utils';
 import { KraftError } from '@/guides/kraft-error';
@@ -217,6 +217,36 @@ export class BalanceService {
       if (!cancelled) throw this.invalidStateError();
 
       return this.envelope({ request: this.formatRequest(cancelled) });
+    } catch (error) {
+      this.rethrowDatabaseError(error);
+    }
+  }
+
+  async getRequestByIdAdmin(
+    user: BalanceCaller | undefined,
+    requestId: string,
+  ): Promise<AdminBalanceRequestResponseDto> {
+    try {
+      this.getAdminCaller(user);
+      if (!isValidObjectId(requestId)) {
+        throw new KraftError(
+          BAL_NF_001,
+          MSG_BALANCE_REQUEST_NOT_FOUND,
+          undefined,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      const request = await this.balanceRequestModel.findById(requestId).exec();
+      if (!request) {
+        throw new KraftError(
+          BAL_NF_001,
+          MSG_BALANCE_REQUEST_NOT_FOUND,
+          undefined,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return this.envelope({ request: this.formatAdminRequest(request) });
     } catch (error) {
       this.rethrowDatabaseError(error);
     }
