@@ -60,6 +60,10 @@ export class MailBalanceRequestCreatedDto {
 
   @IsDate()
   readonly createdAt: Date;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly requestId: string;
 }
 
 export class MailBalanceRequestDecisionDto {

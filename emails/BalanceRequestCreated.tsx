@@ -1,10 +1,13 @@
 import * as React from 'react';
 import {
   Body,
+  Column,
   Container,
   Head,
   Heading,
   Html,
+  Link,
+  Row,
   Tailwind,
   Text,
 } from '@react-email/components';
@@ -14,6 +17,7 @@ interface BalanceRequestCreatedProps {
   amount: number;
   paymentReference?: string;
   createdAt: Date;
+  url: string;
 }
 
 const formatAmount = (amount: number): string =>
@@ -27,6 +31,7 @@ export default function BalanceRequestCreated({
   amount,
   paymentReference,
   createdAt,
+  url,
 }: BalanceRequestCreatedProps): React.JSX.Element {
   return (
     <Html>
@@ -47,6 +52,16 @@ export default function BalanceRequestCreated({
             <Text>
               Fecha de solicitud: {createdAt.toLocaleDateString('es-MX')}
             </Text>
+            <Row className="my-0 mx-auto">
+              <Column align="center">
+                <Link
+                  href={url}
+                  className="text-white bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 text-center max-w-min"
+                >
+                  Ver solicitud
+                </Link>
+              </Column>
+            </Row>
           </Container>
         </Body>
       </Tailwind>

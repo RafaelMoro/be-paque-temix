@@ -518,6 +518,7 @@ export class BalanceService {
         amount: fromMoneyCents(request.amountInCents),
         paymentReference: request.paymentReference,
         createdAt: request.createdAt,
+        requestId: request._id.toString(),
       };
       await this.mailService.sendBalanceRequestCreatedEmail(payload);
     } catch (error) {

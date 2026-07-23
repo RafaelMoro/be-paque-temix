@@ -54,8 +54,9 @@ export class MailService {
     try {
       const resend = new Resend(this.configService.mail.resendApiKey);
       const emailSender = this.configService.mail.mailerMail!;
+      const url = `${this.configService.frontend.uri}/dashboard/requests/${payload.requestId}`;
       const emailHtml = await render(
-        React.createElement(BalanceRequestCreated, payload),
+        React.createElement(BalanceRequestCreated, { ...payload, url }),
       );
 
       await resend.emails.send({

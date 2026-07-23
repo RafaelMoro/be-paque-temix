@@ -80,15 +80,16 @@ describe('MailService', () => {
       amount: 150.5,
       paymentReference: 'SPEI-123',
       createdAt: new Date('2026-07-21T12:00:00.000Z'),
+      requestId: 'request-id-123',
     };
     mockSend.mockResolvedValue({ success: true });
 
     await service.sendBalanceRequestCreatedEmail(payload);
 
-    expect(React.createElement).toHaveBeenCalledWith(
-      BalanceRequestCreated,
-      payload,
-    );
+    expect(React.createElement).toHaveBeenCalledWith(BalanceRequestCreated, {
+      ...payload,
+      url: 'https://example.com/dashboard/requests/request-id-123',
+    });
     expect(mockSend).toHaveBeenCalledWith({
       from: 'noreply@example.com',
       to: payload.adminEmails,

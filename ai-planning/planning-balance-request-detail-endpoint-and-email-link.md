@@ -142,4 +142,4 @@ None. Ready for sign-off.
 ## Implementation checklist
 
 - [x] Phase 1 — Admin single-request detail endpoint (`getRequestByIdAdmin` service method, `GET /balance/requests/admin/:id` route, unit tests). `pnpm build` and `pnpm test -- balance` pass.
-- [ ] Phase 2 — Balance request email deep link (DTO `requestId`, mail service URL assembly, email template CTA, `notifyRequestCreated` payload).
+- [x] Phase 2 — Balance request email deep link (DTO `requestId`, mail service URL assembly, email template CTA, `notifyRequestCreated` payload). `pnpm build` and full `pnpm test` pass (685/685, 39 suites) — the mail-service and jwt-guard suites flagged as pre-existing failures in AGENTS.md now pass too.
