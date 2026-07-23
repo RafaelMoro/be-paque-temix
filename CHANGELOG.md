@@ -1,3 +1,9 @@
+## v1.8.0 (2026-07-23)
+
+### Pull Requests
+[#100](https://github.com/RafaelMoro/be-paque-temix/pull/100) | Add single balance request admin endpoint
+
+
 ## v1.7.0 (2026-07-22)
 
 ### Pull Requests
