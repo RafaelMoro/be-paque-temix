@@ -5,6 +5,7 @@ import { ConfigType } from '@nestjs/config';
 import * as React from 'react';
 
 import config from '@/config';
+import { LOCAL_ENV } from '@/app.constant';
 import {
   MailBalanceRequestCreatedDto,
   MailBalanceRequestDecisionDto,
@@ -20,6 +21,18 @@ export class MailService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
+  private getFrontendBaseUrl(): string {
+    const { frontend, environment } = this.configService;
+    const { uri = 'http://localhost', port = '3000' } = frontend;
+    const normalizedUri = uri.replace(/\/+$/, '');
+
+    if (environment === LOCAL_ENV && !/:\d+$/.test(normalizedUri)) {
+      return `${normalizedUri}:${port}`;
+    }
+
+    return normalizedUri;
+  }
+
   async sendUserForgotPasswordEmail(
     payload: MailForgotPasswordDto,
   ): Promise<void> {
@@ -28,7 +41,7 @@ export class MailService {
       const emailSender = this.configService.mail.mailerMail!;
 
       const { oneTimeToken, email, name, lastName } = payload;
-      const url = `${this.configService.frontend.uri}/reset-password/${oneTimeToken}`;
+      const url = `${this.getFrontendBaseUrl()}/reset-password/${oneTimeToken}`;
 
       const emailHtml = await render(
         React.createElement(ResetPassword, { name, lastName, url }),
@@ -54,7 +67,7 @@ export class MailService {
     try {
       const resend = new Resend(this.configService.mail.resendApiKey);
       const emailSender = this.configService.mail.mailerMail!;
-      const url = `${this.configService.frontend.uri}/dashboard/requests/${payload.requestId}`;
+      const url = `${this.getFrontendBaseUrl()}/dashboard/requests/${payload.requestId}`;
       const emailHtml = await render(
         React.createElement(BalanceRequestCreated, { ...payload, url }),
       );
