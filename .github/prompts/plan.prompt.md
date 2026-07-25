@@ -8,8 +8,8 @@ You are running the **planning phase** for a story or task. Input is a completed
 
 ## Inputs
 
-- A research doc path, e.g. `ai-research/{story-name}.md`
-- If none is provided, list available `ai-research/*.md` files and ask which one to plan
+- A research doc path, e.g. `ai-research/{story-name}.research.md`
+- If none is provided, list available `ai-research/*.research.md` files and ask which one to plan
 
 ## Steps
 
@@ -41,7 +41,7 @@ You are running the **planning phase** for a story or task. Input is a completed
    - Exact automated commands using `pnpm`
    - Manual verification steps when applicable
 8. Specify test coverage areas, not test code.
-9. Write `ai-planning/planning-{story-name}.md`.
+9. Write `ai-planning/{story-name}.planning.md`.
 
 ## Optional Memory
 
