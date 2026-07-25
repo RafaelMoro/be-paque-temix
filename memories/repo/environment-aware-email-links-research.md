@@ -22,14 +22,25 @@ it — it rebuilds the URL from `configService.frontend.uri` directly
 (`mail.service.ts:31`). The env-aware behavior people assume exists has never
 actually shipped.
 
-## There are four env files, not three
+## `.env` was a fourth env file — now obsolete
 
-`.env` (gitignored, present locally) holds `NODE_ENV="production"` with
-`FRONTEND_URI="http://localhost"`. It is what `pnpm dev:sls` / Serverless Offline
-reads — a local run that reports itself as production. Any `NODE_ENV`-based
-"am I local?" check has to account for it or `dev:sls` gets prod behavior.
+`.env` (gitignored, present locally) held `NODE_ENV="production"` with
+`FRONTEND_URI="http://localhost"` — a local run that reported itself as production.
+It is what `pnpm dev:sls` / Serverless Offline picked up via Serverless Framework's
+default `.env` loading. Decision: `.env` is dropped; `dev:sls` must load `.env.local`
+explicitly (`dotenv-cli` is already a devDependency, same pattern as
+`deploy-stage` / `deploy-prod`).
 
 `.env.stage` and `.env.prod` are gitignored and absent from the dev machine; they
 are only materialized by `dotenv -e .env.stage|.env.prod` in the deploy scripts.
+
+## Stage is a sandbox that mirrors local
+
+`.env.stage` already carries `NODE_ENV=development` — it intentionally mimics
+`.env.local`'s values, the way sbx environments do. So the three-value scheme
+(`local` / `development` / `production`) only actually changes `.env.local`, and
+stage behavior (provider token slot, cookie `secure` flag, T1 store) is untouched.
+The corollary: any check meant to mean "not production" must accept **both**
+`local` and `development`.
 
 See [[balance-feature-research]] for the balance-request email flow this touches.
