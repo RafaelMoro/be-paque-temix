@@ -1,3 +1,9 @@
+## v1.9.0 (2026-07-25)
+
+### Pull Requests
+[#101](https://github.com/RafaelMoro/be-paque-temix/pull/101) | Add link dynamic link  to emails
+
+
 ## v1.8.0 (2026-07-23)
 
 ### Pull Requests
