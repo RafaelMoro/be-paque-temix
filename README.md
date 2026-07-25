@@ -43,7 +43,7 @@ npm install
 
 ## Environment Configuration
 
-Create a `.env` file in the root directory based on `.env-example`:
+Create a `.env.local` file in the root directory based on `.env-example`:
 
 ```bash
 # Database

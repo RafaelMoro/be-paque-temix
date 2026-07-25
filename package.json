@@ -15,7 +15,7 @@
     "start": "node ./dist/main.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start",
-    "dev:sls": "serverless offline start",
+    "dev:sls": "dotenv -e .env.local -- serverless offline start",
     "dev:debug": "serverless dev",
     "build:sls": "serverless package",
     "email": "email dev",
