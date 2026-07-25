@@ -60,7 +60,6 @@ describe('MailService', () => {
   it('sends password reset emails', async () => {
     const payload: MailForgotPasswordDto = {
       email: 'test@example.com',
-      hostname: 'https://test.com',
       oneTimeToken: 'test-token-123',
       name: 'John',
       lastName: 'Doe',
@@ -85,7 +84,6 @@ describe('MailService', () => {
   describe('frontend base URL resolution', () => {
     const forgotPasswordPayload: MailForgotPasswordDto = {
       email: 'test@example.com',
-      hostname: 'https://test.com',
       oneTimeToken: 'test-token-123',
       name: 'John',
       lastName: 'Doe',

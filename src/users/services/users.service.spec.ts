@@ -418,7 +418,6 @@ describe('UsersService', () => {
       expect(mailService.sendUserForgotPasswordEmail).toHaveBeenCalledWith({
         email,
         name: mockUser.name,
-        hostname: 'http://localhost:3000',
         lastName: mockUser.lastName,
         oneTimeToken: 'mockOneTimeToken123',
       });
@@ -431,28 +430,6 @@ describe('UsersService', () => {
       };
 
       expect(result).toEqual(expectedResponse);
-    });
-
-    it('should use production hostname in production environment', async () => {
-      configService.environment = 'production';
-      const email = 'test@example.com';
-      userModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUser),
-      } as any);
-      userModel.updateOne.mockResolvedValue({} as any);
-      mailService.sendUserForgotPasswordEmail.mockResolvedValue(undefined);
-
-      const payload: ForgotPasswordBodyDto = { email };
-      await service.forgotPassword(payload);
-
-      expect(mailService.sendUserForgotPasswordEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hostname: 'http://localhost',
-        }),
-      );
-
-      // Reset environment
-      configService.environment = 'development';
     });
 
     it('should throw BadRequestException when user not found (wrapped NotFoundException)', async () => {
