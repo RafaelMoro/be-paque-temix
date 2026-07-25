@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Test, TestingModule } from '@nestjs/testing';
 import BalanceRequestCreated from '../../../emails/BalanceRequestCreated';
 import BalanceRequestDecision from '../../../emails/BalanceRequestDecision';
+import ResetPassword from '../../../emails/ResetPassword';
 import config from '@/config';
 import {
   MailBalanceRequestCreatedDto,
@@ -26,6 +27,7 @@ jest.mock('@react-email/render', () => ({
 
 describe('MailService', () => {
   let service: MailService;
+  let configService: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -40,13 +42,15 @@ describe('MailService', () => {
               resendApiKey: 'test-resend-api-key',
               mailerMail: 'noreply@example.com',
             },
-            frontend: { uri: 'https://example.com' },
+            frontend: { uri: 'https://example.com', port: '3000' },
+            environment: 'production',
           },
         },
       ],
     }).compile();
 
     service = module.get<MailService>(MailService);
+    configService = module.get(config.KEY);
   });
 
   afterEach(() => {
@@ -65,11 +69,135 @@ describe('MailService', () => {
 
     await service.sendUserForgotPasswordEmail(payload);
 
+    expect(React.createElement).toHaveBeenCalledWith(ResetPassword, {
+      name: payload.name,
+      lastName: payload.lastName,
+      url: 'https://example.com/reset-password/test-token-123',
+    });
     expect(mockSend).toHaveBeenCalledWith({
       from: 'noreply@example.com',
       to: payload.email,
       subject: 'Recupera tu contraseña en Kraft Envios',
       html: 'MockRenderedEmail',
+    });
+  });
+
+  describe('frontend base URL resolution', () => {
+    const forgotPasswordPayload: MailForgotPasswordDto = {
+      email: 'test@example.com',
+      hostname: 'https://test.com',
+      oneTimeToken: 'test-token-123',
+      name: 'John',
+      lastName: 'Doe',
+    };
+    const balanceRequestPayload: MailBalanceRequestCreatedDto = {
+      adminEmails: ['admin@example.com'],
+      requesterName: 'Jane Doe',
+      amount: 150.5,
+      paymentReference: 'SPEI-123',
+      createdAt: new Date('2026-07-21T12:00:00.000Z'),
+      requestId: 'request-id-123',
+    };
+
+    beforeEach(() => {
+      mockSend.mockResolvedValue({ success: true });
+    });
+
+    it('builds links on http://localhost:3000 when environment is local', async () => {
+      configService.environment = 'local';
+      configService.frontend = { uri: 'http://localhost', port: '3000' };
+
+      await service.sendUserForgotPasswordEmail(forgotPasswordPayload);
+      await service.sendBalanceRequestCreatedEmail(balanceRequestPayload);
+
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        1,
+        ResetPassword,
+        expect.objectContaining({
+          url: 'http://localhost:3000/reset-password/test-token-123',
+        }),
+      );
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        2,
+        BalanceRequestCreated,
+        expect.objectContaining({
+          url: 'http://localhost:3000/dashboard/requests/request-id-123',
+        }),
+      );
+    });
+
+    it('builds links on FRONTEND_URI with no port when environment is development', async () => {
+      configService.environment = 'development';
+      configService.frontend = { uri: 'https://stage.example.com', port: '3000' };
+
+      await service.sendUserForgotPasswordEmail(forgotPasswordPayload);
+      await service.sendBalanceRequestCreatedEmail(balanceRequestPayload);
+
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        1,
+        ResetPassword,
+        expect.objectContaining({
+          url: 'https://stage.example.com/reset-password/test-token-123',
+        }),
+      );
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        2,
+        BalanceRequestCreated,
+        expect.objectContaining({
+          url: 'https://stage.example.com/dashboard/requests/request-id-123',
+        }),
+      );
+    });
+
+    it('builds links on FRONTEND_URI with no port when environment is production', async () => {
+      configService.environment = 'production';
+      configService.frontend = { uri: 'https://example.com', port: '3000' };
+
+      await service.sendUserForgotPasswordEmail(forgotPasswordPayload);
+      await service.sendBalanceRequestCreatedEmail(balanceRequestPayload);
+
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        1,
+        ResetPassword,
+        expect.objectContaining({
+          url: 'https://example.com/reset-password/test-token-123',
+        }),
+      );
+      expect(React.createElement).toHaveBeenNthCalledWith(
+        2,
+        BalanceRequestCreated,
+        expect.objectContaining({
+          url: 'https://example.com/dashboard/requests/request-id-123',
+        }),
+      );
+    });
+
+    it('does not duplicate the port when environment is local and FRONTEND_URI already has one', async () => {
+      configService.environment = 'local';
+      configService.frontend = { uri: 'http://localhost:3000', port: '3000' };
+
+      await service.sendUserForgotPasswordEmail(forgotPasswordPayload);
+
+      expect(React.createElement).toHaveBeenCalledWith(
+        ResetPassword,
+        expect.objectContaining({
+          url: 'http://localhost:3000/reset-password/test-token-123',
+        }),
+      );
+    });
+
+    it('does not produce a double slash when FRONTEND_URI has a trailing slash', async () => {
+      configService.environment = 'production';
+      configService.frontend = { uri: 'https://example.com/', port: '3000' };
+
+      await service.sendUserForgotPasswordEmail(forgotPasswordPayload);
+
+      expect(React.createElement).toHaveBeenCalledWith(
+        ResetPassword,
+        expect.objectContaining({
+          url: 'https://example.com/reset-password/test-token-123',
+        }),
+      );
     });
   });
 
