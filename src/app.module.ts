@@ -22,6 +22,7 @@ import { AddressesModule } from './addresses/addresses.module';
 import { GuidesModule } from './guides/guides.module';
 import { BalanceModule } from './balance/balance.module';
 import { businessTimezoneSchema } from './config.validation';
+import { DEV_ENV, LOCAL_ENV, PROD_ENV } from './app.constant';
 
 @Module({
   imports: [
@@ -36,7 +37,7 @@ import { businessTimezoneSchema } from './config.validation';
         MONGO_PWD: Joi.string().required(),
         MONGO_DB_NAME: Joi.string().required(),
         MONGO_CONNECTION: Joi.string().required(),
-        NODE_ENV: Joi.string().required(),
+        NODE_ENV: Joi.string().valid(LOCAL_ENV, DEV_ENV, PROD_ENV).required(),
         BUSINESS_TIMEZONE: businessTimezoneSchema,
         JWT_KEY: Joi.string().required(),
         ONE_TIME_JWT_KEY: Joi.string().required(),

@@ -58,7 +58,7 @@ These were checked against the working tree during planning and change the plan'
 
 ## Implementation Checklist
 
-- [ ] Phase 1 - Three-value `NODE_ENV` contract and T1 store guard
+- [x] Phase 1 - Three-value `NODE_ENV` contract and T1 store guard
 - [ ] Phase 2 - Centralized frontend base URL in `MailService`
 - [ ] Phase 3 - Remove the dead `hostname` plumbing
 - [ ] Phase 4 - Env-file and script hygiene

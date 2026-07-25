@@ -36,7 +36,7 @@ import { calculateTotalQuotes } from '@/quotes/quotes.utils';
 import { ProviderGuidePayload } from '@/guides/guides.interface';
 import { ExtApiGetQuoteResponse } from '@/quotes/quotes.interface';
 import { GeneralInfoDbService } from '@/general-info-db/services/general-info-db.service';
-import { DEV_ENV, PROD_ENV } from '@/app.constant';
+import { NON_PROD_ENVS, PROD_ENV } from '@/app.constant';
 import {
   TokenManagerService,
   TokenOperations,
@@ -399,7 +399,9 @@ export class T1Service {
     if (!storeId || !defaultStoreId) {
       throw new BadRequestException(T1_MISSING_STORE_ID_ERROR);
     }
-    const currentStoreId = environment === DEV_ENV ? defaultStoreId : storeId;
+    const currentStoreId = NON_PROD_ENVS.includes(environment ?? '')
+      ? defaultStoreId
+      : storeId;
 
     return {
       uri,
