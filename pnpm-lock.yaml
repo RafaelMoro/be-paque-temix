@@ -65,6 +65,9 @@ importers:
       joi:
         specifier: ^17.13.3
         version: 17.13.3
+      luxon:
+        specifier: ^3.7.2
+        version: 3.7.2
       mongodb:
         specifier: ^6.17.0
         version: 6.21.0
@@ -129,6 +132,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@types/luxon':
+        specifier: ^3.7.2
+        version: 3.7.2
       '@types/mongodb':
         specifier: ^4.0.7
         version: 4.0.7
@@ -1957,6 +1963,9 @@ packages:
 
   '@types/jsonwebtoken@9.0.10':
     resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
+
+  '@types/luxon@3.7.2':
+    resolution: {integrity: sha512-gW+Oib+vUtGJBtNC8V9Reww0oIpusw+4m81uncg9REGZAJfqOQHfo/nkabnc7w0QReXyPqjrbWMJk6NuAkiX3Q==}
 
   '@types/methods@1.1.4':
     resolution: {integrity: sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==}
@@ -7127,6 +7136,8 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
       '@types/node': 22.19.19
+
+  '@types/luxon@3.7.2': {}
 
   '@types/methods@1.1.4': {}
 

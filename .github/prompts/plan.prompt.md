@@ -8,8 +8,8 @@ You are running the **planning phase** for a story or task. Input is a completed
 
 ## Inputs
 
-- A research doc path, e.g. `ai-research/{story-name}.md`
-- If none is provided, list available `ai-research/*.md` files and ask which one to plan
+- A research doc path, e.g. `ai-research/{story-name}.research.md`
+- If none is provided, list available `ai-research/*.research.md` files and ask which one to plan
 
 ## Steps
 
@@ -36,11 +36,12 @@ You are running the **planning phase** for a story or task. Input is a completed
    - Function signatures, key logic, and critical conditionals
    - Non-obvious edge cases
    - Short rationale only when useful
+   - **Respect the scaffolding convention in `.github/IMPLEMENTATION_GUIDELINES.md`:** when a phase introduces a new NestJS module, service, or controller, plan it as a Nest CLI generation step (`nest g mo <name>`, `nest g s <name>/<name>`, `nest g co <name>/<name>`) rather than a manual file "create". Note that `nest g mo` also registers the module in `AppModule`, so downstream root-registration steps become a **verify**, not a hand edit. Mark the remaining files the CLI does not scaffold (entities, DTOs, constants, interfaces, utils, email templates) as hand-authored "create"/"populate" actions.
 7. Specify success criteria per phase:
    - Exact automated commands using `pnpm`
    - Manual verification steps when applicable
 8. Specify test coverage areas, not test code.
-9. Write `ai-planning/planning-{story-name}.md`.
+9. Write `ai-planning/{story-name}.planning.md`.
 
 ## Optional Memory
 

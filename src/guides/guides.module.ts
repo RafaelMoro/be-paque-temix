@@ -14,6 +14,7 @@ import { T1Module } from '@/t1/t1.module';
 import { PakkeModule } from '@/pakke/pakke.module';
 import { ManuableModule } from '@/manuable/manuable.module';
 import { UsersModule } from '@/users/users.module';
+import { BalanceModule } from '@/balance/balance.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from '@/users/users.module';
     PakkeModule,
     ManuableModule,
     UsersModule,
+    BalanceModule,
   ],
   controllers: [GuidesController, GuidesDbController],
   providers: [GuidesService, GuidesDbService],

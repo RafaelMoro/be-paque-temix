@@ -34,7 +34,7 @@ You are running the **research phase** of a project. Gather information, ask cla
    - Single feature or cross-feature?
    - Any specific areas to focus on?
    - Any task-specific ambiguity?
-8. Write `ai-research/{story-name}.md`.
+8. Write `ai-research/{story-name}.research.md`.
 
 ## Research Doc Contents
 

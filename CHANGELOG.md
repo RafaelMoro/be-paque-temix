@@ -1,3 +1,45 @@
+## v1.9.0 (2026-07-25)
+
+### Pull Requests
+[#101](https://github.com/RafaelMoro/be-paque-temix/pull/101) | Add link dynamic link  to emails
+
+
+## v1.8.0 (2026-07-23)
+
+### Pull Requests
+[#100](https://github.com/RafaelMoro/be-paque-temix/pull/100) | Add single balance request admin endpoint
+
+
+## v1.7.0 (2026-07-22)
+
+### Pull Requests
+[#99](https://github.com/RafaelMoro/be-paque-temix/pull/99) | Add timezone configuration
+
+
+## v1.6.0 (2026-07-21)
+
+### Pull Requests
+[#98](https://github.com/RafaelMoro/be-paque-temix/pull/98) | Add balance feature
+
+
+## v1.5.0 (2026-07-19)
+
+### Pull Requests
+[#97](https://github.com/RafaelMoro/be-paque-temix/pull/97) | Enhance guides db endpoints
+
+
+## v1.4.0 (2026-07-17)
+
+### Pull Requests
+[#96](https://github.com/RafaelMoro/be-paque-temix/pull/96) | Add Create guide db with mock without getting external providers
+
+
+## v1.3.1 (2026-07-14)
+
+### Pull Requests
+[#95](https://github.com/RafaelMoro/be-paque-temix/pull/95) | Fix patch guide db on empty DTO
+
+
 ## v1.3.0 (2026-07-06)
 
 ### Pull Requests

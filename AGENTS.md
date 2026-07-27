@@ -7,7 +7,7 @@
 
 ## Environment
 
-- Copy `.env-example` to `.env` and fill **all** values. The app validates env vars via Joi in `src/app.module.ts` on every bootstrap, so a missing key crashes startup.
+- Copy `.env-example` to `.env.local` and fill **all** values. The app validates env vars via Joi in `src/app.module.ts` on every bootstrap, so a missing key crashes startup.
 - Required keys (verify against `src/app.module.ts`):
   - `NODE_ENV`, `PORT`
   - `CLUSTER`, `MONGO_CLUSTER_SUFFIX`, `MONGO_USER`, `MONGO_PWD`, `MONGO_DB_NAME`, `MONGO_CONNECTION`
@@ -22,7 +22,7 @@
 
 ## Entry points
 
-- Local dev: `src/main.ts` → loads `.env` with `process.loadEnvFile()`, listens on `PORT` (default 3000).
+- Local dev: `src/main.ts` → loads `.env.local` with `process.loadEnvFile()`, listens on `PORT` (default 3000).
 - Lambda: `lambda.ts` → only loads `.env` when `NODE_ENV !== 'production'`. Uses `@codegenie/serverless-express` wrapping the Nest app.
 
 ## Common commands

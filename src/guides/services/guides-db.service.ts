@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, FilterQuery, Model, Types } from 'mongoose';
 import { ConfigType } from '@nestjs/config';
 import { Inject } from '@nestjs/common';
 import axios from 'axios';
 import { Guide, GuideDoc } from '../entities/guide.entity';
 import { KraftIdCounter } from '../entities/kraft-id-counter.entity';
-import { CreateGuideDto } from '../dtos/guides-db.dto';
+import { CreateGuideDto, CreateGuideQueryDto } from '../dtos/guides-db.dto';
 import {
   GuideResponseDto,
   PaginatedGuidesResponseDto,
@@ -32,6 +32,17 @@ import { T1Service } from '@/t1/services/t1.service';
 import { PakkeService } from '@/pakke/services/pakke.service';
 import { ManuableService } from '@/manuable/services/manuable.service';
 import { UsersService } from '@/users/services/users.service';
+import { BalanceService } from '@/balance/services/balance.service';
+import { fromMoneyCents, toMoneyCents } from '@/balance/balance.utils';
+import {
+  getBusinessMonthRange,
+  getBusinessYearMonth,
+  parseOffsetDateTime,
+} from '@/date-time/date-time.utils';
+import {
+  BAL_BUS_001,
+  MSG_BALANCE_INSUFFICIENT_FUNDS,
+} from '@/balance/balance.constants';
 import { ProviderSource } from '@/global.interface';
 import config from '@/config';
 import * as CONST from '../guides-db.constants';
@@ -47,15 +58,27 @@ export class GuidesDbService {
     private readonly pakkeService: PakkeService,
     private readonly manuableService: ManuableService,
     private readonly usersService: UsersService,
+    private readonly balanceService: BalanceService,
+    @InjectConnection() private connection: Connection,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
   ) {}
 
   async createGuide(
-    user: { email?: string } | undefined,
+    user: { email?: string; role?: string[] } | undefined,
     payload: CreateGuideDto,
+    options?: CreateGuideQueryDto,
   ): Promise<GuideResponseDto> {
     try {
       if (!user?.email) {
+        throw new KraftError(
+          CONST.GDE_AUTH_001,
+          CONST.MSG_USER_NOT_AUTHENTICATED,
+        );
+      }
+
+      const isMock = !!options?.mock;
+      const isAdminBypass = !isMock && options?.bypassBalance === true;
+      if (isAdminBypass && !user.role?.includes('admin')) {
         throw new KraftError(
           CONST.GDE_AUTH_001,
           CONST.MSG_USER_NOT_AUTHENTICATED,
@@ -68,33 +91,101 @@ export class GuidesDbService {
       }
 
       const kraftId = await this.generateKraftId();
-      const providerResult = await this.callProviderApi(payload);
-
+      const normalizedTotal = fromMoneyCents(toMoneyCents(payload.quote.total));
       const guide = await this.guideModel.create({
         userId: dbUser._id,
         kraftId,
         provider: payload.provider,
-        status: providerResult.success ? 'created' : 'failed',
-        externalId: providerResult.externalId || null,
-        isProviderTrackingSynced: !!providerResult.externalId,
+        status: 'waiting',
+        balanceChargeStatus: isMock
+          ? 'bypassed'
+          : isAdminBypass
+            ? 'admin_bypassed'
+            : 'pending',
+        externalId: null,
+        isProviderTrackingSynced: false,
         origin: payload.origin,
         destination: payload.destination,
         parcel: payload.parcel,
-        quoteData: { quote: payload.quote },
-        labelUrl: providerResult.labelUrl,
-        failureInfo: providerResult.success
-          ? undefined
-          : {
-              errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
-              errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
-              providerResponse: providerResult.response || {},
-              timestamp: new Date(),
-            },
+        quoteData: { quote: { ...payload.quote, total: normalizedTotal } },
         retries: { retryAttempts: [], retryCount: 0 },
         comments: [],
       });
 
-      return this.formatGuideResponse(guide, false, providerResult);
+      if (!isMock && !isAdminBypass) {
+        try {
+          await this.balanceService.assertSufficientBalance(
+            user.email,
+            normalizedTotal,
+          );
+          const debitAmountInCents = toMoneyCents(normalizedTotal);
+          await this.connection.transaction(async (session) => {
+            await this.balanceService.debitBalance({
+              userEmail: user.email!,
+              amount: normalizedTotal,
+              session,
+            });
+            const marked = await this.guideModel.findByIdAndUpdate(
+              guide._id,
+              {
+                balanceChargeStatus: 'debited',
+                balanceDebitAmountInCents: debitAmountInCents,
+                balanceDebitedAt: new Date(),
+              },
+              { new: true, session },
+            );
+            if (!marked) throw new Error('Guide debit marker update failed');
+          });
+        } catch (error) {
+          if (error instanceof KraftError && error.code === BAL_BUS_001) {
+            await this.markInsufficientGuide(guide._id);
+            throw error;
+          }
+          throw error;
+        }
+      }
+
+      let providerResult: ProviderResult;
+      try {
+        providerResult = isMock
+          ? this.mockProviderResult(options.mock!, kraftId)
+          : await this.callProviderApi(payload);
+      } catch (error) {
+        await this.guideModel.findByIdAndUpdate(guide._id, {
+          status: 'failed',
+          failureInfo: {
+            errorDetails:
+              error instanceof KraftError
+                ? error.userMessage
+                : CONST.MSG_PROVIDER_ERROR,
+            errorCode:
+              error instanceof KraftError ? error.code : CONST.GDE_PVR_001,
+            providerResponse: {},
+            timestamp: new Date(),
+          },
+        });
+        throw error;
+      }
+      const updated = await this.guideModel.findByIdAndUpdate(
+        guide._id,
+        {
+          status: providerResult.success ? 'created' : 'failed',
+          externalId: providerResult.externalId || null,
+          isProviderTrackingSynced: !!providerResult.externalId,
+          labelUrl: providerResult.labelUrl,
+          failureInfo: providerResult.success
+            ? null
+            : {
+                errorDetails: providerResult.error || CONST.MSG_PROVIDER_ERROR,
+                errorCode: providerResult.errorCode || CONST.GDE_PVR_001,
+                providerResponse: providerResult.response || {},
+                timestamp: new Date(),
+              },
+        },
+        { new: true },
+      );
+
+      return this.formatGuideResponse(updated ?? guide, false, providerResult);
     } catch (error) {
       if (error instanceof KraftError) throw error;
       throw new KraftError(
@@ -183,6 +274,43 @@ export class GuidesDbService {
       notifyMe: false,
     };
 
+    if (guide.balanceChargeStatus === 'insufficient') {
+      const total = guide.quoteData.quote?.total;
+      if (total === undefined) {
+        throw new KraftError(CONST.GDE_RTL_001, CONST.MSG_NOT_ELIGIBLE_RETRY);
+      }
+      const dbUser = await this.usersService.findByEmail(user?.email!);
+      if (!dbUser) {
+        throw new KraftError(CONST.GDE_AUTH_001, CONST.MSG_USER_NOT_FOUND);
+      }
+      try {
+        await this.balanceService.assertSufficientBalance(user!.email!, total);
+        const debitAmountInCents = toMoneyCents(total);
+        await this.connection.transaction(async (session) => {
+          await this.balanceService.debitBalance({
+            userEmail: user!.email!,
+            amount: total,
+            session,
+          });
+          const marked = await this.guideModel.findByIdAndUpdate(
+            guide._id,
+            {
+              balanceChargeStatus: 'debited',
+              balanceDebitAmountInCents: debitAmountInCents,
+              balanceDebitedAt: new Date(),
+            },
+            { new: true, session },
+          );
+          if (!marked) throw new Error('Guide debit marker update failed');
+        });
+      } catch (error) {
+        if (error instanceof KraftError && error.code === BAL_BUS_001) {
+          await this.markInsufficientGuide(guide._id);
+        }
+        throw error;
+      }
+    }
+
     const providerResult = await this.callProviderApi(
       retryPayload as unknown as CreateGuideDto,
     );
@@ -230,6 +358,15 @@ export class GuidesDbService {
     eligible: boolean;
     reason?: string;
   } {
+    if (guide.status !== 'failed') {
+      return { eligible: false, reason: CONST.MSG_NOT_ELIGIBLE_RETRY };
+    }
+    if (
+      guide.balanceChargeStatus === 'pending' ||
+      guide.balanceChargeStatus === 'bypassed'
+    ) {
+      return { eligible: false, reason: CONST.MSG_NOT_ELIGIBLE_RETRY };
+    }
     if (guide.retries.retryCount >= CONST.RETRY_MAX_ATTEMPTS) {
       return {
         eligible: false,
@@ -344,22 +481,82 @@ export class GuidesDbService {
    */
   async updateGuideData(
     guideId: string,
-    user: { email?: string } | undefined,
+    user: { email?: string; role?: string[] } | undefined,
     dto: UpdateGuideDto,
   ): Promise<GuideResponseDto> {
     try {
+      if (Object.keys(dto).length === 0) {
+        throw new KraftError(CONST.GDE_BDN_013, CONST.MSG_EMPTY_UPDATE_PAYLOAD);
+      }
+
       const userId = await this.getUserId(user);
+      const isAdmin = user?.role?.includes('admin') ?? false;
       const guide = await this.findAccessibleGuide({
         guideId,
         userId,
-        isAdmin: false,
+        isAdmin,
       });
+
+      const isSameQuote =
+        String(dto.quote?.id ?? guide.quoteData.quote!.id) ===
+        String(guide.quoteData.quote!.id);
+
+      if (isSameQuote) {
+        const hasForbiddenQuoteField = Object.keys(dto.quote ?? {}).some(
+          (field) => field !== 'id',
+        );
+        const hasForbiddenParcelField = Object.keys(dto.parcel ?? {}).some(
+          (field) => field !== 'content' && field !== 'satProductId',
+        );
+        if (
+          dto.origin ||
+          dto.destination ||
+          dto.notifyMe !== undefined ||
+          hasForbiddenQuoteField ||
+          hasForbiddenParcelField
+        ) {
+          throw new KraftError(
+            CONST.GDE_BUS_008,
+            CONST.MSG_INVALID_SAME_QUOTE_UPDATE,
+          );
+        }
+
+        const contentChanged =
+          dto.parcel?.content !== undefined &&
+          dto.parcel.content !== guide.parcel.content;
+        const satProductIdChanged =
+          dto.parcel?.satProductId !== undefined &&
+          dto.parcel.satProductId !== guide.parcel.satProductId;
+        if (!contentChanged && !satProductIdChanged) {
+          throw new KraftError(
+            CONST.GDE_BDN_013,
+            CONST.MSG_EMPTY_UPDATE_PAYLOAD,
+          );
+        }
+      } else if (dto.parcel) {
+        const requiredParcelFields = [
+          dto.parcel.length,
+          dto.parcel.width,
+          dto.parcel.height,
+          dto.parcel.weight,
+          dto.parcel.content,
+          dto.parcel.satProductId,
+        ];
+        if (requiredParcelFields.some((field) => field === undefined)) {
+          throw new KraftError(
+            CONST.GDE_BUS_008,
+            CONST.MSG_INCOMPLETE_CHANGED_QUOTE_PARCEL,
+          );
+        }
+      }
 
       // Build merged payload for the provider call
       const mergedPayload = {
         provider: guide.provider as ProviderSource,
         quote: dto.quote ?? guide.quoteData.quote,
-        parcel: dto.parcel ?? guide.parcel,
+        parcel: isSameQuote
+          ? { ...guide.parcel, ...dto.parcel }
+          : (dto.parcel ?? guide.parcel),
         origin: dto.origin ?? guide.origin,
         destination: dto.destination ?? guide.destination,
         notifyMe: dto.notifyMe ?? false,
@@ -380,7 +577,16 @@ export class GuidesDbService {
       // Build DB update — only fields that were provided
       const setFields: Record<string, unknown> = {};
       if (dto.quote) setFields['quoteData.quote'] = dto.quote;
-      if (dto.parcel) setFields.parcel = dto.parcel;
+      if (isSameQuote) {
+        if (dto.parcel?.content !== undefined) {
+          setFields['parcel.content'] = dto.parcel.content;
+        }
+        if (dto.parcel?.satProductId !== undefined) {
+          setFields['parcel.satProductId'] = dto.parcel.satProductId;
+        }
+      } else if (dto.parcel) {
+        setFields.parcel = dto.parcel;
+      }
       if (dto.origin) setFields.origin = dto.origin;
       if (dto.destination) setFields.destination = dto.destination;
 
@@ -492,6 +698,19 @@ export class GuidesDbService {
     }
   }
 
+  private async markInsufficientGuide(guideId: Types.ObjectId): Promise<void> {
+    await this.guideModel.findByIdAndUpdate(guideId, {
+      status: 'failed',
+      balanceChargeStatus: 'insufficient',
+      failureInfo: {
+        errorDetails: MSG_BALANCE_INSUFFICIENT_FUNDS,
+        errorCode: BAL_BUS_001,
+        providerResponse: {},
+        timestamp: new Date(),
+      },
+    });
+  }
+
   private async fetchProviderStatus(
     provider: string,
     trackingNumber: string,
@@ -556,22 +775,27 @@ export class GuidesDbService {
       ];
     }
 
-    // Default to current month/year when not provided, so results are scoped
-    // and don't return a large unbounded set.
-    // Month/year filter takes precedence over startDate/endDate.
-    const now = new Date();
-    const targetMonth = filters.month || now.getMonth() + 1;
-    const targetYear = filters.year || now.getFullYear();
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
-    if (filters.startDate || filters.endDate) {
+    const hasMonthRange =
+      filters.month !== undefined || filters.year !== undefined;
+
+    if (!hasMonthRange && (filters.startDate || filters.endDate)) {
       query.createdAt = {};
       if (filters.startDate)
-        (query.createdAt as Record<string, Date>).$gte = filters.startDate;
+        (query.createdAt as Record<string, Date>).$gte = parseOffsetDateTime(
+          filters.startDate,
+        );
       if (filters.endDate)
-        (query.createdAt as Record<string, Date>).$lte = filters.endDate;
+        (query.createdAt as Record<string, Date>).$lte = parseOffsetDateTime(
+          filters.endDate,
+        );
     } else {
-      query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
+      // Default to the configured business month so results stay bounded.
+      const { startOfMonth, startOfNextMonth } = getBusinessMonthRange({
+        businessTimezone: this.configService.businessTimezone!,
+        month: filters.month,
+        year: filters.year,
+      });
+      query.createdAt = { $gte: startOfMonth, $lt: startOfNextMonth };
     }
 
     return query;
@@ -654,8 +878,9 @@ export class GuidesDbService {
   }
 
   async generateKraftId(): Promise<string> {
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const yearMonth = getBusinessYearMonth({
+      businessTimezone: this.configService.businessTimezone!,
+    });
 
     try {
       const counter = await this.kraftIdCounterModel.findOneAndUpdate(
@@ -714,6 +939,26 @@ export class GuidesDbService {
     }
   }
 
+  private mockProviderResult(
+    mock: NonNullable<CreateGuideQueryDto['mock']>,
+    kraftId: string,
+  ): ProviderResult {
+    if (mock === 'success') {
+      return {
+        success: true,
+        externalId: `MOCK-${kraftId}`,
+        labelUrl: 'https://example.com/mock-label.pdf',
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Mock provider failure',
+      errorCode: CONST.GDE_PVR_001,
+      response: { mock },
+    };
+  }
+
   /**
    * Converts a thrown error from a provider into a failure ProviderResult.
    * Extracts structured response data (axios or Nest HttpException) so the
@@ -729,7 +974,11 @@ export class GuidesDbService {
     return {
       success: false,
       error: errorDetails,
-      errorCode: this.mapProviderErrorToKraftCode(error, provider),
+      errorCode: this.mapProviderErrorToKraftCode(
+        error,
+        provider,
+        responseData,
+      ),
       response: responseData ?? this.fallbackResponse(error),
     };
   }
@@ -825,6 +1074,7 @@ export class GuidesDbService {
   private mapProviderErrorToKraftCode(
     error: unknown,
     provider?: string,
+    responseData: Record<string, unknown> | null = null,
   ): string {
     const err = error as {
       code?: string;
@@ -837,7 +1087,8 @@ export class GuidesDbService {
     if (err.code === 'ENOTFOUND') return CONST.GDE_NET_001;
     if (err.code === 'ETIMEDOUT') return CONST.GDE_TMOT_001;
     if (err.message?.includes('rate limit')) return CONST.GDE_RLIM_003;
-    if (this.isQuoteExpiredError(err, provider)) return CONST.GDE_PVR_006;
+    if (this.isQuoteExpiredError(err, provider, responseData))
+      return CONST.GDE_PVR_006;
     if (err.response?.status === 401) return CONST.GDE_PVR_003;
     if (err.response?.status === 400 && err.response?.data?.errors)
       return CONST.GDE_PVR_005;
@@ -861,13 +1112,24 @@ export class GuidesDbService {
       };
     },
     provider?: string,
+    responseData: Record<string, unknown> | null = null,
   ): boolean {
     if (provider !== 'Mn') return false;
+
+    const responseErrors = responseData?.errors as
+      | { reason?: unknown }
+      | undefined;
 
     const text = [
       error.message,
       error.response?.data?.message,
       (error.response?.data?.errors as { reason?: string })?.reason,
+      typeof responseData?.message === 'string'
+        ? responseData.message
+        : undefined,
+      typeof responseErrors?.reason === 'string'
+        ? responseErrors.reason
+        : undefined,
     ]
       .filter(Boolean)
       .join(' ')

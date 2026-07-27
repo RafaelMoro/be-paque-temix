@@ -777,6 +777,53 @@ describe('T1Service', () => {
     });
   });
 
+  describe('checkUriAndStoreId', () => {
+    it('should resolve defaultStoreId when environment is local', async () => {
+      const serviceWithLocalConfig = await createServiceWithConfig({
+        ...mockConfig,
+        environment: 'local',
+      });
+
+      const { storeId } = (
+        serviceWithLocalConfig as unknown as {
+          checkUriAndStoreId: () => { storeId: string };
+        }
+      ).checkUriAndStoreId();
+
+      expect(storeId).toBe('default-store-id');
+    });
+
+    it('should resolve defaultStoreId when environment is development', async () => {
+      const serviceWithDevConfig = await createServiceWithConfig({
+        ...mockConfig,
+        environment: 'development',
+      });
+
+      const { storeId } = (
+        serviceWithDevConfig as unknown as {
+          checkUriAndStoreId: () => { storeId: string };
+        }
+      ).checkUriAndStoreId();
+
+      expect(storeId).toBe('default-store-id');
+    });
+
+    it('should resolve the real storeId when environment is production', async () => {
+      const serviceWithProdConfig = await createServiceWithConfig({
+        ...mockConfig,
+        environment: 'production',
+      });
+
+      const { storeId } = (
+        serviceWithProdConfig as unknown as {
+          checkUriAndStoreId: () => { storeId: string };
+        }
+      ).checkUriAndStoreId();
+
+      expect(storeId).toBe('test-store-id');
+    });
+  });
+
   describe('retrieveT1Guides', () => {
     const mockGuides: GetGuideResponse[] = [
       {

@@ -5,13 +5,16 @@ import {
   IsBoolean,
   IsNumber,
   IsOptional,
+  IsPositive,
   ValidateNested,
   Matches,
   IsEmail,
   Min,
+  Max,
+  IsISO8601,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import {
   QuoteAdjustmentMode,
   QuoteAdjustmentSourceReference,
@@ -47,19 +50,35 @@ export class GetGuidesQueryDto {
   @IsString()
   trackingNumber?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    format: 'date-time',
+    example: '2026-02-01T00:00:00-06:00',
+    description: 'ISO 8601 date-time with explicit Z or numeric UTC offset',
+  })
   @IsOptional()
-  @Type(() => Date)
-  startDate?: Date;
+  @IsString()
+  @IsISO8601({ strict: true })
+  @Matches(/T.*(?:Z|[+-]\d{2}:\d{2})$/)
+  startDate?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    format: 'date-time',
+    example: '2026-03-01T00:00:00-06:00',
+    description: 'ISO 8601 date-time with explicit Z or numeric UTC offset',
+  })
   @IsOptional()
-  @Type(() => Date)
-  endDate?: Date;
+  @IsString()
+  @IsISO8601({ strict: true })
+  @Matches(/T.*(?:Z|[+-]\d{2}:\d{2})$/)
+  endDate?: string;
 
   @ApiProperty({ required: false, minimum: 1, maximum: 12 })
   @IsOptional()
   @IsNumber()
+  @Min(1)
+  @Max(12)
   @Type(() => Number)
   month?: number;
 
@@ -68,6 +87,21 @@ export class GetGuidesQueryDto {
   @IsNumber()
   @Type(() => Number)
   year?: number;
+}
+
+export class CreateGuideQueryDto {
+  @ApiProperty({ required: false, enum: ['success', 'failed'] })
+  @IsOptional()
+  @IsEnum(['success', 'failed'])
+  mock?: 'success' | 'failed';
+
+  @ApiProperty({ required: false, type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) =>
+    value === undefined ? undefined : value === 'true' || value === true,
+  )
+  bypassBalance?: boolean;
 }
 
 export class GetAdminGuidesQueryDto extends GetGuidesQueryDto {
@@ -228,6 +262,52 @@ export class ParcelDto {
   quantity: number = 1;
 }
 
+export class UpdateParcelDto {
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  length?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  width?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  height?: number;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  weight?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  content?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  satProductId?: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  value?: number;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  quantity?: number;
+}
+
 export class QuoteSnapshotDto {
   @ApiProperty()
   @IsNotEmpty()
@@ -283,15 +363,25 @@ export class QuoteSnapshotDto {
   courier?: QuoteCourier | null;
 }
 
+export class CreateQuoteSnapshotDto extends OmitType(QuoteSnapshotDto, [
+  'total',
+] as const) {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsPositive()
+  total: number;
+}
+
 export class CreateGuideDto {
   @ApiProperty({ enum: ['GE', 'TONE', 'Pkk', 'Mn'] })
   @IsEnum(['GE', 'TONE', 'Pkk', 'Mn'])
   provider: 'GE' | 'TONE' | 'Pkk' | 'Mn';
 
-  @ApiProperty({ type: QuoteSnapshotDto, required: true })
+  @ApiProperty({ type: CreateQuoteSnapshotDto, required: true })
   @ValidateNested()
-  @Type(() => QuoteSnapshotDto)
-  quote: QuoteSnapshotDto;
+  @Type(() => CreateQuoteSnapshotDto)
+  quote: CreateQuoteSnapshotDto;
 
   @ApiProperty({ type: ParcelDto })
   @ValidateNested()
@@ -321,11 +411,11 @@ export class UpdateGuideDto {
   @IsOptional()
   quote?: QuoteSnapshotDto;
 
-  @ApiProperty({ required: false, type: ParcelDto })
+  @ApiProperty({ required: false, type: UpdateParcelDto })
   @ValidateNested()
-  @Type(() => ParcelDto)
+  @Type(() => UpdateParcelDto)
   @IsOptional()
-  parcel?: ParcelDto;
+  parcel?: UpdateParcelDto;
 
   @ApiProperty({ required: false, type: CreateGuideAddressDto })
   @ValidateNested()

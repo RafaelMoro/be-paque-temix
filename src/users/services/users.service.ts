@@ -35,7 +35,6 @@ import {
 import config from '@/config';
 import { ConfigType } from '@nestjs/config';
 import { MailForgotPasswordDto } from '@/mail/dtos/mail.dto';
-import { PROD_ENV } from '@/app.constant';
 import { generateJWT } from '../users.utils';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from '@/mail/services/mail.service';
@@ -53,7 +52,21 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<UserDoc | null> {
     try {
-      return this.userModel.findOne({ email }).exec();
+      return await this.userModel.findOne({ email }).exec();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('An unknown error occurred');
+    }
+  }
+
+  async findAdmins(): Promise<UserDoc[]> {
+    try {
+      return await this.userModel
+        .find({ role: 'admin' })
+        .select('email name lastName')
+        .exec();
     } catch (error) {
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
@@ -110,10 +123,6 @@ export class UsersService {
   async forgotPassword(payload: ForgotPasswordBodyDto) {
     try {
       const { email } = payload;
-      const { frontend, environment } = this.configService;
-      const { uri = 'http://localhost', port = '3000' } = frontend;
-      const completeHostname =
-        environment === PROD_ENV ? uri : `${uri}:${port}`;
 
       const user: UserDoc | null = await this.findByEmail(email);
       if (!user) throw new NotFoundException(USER_NOT_FOUND_ERROR);
@@ -125,7 +134,6 @@ export class UsersService {
       const emailPayload: MailForgotPasswordDto = {
         email,
         name,
-        hostname: completeHostname,
         lastName,
         oneTimeToken,
       };

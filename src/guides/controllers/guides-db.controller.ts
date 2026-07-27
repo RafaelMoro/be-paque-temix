@@ -23,6 +23,7 @@ import { Roles } from '@/auth/decorators/roles/roles.decorator';
 import { GuidesDbService } from '../services/guides-db.service';
 import {
   CreateGuideDto,
+  CreateGuideQueryDto,
   GetAdminGuidesQueryDto,
   GetGuidesQueryDto,
   AddCommentDto,
@@ -47,9 +48,10 @@ export class GuidesDbController {
   @ApiResponse({ status: 201, type: GuideResponseDto })
   async createGuide(
     @Body() createGuideDto: CreateGuideDto,
+    @Query() query: CreateGuideQueryDto,
     @Request() req: ExpressRequest,
   ): Promise<GuideResponseDto> {
-    return this.guidesDbService.createGuide(req.user, createGuideDto);
+    return this.guidesDbService.createGuide(req.user, createGuideDto, query);
   }
 
   @Get()

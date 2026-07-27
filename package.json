@@ -1,6 +1,6 @@
 {
   "name": "be-paque-temix",
-  "version": "1.3.0",
+  "version": "1.9.0",
   "description": "",
   "author": "Kraft Envios",
   "private": true,
@@ -15,7 +15,7 @@
     "start": "node ./dist/main.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start",
-    "dev:sls": "serverless offline start",
+    "dev:sls": "dotenv -e .env.local -- serverless offline start",
     "dev:debug": "serverless dev",
     "build:sls": "serverless package",
     "email": "email dev",
@@ -50,6 +50,7 @@
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
     "joi": "^17.13.3",
+    "luxon": "^3.7.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.4",
     "passport": "^0.7.0",
@@ -73,6 +74,7 @@
     "@types/aws-lambda": "^8.10.152",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/luxon": "^3.7.2",
     "@types/mongodb": "^4.0.7",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
@@ -112,7 +114,7 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)sx?$": "ts-jest"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

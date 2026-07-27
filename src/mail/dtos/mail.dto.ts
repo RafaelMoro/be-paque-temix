@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class MailForgotPasswordDto {
   @IsString()
@@ -7,11 +16,6 @@ export class MailForgotPasswordDto {
   @IsEmail()
   @ApiProperty({ example: 'example@mail.com' })
   readonly email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ example: 'https://my-api.com' })
-  readonly hostname: string;
 
   @IsString()
   @IsNotEmpty()
@@ -30,4 +34,50 @@ export class MailForgotPasswordDto {
   @IsNotEmpty()
   @ApiProperty({ example: 'Doe' })
   readonly lastName: string;
+}
+
+export class MailBalanceRequestCreatedDto {
+  @IsArray()
+  @IsEmail({}, { each: true })
+  readonly adminEmails: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  readonly requesterName: string;
+
+  @IsNumber()
+  readonly amount: number;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  readonly paymentReference?: string;
+
+  @IsDate()
+  readonly createdAt: Date;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly requestId: string;
+}
+
+export class MailBalanceRequestDecisionDto {
+  @IsEmail()
+  readonly email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly name: string;
+
+  @IsString()
+  @IsIn(['approved', 'rejected'])
+  readonly action: 'approved' | 'rejected';
+
+  @IsNumber()
+  readonly amount: number;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  readonly reason?: string;
 }
